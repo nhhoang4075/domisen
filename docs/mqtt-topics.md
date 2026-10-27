@@ -23,6 +23,22 @@ domisen/kitchen/gas/state           {"ppm_raw":1830,"alarm":true}
 domisen/entrance/door/cmd           {"open":true}
 ```
 
+## Đèn trần (#1, đã làm)
+
+Topic `domisen/living/ceiling-light/cmd` (nhận) và `.../state` (gửi, retain). `level` từ 0 đến 100.
+
+| Lệnh gửi | Kết quả |
+|---|---|
+| `{"on":true}` | Bật, dùng mức sáng đã nhớ (mặc định 100) |
+| `{"on":false}` | Tắt, nhớ mức sáng cũ |
+| `{"level":40}` | Đặt mức 40 và bật (nếu không kèm `on`) |
+| `{"on":true,"level":80}` | Bật ở mức 80 |
+| `{"level":0}` | Tắt, giữ mức cũ |
+
+Board trả lời bằng `.../state`: `{"on":true,"level":80}`. Gửi lại mỗi lần board nối lại broker, nên người mới đăng ký thấy ngay trạng thái hiện tại.
+
+Đấu dây: GPIO25, điện trở 220 ohm, chân dài (anode) của LED, chân ngắn (cathode) về GND. PWM 5 kHz, 10 bit, có bù gamma 2,2.
+
 ## Danh sách thiết bị (đề xuất, sửa nếu sai tên phòng)
 
 | # | Topic gốc | Board |

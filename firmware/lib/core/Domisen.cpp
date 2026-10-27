@@ -13,6 +13,7 @@ PubSubClient mqtt(net);
 String node;
 String statusTopic;
 CommandHandler handler = nullptr;
+void (*connectCallback)() = nullptr;
 
 constexpr size_t MAX_SUBS = 24;
 String subs[MAX_SUBS];
@@ -36,6 +37,7 @@ bool connectMqtt() {
   if (!ok) return false;
   mqtt.publish(statusTopic.c_str(), "online", true);
   for (size_t i = 0; i < subCount; i++) mqtt.subscribe(subs[i].c_str());
+  if (connectCallback) connectCallback();
   return true;
 }
 }  // namespace
@@ -51,6 +53,8 @@ void begin(const char* nodeId, CommandHandler onMsg) {
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setCallback(onMessage);
 }
+
+void onConnect(void (*callback)()) { connectCallback = callback; }
 
 void subscribe(const String& topic) {
   if (subCount < MAX_SUBS) subs[subCount++] = topic;

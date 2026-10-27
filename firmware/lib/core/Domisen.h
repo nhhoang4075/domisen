@@ -9,6 +9,8 @@ using CommandHandler = void (*)(const String& topic, const String& payload);
 // nodeId: tên board (guard, comfort), dùng làm MQTT client id, hostname WiFi (domisen-<nodeId>)
 // và trong topic trạng thái domisen/node/<nodeId>/status.
 void begin(const char* nodeId, CommandHandler onMessage);
+// Gọi hàm này mỗi lần (nối lại) vào broker xong, để gửi trạng thái hiện tại của các thiết bị.
+void onConnect(void (*callback)());
 // Gọi trong loop(). Tự nối lại WiFi và broker khi bị rớt.
 void loop();
 bool publish(const String& topic, const String& payload, bool retain = false);
