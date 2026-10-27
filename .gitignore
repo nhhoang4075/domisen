@@ -23,3 +23,6 @@ firmware/compile_commands.json
 
 # Tài khoản broker, mỗi máy tự tạo
 broker/passwd
+
+# Cache của clangd (Zed)
+firmware/.cache/
