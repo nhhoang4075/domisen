@@ -20,3 +20,6 @@ dist/
 # Sinh bởi firmware/tools/setup-editor.sh, chứa đường dẫn riêng của máy
 firmware/.clangd
 firmware/compile_commands.json
+
+# Tài khoản broker, mỗi máy tự tạo
+broker/passwd

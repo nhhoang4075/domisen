@@ -12,6 +12,7 @@ comfort (ESP32 B: khách, ngủ) ─┘
 | Thư mục | Nội dung |
 |---|---|
 | `firmware/` | PlatformIO, 2 board `guard` và `comfort`, code dùng chung ở `lib/core` |
+| `broker/` | Cấu hình Mosquitto (có mật khẩu), chạy giống nhau trên Mac và Windows |
 | `server/` | Nhận MQTT, lưu dữ liệu, API (chưa làm) |
 | `web/` | Dashboard (chưa làm) |
 | `docs/` | Bảng GPIO, quy ước MQTT, kế hoạch |
@@ -48,14 +49,14 @@ brew install --cask mqttx
 Có sẵn cùng Mosquitto, thấy mọi tin của dự án:
 
 ```bash
-mosquitto_sub -h localhost -t 'domisen/#' -v
+mosquitto_sub -h localhost -u domisen -P 'MẬT_KHẨU' -t 'domisen/#' -v
 ```
 
 ### Broker
 
 Cả nhóm dùng **chung một broker**, chạy trên máy của một người. Mọi người trỏ firmware tới IP máy đó.
-Cấu hình Mosquitto để board ngoài máy kết nối được là mở cổng cho cả mạng, nên chỉ làm trên WiFi tin cậy
-(WiFi nhà, hotspot điện thoại), không làm ở nơi công cộng. WiFi trường thường chặn kết nối giữa các máy.
+Cấu hình và cách chạy nằm ở [`broker/`](broker/README.md). Broker mở cổng cho cả mạng và đòi mật khẩu,
+nên chỉ bật ở WiFi tin cậy (WiFi nhà, hotspot điện thoại). WiFi trường thường chặn kết nối giữa các máy.
 
 ## Chạy firmware
 
