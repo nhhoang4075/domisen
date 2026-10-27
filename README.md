@@ -41,10 +41,10 @@ Cấu hình Mosquitto để board ngoài máy kết nối được là mở cổ
 
 ```bash
 cd firmware
-cp include/config.example.h include/config.h   # Windows: copy include\config.example.h include\config.h
+cp include/domisen_config.example.h include/domisen_config.h   # Windows: copy include\domisen_config.example.h include\domisen_config.h
 ```
 
-Mở `include/config.h`, điền WiFi và IP máy chạy broker. Rồi nạp:
+Mở `include/domisen_config.h`, điền WiFi và IP máy chạy broker. Rồi nạp:
 
 ```bash
 pio run -e esp32-a -t upload
@@ -58,5 +58,5 @@ Bản hiện tại chỉ nối WiFi và broker, nháy LED và gửi uptime, đ�
 ## Quy tắc làm việc
 
 - Chân GPIO ghi ở `docs/gpio.md`, topic ghi ở `docs/mqtt-topics.md`. Đổi thì sửa tài liệu trước.
-- `firmware/include/config.h` chứa WiFi và mật khẩu, **không commit**.
+- `firmware/include/domisen_config.h` chứa WiFi và mật khẩu, **không commit**.
 - Thư viện đã ghim phiên bản trong `platformio.ini`, đừng tự nâng.

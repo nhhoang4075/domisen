@@ -6,7 +6,7 @@
 .vscode/ipch
 
 # Cấu hình riêng từng người (WiFi, mật khẩu broker)
-firmware/include/config.h
+firmware/include/domisen_config.h
 
 # Server và web
 node_modules/

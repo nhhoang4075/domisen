@@ -3,7 +3,7 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
 
-#include "config.h"
+#include "domisen_config.h"
 
 namespace domisen {
 

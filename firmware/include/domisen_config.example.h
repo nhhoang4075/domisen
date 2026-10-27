@@ -1,5 +1,5 @@
-// Sao chép file này thành config.h rồi điền thông tin của bạn.
-// config.h nằm trong .gitignore, không đưa lên git.
+// Sao chép file này thành domisen_config.h rồi điền thông tin của bạn.
+// domisen_config.h nằm trong .gitignore, không đưa lên git.
 #pragma once
 
 #define WIFI_SSID "ten-wifi"
