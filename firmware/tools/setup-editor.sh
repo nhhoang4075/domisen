@@ -14,7 +14,7 @@ CXX="$(ls -d "$TC"/xtensa-esp32-elf/include/c++/* | head -1)"
 cat > .clangd <<CFG
 CompileFlags:
   Compiler: clang++
-  Add: [--target=x86_64-unknown-linux-gnu, -D__XTENSA__=1, -isystem$CXX, -isystem$CXX/xtensa-esp32-elf, -isystem$TC/xtensa-esp32-elf/include]
+  Add: [--target=armv7em-none-eabi, -D__XTENSA__=1, -isystem$CXX, -isystem$CXX/xtensa-esp32-elf, -isystem$TC/xtensa-esp32-elf/include]
   Remove: [-mlongcalls, -mtext-section-literals, -fstrict-volatile-bitfields, -fno-tree-switch-conversion, -freorder-blocks, -mfix-esp32-psram-cache-issue, -fno-shrink-wrap, -mno-target-align, -mforce-l32]
 CFG
 echo "Xong. Trong Zed, mở lại file hoặc chạy 'editor: restart language server'."
