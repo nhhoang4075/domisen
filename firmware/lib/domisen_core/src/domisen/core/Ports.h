@@ -1,0 +1,39 @@
+// Port: những thứ lõi cần từ bên ngoài. Lõi chỉ biết interface, adapter mới biết phần cứng.
+#pragma once
+#include <cstdint>
+#include <functional>
+#include <string>
+
+namespace domisen::core {
+
+class Clock {
+ public:
+  virtual ~Clock() = default;
+  virtual uint32_t nowMs() const = 0;
+};
+
+// Ngõ ra PWM. duty nằm trong 0.0 .. 1.0, adapter tự giới hạn và đổi sang độ phân giải của phần cứng.
+class PwmOutput {
+ public:
+  virtual ~PwmOutput() = default;
+  virtual void write(float duty) = 0;
+};
+
+// Đường truyền tin nhắn (MQTT). Adapter lo nối lại và đăng ký lại topic sau mỗi lần nối lại.
+class Transport {
+ public:
+  using MessageHandler = std::function<void(const std::string& topic, const std::string& payload)>;
+  using ConnectHandler = std::function<void()>;
+
+  virtual ~Transport() = default;
+  // Trả false nếu chưa nối được (tin không được gửi).
+  virtual bool publish(const std::string& topic, const std::string& payload, bool retain) = 0;
+  // Có thể gọi trước khi nối. Đăng ký được giữ lại qua các lần nối lại.
+  virtual void subscribe(const std::string& topic) = 0;
+  virtual bool connected() const = 0;
+  virtual void onMessage(MessageHandler handler) = 0;
+  // Gọi mỗi lần (nối lại) vào broker xong.
+  virtual void onConnect(ConnectHandler handler) = 0;
+};
+
+}  // namespace domisen::core

@@ -1,0 +1,163 @@
+// Hub và DimmableLight, chạy với bản giả: không cần board, không cần mạng.
+#include <domisen/adapters/fake/FakeClock.h>
+#include <domisen/adapters/fake/FakePwm.h>
+#include <domisen/adapters/fake/FakeTransport.h>
+#include <domisen/services/DimmableLight.h>
+#include <domisen/services/Hub.h>
+#include <unity.h>
+
+using namespace domisen;
+using adapters::fake::FakeClock;
+using adapters::fake::FakePwm;
+using adapters::fake::FakeTransport;
+using services::DimmableLight;
+using services::Hub;
+
+static const char* CEILING_CMD = "domisen/living/ceiling-light/cmd";
+static const char* CEILING_STATE = "domisen/living/ceiling-light/state";
+
+// Mỗi test dựng một board mới: hai đèn dùng chung một lớp, khác id và PWM.
+struct Rig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakePwm ceilingPwm, nightPwm;
+  DimmableLight ceiling{"living/ceiling-light", ceilingPwm};
+  DimmableLight night{"bedroom/night-light", nightPwm};
+  Hub hub{"comfort", transport, clock, 5000};
+
+  Rig() {
+    hub.add(ceiling);
+    hub.add(night);
+    hub.begin();
+  }
+};
+
+void setUp() {}
+void tearDown() {}
+
+void test_begin_dang_ky_topic_lenh_va_ping() {
+  Rig r;
+  TEST_ASSERT_EQUAL(3, r.transport.subscriptions.size());
+  TEST_ASSERT_EQUAL_STRING("domisen/node/comfort/ping", r.transport.subscriptions[0].c_str());
+  TEST_ASSERT_EQUAL_STRING(CEILING_CMD, r.transport.subscriptions[1].c_str());
+  TEST_ASSERT_EQUAL_STRING("domisen/bedroom/night-light/cmd", r.transport.subscriptions[2].c_str());
+}
+
+void test_den_tat_luc_khoi_dong() {
+  Rig r;
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.ceilingPwm.last);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.nightPwm.last);
+}
+
+void test_noi_broker_bao_online_va_trang_thai_retain() {
+  Rig r;
+  r.transport.simulateConnect();
+  const auto* status = r.transport.last("domisen/node/comfort/status");
+  TEST_ASSERT_NOT_NULL(status);
+  TEST_ASSERT_EQUAL_STRING("online", status->payload.c_str());
+  TEST_ASSERT_TRUE(status->retain);
+  const auto* state = r.transport.last(CEILING_STATE);
+  TEST_ASSERT_NOT_NULL(state);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false,\"level\":100}", state->payload.c_str());
+  TEST_ASSERT_TRUE(state->retain);
+}
+
+void test_lenh_dieu_khien_pwm_va_bao_lai_trang_thai() {
+  Rig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(CEILING_CMD, "{\"on\":true,\"level\":50}");
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.2176f, r.ceilingPwm.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true,\"level\":50}", r.transport.last(CEILING_STATE)->payload.c_str());
+  r.transport.simulateMessage(CEILING_CMD, "{\"on\":false}");
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.ceilingPwm.last);
+  r.transport.simulateMessage(CEILING_CMD, "{\"on\":true}");  // bật lại đúng mức 50
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.2176f, r.ceilingPwm.last);
+}
+
+void test_hai_den_doc_lap() {
+  Rig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage("domisen/bedroom/night-light/cmd", "{\"on\":true,\"level\":100}");
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r.nightPwm.last);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.ceilingPwm.last);
+}
+
+void test_lenh_sai_bao_loi_va_khong_doi_trang_thai() {
+  Rig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(CEILING_CMD, "{\"on\":true,\"level\":50}");
+  int stateCount = r.transport.count(CEILING_STATE);
+  r.transport.simulateMessage(CEILING_CMD, "rac");
+  const auto* err = r.transport.last("domisen/living/ceiling-light/error");
+  TEST_ASSERT_NOT_NULL(err);
+  TEST_ASSERT_FALSE(err->retain);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.2176f, r.ceilingPwm.last);  // vẫn như cũ
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(CEILING_STATE));
+}
+
+void test_noi_lai_gui_lai_trang_thai_hien_tai() {
+  Rig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(CEILING_CMD, "{\"on\":true,\"level\":30}");
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true,\"level\":30}", r.transport.last(CEILING_STATE)->payload.c_str());
+}
+
+void test_ping_tra_pong() {
+  Rig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage("domisen/node/comfort/ping", "xin chao");
+  const auto* pong = r.transport.last("domisen/node/comfort/pong");
+  TEST_ASSERT_NOT_NULL(pong);
+  TEST_ASSERT_EQUAL_STRING("xin chao", pong->payload.c_str());
+}
+
+void test_topic_la_bi_bo_qua() {
+  Rig r;
+  r.transport.simulateConnect();
+  size_t before = r.transport.published.size();
+  r.transport.simulateMessage("domisen/kitchen/gas/cmd", "{\"on\":true}");  // chưa đăng ký nên không tới
+  TEST_ASSERT_EQUAL(before, r.transport.published.size());
+}
+
+void test_nhip_uptime() {
+  Rig r;
+  r.transport.simulateConnect();
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(0, r.transport.count("domisen/node/comfort/uptime"));  // chưa tới 5 giây
+  r.clock.advance(5000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL_STRING("5", r.transport.last("domisen/node/comfort/uptime")->payload.c_str());
+  r.clock.advance(2000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(1, r.transport.count("domisen/node/comfort/uptime"));
+  r.clock.advance(3000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL_STRING("10", r.transport.last("domisen/node/comfort/uptime")->payload.c_str());
+}
+
+void test_mat_ket_noi_thi_khong_gui_uptime() {
+  Rig r;
+  r.transport.simulateConnect();
+  r.transport.simulateDisconnect();
+  r.clock.advance(6000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(0, r.transport.count("domisen/node/comfort/uptime"));
+}
+
+int main() {
+  UNITY_BEGIN();
+  RUN_TEST(test_begin_dang_ky_topic_lenh_va_ping);
+  RUN_TEST(test_den_tat_luc_khoi_dong);
+  RUN_TEST(test_noi_broker_bao_online_va_trang_thai_retain);
+  RUN_TEST(test_lenh_dieu_khien_pwm_va_bao_lai_trang_thai);
+  RUN_TEST(test_hai_den_doc_lap);
+  RUN_TEST(test_lenh_sai_bao_loi_va_khong_doi_trang_thai);
+  RUN_TEST(test_noi_lai_gui_lai_trang_thai_hien_tai);
+  RUN_TEST(test_ping_tra_pong);
+  RUN_TEST(test_topic_la_bi_bo_qua);
+  RUN_TEST(test_nhip_uptime);
+  RUN_TEST(test_mat_ket_noi_thi_khong_gui_uptime);
+  return UNITY_END();
+}

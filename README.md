@@ -11,7 +11,7 @@ comfort (ESP32 B: khách, ngủ) ─┘
 
 | Thư mục | Nội dung |
 |---|---|
-| `firmware/` | PlatformIO, 2 board `guard` và `comfort`, code dùng chung ở `lib/core` |
+| `firmware/` | PlatformIO, 2 board `guard` và `comfort`. Kiến trúc lõi và adapter, xem [`docs/architecture.md`](docs/architecture.md) |
 | `broker/` | Cấu hình Mosquitto (có mật khẩu), chạy giống nhau trên Mac và Windows |
 | `server/` | Nhận MQTT, lưu dữ liệu, API (chưa làm) |
 | `web/` | Dashboard (chưa làm) |
@@ -73,8 +73,8 @@ pio device monitor
 ```
 
 Board kia thì đổi thành `-e comfort`. Trong VS Code dùng thanh dưới của PlatformIO, chọn đúng env.
-Bản hiện tại chỉ nối WiFi và broker, nháy LED và gửi uptime, để kiểm tra cả chuỗi chạy được
-(xem `docs/mqtt-topics.md`).
+Board `comfort` đã điều khiển được đèn trần và đèn ngủ qua MQTT (xem `docs/mqtt-topics.md`).
+Test không cần board: `pio test -e native` (trong thư mục `firmware`).
 
 ## Soạn code bằng Zed (macOS)
 

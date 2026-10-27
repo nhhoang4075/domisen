@@ -23,9 +23,9 @@ domisen/kitchen/gas/state           {"ppm_raw":1830,"alarm":true}
 domisen/entrance/door/cmd           {"open":true}
 ```
 
-## Đèn trần (#1, đã làm)
+## Đèn chỉnh độ sáng (đã làm: #1 đèn trần, #2 đèn ngủ)
 
-Topic `domisen/living/ceiling-light/cmd` (nhận) và `.../state` (gửi, retain). `level` từ 0 đến 100.
+Áp dụng cho `living/ceiling-light` (GPIO25) và `bedroom/night-light` (GPIO26). Ví dụ `domisen/living/ceiling-light/cmd` (nhận) và `.../state` (gửi, retain). `level` từ 0 đến 100.
 
 | Lệnh gửi | Kết quả |
 |---|---|
@@ -62,8 +62,16 @@ Board trả lời bằng `.../state`: `{"on":true,"level":80}`. Gửi lại mỗ
 | 17 | `balcony/clothesline` | comfort |
 | 19 | `living/wall-button` | comfort |
 
-## Bản thử đầu tiên (firmware hiện tại)
+## Topic của board (node)
 
-- `domisen/node/guard/status`, `domisen/node/comfort/status`: `online` / `offline`
-- `domisen/node/<guard|comfort>/uptime`: số giây, 5 giây một lần
-- `domisen/node/<guard|comfort>/ping`: board nhận và in ra Serial
+| Topic | Hướng | Retain | Nội dung |
+|---|---|---|---|
+| `domisen/node/<board>/status` | board → server | có | `online` (Hub gửi khi nối), `offline` (broker gửi khi board mất kết nối) |
+| `domisen/node/<board>/uptime` | board → server | không | Số giây từ lúc bật, 5 giây một lần |
+| `domisen/node/<board>/ping` | → board | không | Nội dung bất kỳ |
+| `domisen/node/<board>/pong` | board → | không | Board trả lại đúng nội dung của ping |
+
+## Lỗi lệnh
+
+Thiết bị không hiểu lệnh thì **giữ nguyên trạng thái** và gửi `domisen/<phòng>/<thiết-bị>/error` (không retain):
+`{"error":"level phải là số nguyên từ 0 đến 100"}`. Xem được ngay trong MQTTX, không cần mở Serial.

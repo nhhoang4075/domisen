@@ -1,37 +1,50 @@
-// Board comfort: phòng khách, phòng ngủ, ban công. Xem docs/gpio.md.
+// Board comfort: phòng khách, phòng ngủ, ban công. Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
-#include <Domisen.h>
+#include <domisen/adapters/esp32/ArduinoClock.h>
+#include <domisen/adapters/esp32/Esp32Pwm.h>
+#include <domisen/adapters/esp32/MqttTransport.h>
+#include <domisen/protocol/Topics.h>
+#include <domisen/services/DimmableLight.h>
+#include <domisen/services/Hub.h>
 
-#include "ceiling_light.h"
+#include "domisen_config.h"
+
+using namespace domisen;
 
 static const char* NODE = "comfort";
-static const int LED_PIN = 2;  // LED có sẵn trên board, nháy theo nhịp gửi uptime
-static unsigned long lastBeat = 0;
 
-static void onMessage(const String& topic, const String& payload) {
-  Serial.printf("nhận %s = %s\n", topic.c_str(), payload.c_str());
-  if (topic == ceiling_light::CMD_TOPIC) ceiling_light::onCommand(payload);
-}
+static adapters::esp32::MqttTransport transport({
+    .clientId = NODE,
+    .hostname = std::string("domisen-") + NODE,
+    .wifiSsid = WIFI_SSID,
+    .wifiPass = WIFI_PASS,
+    .host = MQTT_HOST,
+    .port = MQTT_PORT,
+    .user = MQTT_USER,
+    .pass = MQTT_PASS,
+    .willTopic = protocol::nodeStatusTopic(NODE),
+});
+static adapters::esp32::ArduinoClock clock_;
 
-static void publishAllStates() {
-  ceiling_light::publishState();
-}
+static adapters::esp32::Esp32Pwm ceilingPwm(25, 0);  // GPIO25, kênh LEDC 0
+static adapters::esp32::Esp32Pwm nightPwm(26, 1);    // GPIO26, kênh LEDC 1
+
+static services::DimmableLight ceilingLight("living/ceiling-light", ceilingPwm);
+static services::DimmableLight nightLight("bedroom/night-light", nightPwm);
+
+static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
   Serial.begin(115200);
-  pinMode(LED_PIN, OUTPUT);
-  ceiling_light::begin();
-  domisen::begin(NODE, onMessage);
-  domisen::onConnect(publishAllStates);
-  domisen::subscribe(String("domisen/node/") + NODE + "/ping");
-  domisen::subscribe(ceiling_light::CMD_TOPIC);
+  ceilingPwm.begin();
+  nightPwm.begin();
+  hub.add(ceilingLight);
+  hub.add(nightLight);
+  hub.begin();
+  transport.begin();
 }
 
 void loop() {
-  domisen::loop();
-  if (millis() - lastBeat >= 5000) {
-    lastBeat = millis();
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    domisen::publish(String("domisen/node/") + NODE + "/uptime", String(millis() / 1000));
-  }
+  transport.loop();
+  hub.loop();
 }
