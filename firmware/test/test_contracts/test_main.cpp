@@ -1,7 +1,7 @@
 // Contract của từng port: hành vi mà Hub và thiết bị dựa vào. Chạy cho mọi adapter chạy được trên laptop
 // (hiện là bản giả). Adapter thật cần board nên chỉ kiểm tra được khi nạp lên thiết bị.
-#include <domisen/adapters/fake/FakePwm.h>
-#include <domisen/adapters/fake/FakeTransport.h>
+#include <adapters_fake/FakePwm.h>
+#include <adapters_fake/FakeTransport.h>
 #include <unity.h>
 
 using namespace domisen;

@@ -1,8 +1,8 @@
 // Trung tâm của một board: nhận thiết bị, đăng ký topic lệnh, chuyển lệnh, báo trạng thái, nhịp uptime.
 // Thêm thiết bị mới chỉ cần hub.add(...), không phải sửa Hub.
 #pragma once
-#include <domisen/core/Ports.h>
-#include <domisen/services/Device.h>
+#include <core/Ports.h>
+#include <services/Device.h>
 
 #include <string>
 #include <vector>

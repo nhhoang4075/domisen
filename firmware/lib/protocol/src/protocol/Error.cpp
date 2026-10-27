@@ -1,5 +1,5 @@
 #include <ArduinoJson.h>
-#include <domisen/protocol/Error.h>
+#include <protocol/Error.h>
 
 namespace domisen::protocol {
 

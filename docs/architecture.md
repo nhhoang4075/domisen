@@ -17,7 +17,7 @@ code khác luật là code sai.
 ## Luật
 
 1. **Lõi thuần.** `core` và `services` không include `Arduino.h`, `WiFi.h`, `PubSubClient.h` hay adapter. Môi trường `native` biên dịch chúng trên laptop, nên vi phạm là biên dịch lỗi. `tools/check-purity.sh` kiểm tra thêm.
-2. **Cách include:** `#include <domisen/core/Ports.h>`, không dùng đường dẫn `../`.
+2. **Cách include:** `#include <core/Ports.h>`, tức `<tên-lib/tên-file>`, không dùng đường dẫn `../`.
 3. **Một tên, một nguồn.** Topic chỉ được ghép trong `protocol/Topics.h`. Không viết chuỗi `"domisen/..."` ở chỗ khác.
 4. **Thiết bị không biết phần cứng.** `DimmableLight` nhận `PwmOutput&`, không biết chân GPIO hay kênh LEDC. Đèn trần và đèn ngủ dùng chung một lớp, chỉ khác id và PWM.
 5. **Thiếu cấu hình thì dừng.** Thiếu WiFi hoặc broker thì board báo lỗi và dừng ngay, không âm thầm chạy tiếp.

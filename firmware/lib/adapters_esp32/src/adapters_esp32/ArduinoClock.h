@@ -1,6 +1,6 @@
 #pragma once
 #include <Arduino.h>
-#include <domisen/core/Ports.h>
+#include <core/Ports.h>
 
 namespace domisen::adapters::esp32 {
 

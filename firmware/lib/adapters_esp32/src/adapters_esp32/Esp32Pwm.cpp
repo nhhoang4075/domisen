@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <domisen/adapters/esp32/Esp32Pwm.h>
+#include <adapters_esp32/Esp32Pwm.h>
 
 #include <algorithm>
 

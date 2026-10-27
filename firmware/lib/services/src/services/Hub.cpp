@@ -1,6 +1,6 @@
-#include <domisen/protocol/Error.h>
-#include <domisen/protocol/Topics.h>
-#include <domisen/services/Hub.h>
+#include <protocol/Error.h>
+#include <protocol/Topics.h>
+#include <services/Hub.h>
 
 namespace domisen::services {
 

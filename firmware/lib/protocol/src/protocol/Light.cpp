@@ -1,5 +1,5 @@
 #include <ArduinoJson.h>
-#include <domisen/protocol/Light.h>
+#include <protocol/Light.h>
 
 namespace domisen::protocol {
 

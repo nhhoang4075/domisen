@@ -1,8 +1,8 @@
 // Đèn chỉnh độ sáng bằng PWM. Dùng cho đèn trần, đèn ngủ... chỉ khác id và PwmOutput.
 #pragma once
-#include <domisen/core/Light.h>
-#include <domisen/core/Ports.h>
-#include <domisen/services/Device.h>
+#include <core/Light.h>
+#include <core/Ports.h>
+#include <services/Device.h>
 
 namespace domisen::services {
 

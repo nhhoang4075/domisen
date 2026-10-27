@@ -6,9 +6,9 @@ bad=0
 check() { # thư mục, mẫu cấm
   if rg -n --no-heading "$2" "$1" 2>/dev/null; then echo "VI PHẠM: $1 không được dùng: $2"; bad=1; fi
 }
-check lib/core 'Arduino\.h|WiFi|PubSubClient|ArduinoJson|domisen/(adapters|services|protocol)'
-check lib/protocol 'Arduino\.h|WiFi|PubSubClient|domisen/(adapters|services)'
-check lib/services 'Arduino\.h|WiFi|PubSubClient|ArduinoJson|domisen/adapters'
-check lib/adapters_fake 'Arduino\.h|WiFi|PubSubClient|ArduinoJson|domisen/adapters/esp32'
+check lib/core 'Arduino\.h|WiFi|PubSubClient|ArduinoJson|<(adapters_esp32|adapters_fake|services|protocol)/'
+check lib/protocol 'Arduino\.h|WiFi|PubSubClient|<(adapters_esp32|adapters_fake|services)/'
+check lib/services 'Arduino\.h|WiFi|PubSubClient|ArduinoJson|<(adapters_esp32|adapters_fake)/'
+check lib/adapters_fake 'Arduino\.h|WiFi|PubSubClient|ArduinoJson|<adapters_esp32/'
 [ $bad -eq 0 ] && echo "Lõi thuần, không vi phạm."
 exit $bad

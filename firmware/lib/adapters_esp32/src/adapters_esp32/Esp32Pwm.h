@@ -1,5 +1,5 @@
 #pragma once
-#include <domisen/core/Ports.h>
+#include <core/Ports.h>
 
 namespace domisen::adapters::esp32 {
 
