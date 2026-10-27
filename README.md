@@ -34,14 +34,22 @@ Nên dán nhãn tên lên từng board.
 
 ```bash
 brew install mosquitto platformio
-brew install --cask mqtt-explorer
+brew install --cask mqttx
 ```
 
 ### Windows
 
 1. Cài [VS Code](https://code.visualstudio.com/), rồi cài tiện ích **PlatformIO IDE** (nó tự tải Python và toolchain).
 2. Cài driver USB nếu cắm board mà không thấy cổng COM trong Device Manager: CH340 hoặc CP2102, tùy chip in trên board.
-3. Cài [MQTT Explorer](https://mqtt-explorer.com/) để xem tin nhắn.
+3. Cài [MQTTX](https://mqttx.app/) để xem tin nhắn (bản Mac cũng dùng MQTTX).
+
+### Xem tin nhắn không cần giao diện
+
+Có sẵn cùng Mosquitto, thấy mọi tin của dự án:
+
+```bash
+mosquitto_sub -h localhost -t 'domisen/#' -v
+```
 
 ### Broker
 
