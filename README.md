@@ -4,17 +4,29 @@ Mô hình nhà thông minh dùng 2 ESP32. Các board gửi dữ liệu cảm bi�
 server lưu dữ liệu và đẩy lên dashboard trên web.
 
 ```
-ESP32 A (cửa, bếp)  ─┐
+guard   (ESP32 A: cửa, bếp)   ─┐
                       ├─ WiFi ─ Mosquitto (MQTT) ─ server (Bun + PostgreSQL) ─ web
-ESP32 B (khách, ngủ) ─┘
+comfort (ESP32 B: khách, ngủ) ─┘
 ```
 
 | Thư mục | Nội dung |
 |---|---|
-| `firmware/` | PlatformIO, 2 board `esp32-a` và `esp32-b`, code dùng chung ở `lib/core` |
+| `firmware/` | PlatformIO, 2 board `guard` và `comfort`, code dùng chung ở `lib/core` |
 | `server/` | Nhận MQTT, lưu dữ liệu, API (chưa làm) |
 | `web/` | Dashboard (chưa làm) |
 | `docs/` | Bảng GPIO, quy ước MQTT, kế hoạch |
+
+## Tên board
+
+Hai ESP32 giống hệt nhau về phần cứng, nên đặt tên theo vai trò. Tài liệu cũ (kế hoạch, hướng dẫn dựng mô hình) vẫn gọi A và B.
+
+| Tên | Trong tài liệu cũ | Vai trò |
+|---|---|---|
+| `guard` | ESP32 A | Cửa, bếp, an ninh: servo cửa, RC522, MC-38, MQ-2, buzzer, OLED, quạt hút |
+| `comfort` | ESP32 B | Tiện nghi: đèn, quạt, DHT22, quang trở, PIR, rèm, WS2812, mưa, giàn phơi, nút cảm ứng |
+
+Tên board dùng làm env PlatformIO, thư mục `firmware/src/<tên>/`, MQTT client id, hostname WiFi (`domisen-guard`) và topic `domisen/node/<tên>/status`.
+Nên dán nhãn tên lên từng board.
 
 ## Cài đặt
 
@@ -47,11 +59,11 @@ cp include/domisen_config.example.h include/domisen_config.h   # Windows: copy i
 Mở `include/domisen_config.h`, điền WiFi và IP máy chạy broker. Rồi nạp:
 
 ```bash
-pio run -e esp32-a -t upload
+pio run -e guard -t upload
 pio device monitor
 ```
 
-Board B thì đổi thành `-e esp32-b`. Trong VS Code dùng thanh dưới của PlatformIO, chọn đúng env.
+Board kia thì đổi thành `-e comfort`. Trong VS Code dùng thanh dưới của PlatformIO, chọn đúng env.
 Bản hiện tại chỉ nối WiFi và broker, nháy LED và gửi uptime, để kiểm tra cả chuỗi chạy được
 (xem `docs/mqtt-topics.md`).
 

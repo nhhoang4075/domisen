@@ -3,7 +3,7 @@
 Lấy từ bảng đi dây trong `docs/plan/ke-hoach.html`. Đây là nguồn sự thật khi viết firmware và khi đấu dây.
 Nếu đổi chân thì sửa file này trước, rồi mới sửa code.
 
-## esp32-a (cửa, bếp, an ninh)
+## guard (ESP32 A: cửa, bếp, an ninh)
 
 | # | Thiết bị | Chân | Ghi chú |
 |---|---|---|---|
@@ -15,7 +15,7 @@ Nếu đổi chân thì sửa file này trước, rồi mới sửa code.
 | 12 | Công tắc từ MC-38 | GPIO34 | Thêm điện trở 10 kΩ kéo lên 3V3 (chân này không có pull-up nội) |
 | 13 | MQ-2 (AO) | GPIO36 | Qua cầu phân áp vì MQ-2 xuất tới 5V |
 
-## esp32-b (phòng khách, phòng ngủ, ban công)
+## comfort (ESP32 B: phòng khách, phòng ngủ, ban công)
 
 | # | Thiết bị | Chân | Ghi chú |
 |---|---|---|---|

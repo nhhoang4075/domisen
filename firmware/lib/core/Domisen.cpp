@@ -42,9 +42,10 @@ bool connectMqtt() {
 
 void begin(const char* nodeId, CommandHandler onMsg) {
   node = nodeId;
-  statusTopic = String("domisen/") + node + "/status";
+  statusTopic = String("domisen/node/") + node + "/status";
   handler = onMsg;
   WiFi.mode(WIFI_STA);
+  WiFi.setHostname((String("domisen-") + node).c_str());  // tên hiện trên router
   WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
