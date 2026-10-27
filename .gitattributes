@@ -1,0 +1,6 @@
+# Thống nhất kiểu xuống dòng giữa macOS và Windows
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.pdf binary
