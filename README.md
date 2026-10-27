@@ -67,6 +67,16 @@ Board kia thì đổi thành `-e comfort`. Trong VS Code dùng thanh dưới c�
 Bản hiện tại chỉ nối WiFi và broker, nháy LED và gửi uptime, để kiểm tra cả chuỗi chạy được
 (xem `docs/mqtt-topics.md`).
 
+## Soạn code bằng Zed (macOS)
+
+Zed báo `'Arduino.h' file not found` vì clangd chưa biết đường dẫn thư viện ESP32. Build vẫn bình thường. Chạy một lần:
+
+```bash
+firmware/tools/setup-editor.sh
+```
+
+Rồi mở lại file (hoặc khởi động lại language server). Dùng VS Code với PlatformIO IDE thì không cần bước này.
+
 ## Quy tắc làm việc
 
 - Chân GPIO ghi ở `docs/gpio.md`, topic ghi ở `docs/mqtt-topics.md`. Đổi thì sửa tài liệu trước.
