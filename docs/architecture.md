@@ -7,11 +7,11 @@ code khác luật là code sai.
 
 | Lib | Chứa | Được include |
 |---|---|---|
-| `domisen_core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock` | Chỉ thư viện chuẩn C++ |
-| `domisen_protocol` | Tên topic, mã hóa và giải mã JSON của lệnh, trạng thái, lỗi | ArduinoJson, thư viện chuẩn |
-| `domisen_services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, nhận port qua constructor | `core`, `protocol` |
-| `domisen_adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock` | `core`, Arduino, PubSubClient |
-| `domisen_adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock` | `core` |
+| `core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock` | Chỉ thư viện chuẩn C++ |
+| `protocol` | Tên topic, mã hóa và giải mã JSON của lệnh, trạng thái, lỗi | ArduinoJson, thư viện chuẩn |
+| `services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, nhận port qua constructor | `core`, `protocol` |
+| `adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock` | `core`, Arduino, PubSubClient |
+| `adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock` | `core` |
 | `src/<board>/` | Chỉ **lắp ráp**: tạo adapter, tạo thiết bị, đưa vào `Hub` | Tất cả |
 
 ## Luật
