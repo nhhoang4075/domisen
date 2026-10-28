@@ -1,11 +1,11 @@
 // Board comfort: phòng khách, phòng ngủ, ban công. Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
-#include <adapters_esp32/ArduinoClock.h>
-#include <adapters_esp32/Esp32Pwm.h>
-#include <adapters_esp32/MqttTransport.h>
-#include <protocol/Topics.h>
-#include <services/DimmableLight.h>
-#include <services/Hub.h>
+#include <shared/adapters_esp32/ArduinoClock.h>
+#include <shared/adapters_esp32/Esp32Pwm.h>
+#include <shared/adapters_esp32/MqttTransport.h>
+#include <shared/protocol/Topics.h>
+#include <shared/services/DimmableLight.h>
+#include <shared/services/Hub.h>
 
 #include "domisen_config.h"
 

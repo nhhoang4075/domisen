@@ -1,10 +1,10 @@
 // Board guard: cửa, bếp, an ninh. Chưa có thiết bị nào, mới chỉ nối broker và báo trạng thái.
 // Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
-#include <adapters_esp32/ArduinoClock.h>
-#include <adapters_esp32/MqttTransport.h>
-#include <protocol/Topics.h>
-#include <services/Hub.h>
+#include <shared/adapters_esp32/ArduinoClock.h>
+#include <shared/adapters_esp32/MqttTransport.h>
+#include <shared/protocol/Topics.h>
+#include <shared/services/Hub.h>
 
 #include "domisen_config.h"
 

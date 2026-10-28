@@ -1,5 +1,5 @@
 // Luật thuần của đèn: không cần phần cứng, không cần JSON.
-#include <core/Light.h>
+#include <shared/core/Light.h>
 #include <unity.h>
 
 using namespace domisen::core;

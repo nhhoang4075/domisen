@@ -1,7 +1,7 @@
 // Tên topic và mã hóa JSON. Giá trị mong đợi lấy từ docs/mqtt-topics.md.
-#include <protocol/Error.h>
-#include <protocol/Light.h>
-#include <protocol/Topics.h>
+#include <shared/protocol/Error.h>
+#include <shared/protocol/Light.h>
+#include <shared/protocol/Topics.h>
 #include <unity.h>
 
 using namespace domisen::protocol;

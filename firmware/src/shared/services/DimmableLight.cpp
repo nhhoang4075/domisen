@@ -1,5 +1,5 @@
-#include <protocol/Light.h>
-#include <services/DimmableLight.h>
+#include <shared/protocol/Light.h>
+#include <shared/services/DimmableLight.h>
 
 namespace domisen::services {
 

@@ -1,9 +1,9 @@
 // Hub và DimmableLight, chạy với bản giả: không cần board, không cần mạng.
-#include <adapters_fake/FakeClock.h>
-#include <adapters_fake/FakePwm.h>
-#include <adapters_fake/FakeTransport.h>
-#include <services/DimmableLight.h>
-#include <services/Hub.h>
+#include <shared/adapters_fake/FakeClock.h>
+#include <shared/adapters_fake/FakePwm.h>
+#include <shared/adapters_fake/FakeTransport.h>
+#include <shared/services/DimmableLight.h>
+#include <shared/services/Hub.h>
 #include <unity.h>
 
 using namespace domisen;

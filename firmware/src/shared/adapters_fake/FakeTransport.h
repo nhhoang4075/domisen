@@ -1,6 +1,6 @@
 // Transport giả: ghi lại tin đã gửi, giả lập nối, ngắt và nhận tin. Hành vi giống adapter thật.
 #pragma once
-#include <core/Ports.h>
+#include <shared/core/Ports.h>
 
 #include <algorithm>
 #include <string>

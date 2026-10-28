@@ -5,19 +5,21 @@ code khác luật là code sai.
 
 ## Các phần (`firmware/src/`)
 
+Code dùng chung nằm trong `src/shared/`, điểm vào của từng board nằm cạnh nó (`src/guard/`, `src/comfort/`).
+
 | Thư mục | Chứa | Được include |
 |---|---|---|
-| `core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock` | Chỉ thư viện chuẩn C++ |
-| `protocol` | Tên topic, mã hóa và giải mã JSON của lệnh, trạng thái, lỗi | ArduinoJson, thư viện chuẩn |
-| `services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, nhận port qua constructor | `core`, `protocol` |
-| `adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock` | `core`, Arduino, PubSubClient |
-| `adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock` | `core` |
+| `shared/core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock` | Chỉ thư viện chuẩn C++ |
+| `shared/protocol` | Tên topic, mã hóa và giải mã JSON của lệnh, trạng thái, lỗi | ArduinoJson, thư viện chuẩn |
+| `shared/services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, nhận port qua constructor | `shared/core`, `shared/protocol` |
+| `shared/adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock` | `shared/core`, Arduino, PubSubClient |
+| `shared/adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock` | `shared/core` |
 | `guard/`, `comfort/` | Chỉ **lắp ráp**: tạo adapter, tạo thiết bị, đưa vào `Hub` | Tất cả |
 
 ## Luật
 
-1. **Lõi thuần.** `core` và `services` không include `Arduino.h`, `WiFi.h`, `PubSubClient.h` hay adapter. Mỗi môi trường trong `platformio.ini` chọn phần được biên dịch bằng `build_src_filter`: board thật lấy lõi + `adapters_esp32`, môi trường `native` lấy lõi + `adapters_fake`. `native` không có `Arduino.h`, nên lõi lỡ dính phần cứng là biên dịch lỗi. `tools/check-purity.sh` kiểm tra thêm.
-2. **Cách include:** `#include <core/Ports.h>`, tức `<thư-mục/tên-file>` tính từ `src/`, không dùng đường dẫn `../`.
+1. **Lõi thuần.** `core` và `services` không include `Arduino.h`, `WiFi.h`, `PubSubClient.h` hay adapter. Mỗi môi trường trong `platformio.ini` chọn phần được biên dịch bằng `build_src_filter`: board thật lấy lõi + `shared/adapters_esp32`, môi trường `native` lấy lõi + `shared/adapters_fake`. `native` không có `Arduino.h`, nên lõi lỡ dính phần cứng là biên dịch lỗi. `tools/check-purity.sh` kiểm tra thêm.
+2. **Cách include:** `#include <shared/core/Ports.h>`, tức đường dẫn tính từ `src/`, không dùng đường dẫn `../`.
 3. **Một tên, một nguồn.** Topic chỉ được ghép trong `protocol/Topics.h`. Không viết chuỗi `"domisen/..."` ở chỗ khác.
 4. **Thiết bị không biết phần cứng.** `DimmableLight` nhận `PwmOutput&`, không biết chân GPIO hay kênh LEDC. Đèn trần và đèn ngủ dùng chung một lớp, chỉ khác id và PWM.
 5. **Thiếu cấu hình thì dừng.** Thiếu WiFi hoặc broker thì board báo lỗi và dừng ngay, không âm thầm chạy tiếp.

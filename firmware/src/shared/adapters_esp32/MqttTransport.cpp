@@ -1,4 +1,4 @@
-#include <adapters_esp32/MqttTransport.h>
+#include <shared/adapters_esp32/MqttTransport.h>
 
 #include <algorithm>
 
