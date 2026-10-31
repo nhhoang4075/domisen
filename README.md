@@ -93,7 +93,11 @@ Zed báo `'Arduino.h' file not found` vì clangd chưa biết đường dẫn th
 firmware/tools/setup-editor.sh
 ```
 
-Rồi mở lại file (hoặc khởi động lại language server). Dùng VS Code với PlatformIO IDE thì không cần bước này.
+Rồi mở lại file (hoặc khởi động lại language server).
+
+### VS Code
+
+Mở thư mục `domisen` (không phải thư mục cha). `.vscode/settings.json` đã trỏ IntelliSense vào `firmware/compile_commands.json`, nên chỉ cần chạy `setup-editor.sh` một lần để file đó được sinh ra, rồi mở lại cửa sổ. Dùng phần mở rộng PlatformIO IDE thì không cần bước này.
 
 ## Quy tắc làm việc
 
