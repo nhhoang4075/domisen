@@ -26,3 +26,6 @@ broker/passwd
 
 # Cache của clangd (Zed)
 firmware/.cache/
+
+# Tài liệu cũ, chỉ giữ trên máy này
+docs/legacy/
