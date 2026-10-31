@@ -15,7 +15,7 @@ comfort (ESP32 B: khách, ngủ) ─┘
 | `broker/` | Cấu hình Mosquitto (có mật khẩu), chạy giống nhau trên Mac và Windows |
 | `server/` | Nhận MQTT, lưu dữ liệu, API (chưa làm) |
 | `web/` | Dashboard (chưa làm) |
-| `docs/` | Bảng GPIO, quy ước MQTT, kế hoạch |
+| `docs/` | Bảng GPIO, quy ước MQTT, kiến trúc, kế hoạch. Mở `docs/giai-thich-code.html` bằng trình duyệt để xem giải thích code bằng hình |
 
 ## Tên board
 

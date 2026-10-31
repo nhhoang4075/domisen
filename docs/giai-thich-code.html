@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Domisen: ý tưởng và cách viết code</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fbfaf7; --card: #ffffff; --ink: #1f2933; --muted: #5b6770; --line: #e4e0d6;
+    --assembly: #c2570c; --assembly-bg: #fdeede;
+    --services: #1c64b8; --services-bg: #e6f0fb;
+    --core: #1f7a4d; --core-bg: #e3f4ea;
+    --protocol: #7a3fb0; --protocol-bg: #f0e8f8;
+    --adapter: #4a5a66; --adapter-bg: #e9eef1;
+    --warn: #a34100; --warn-bg: #fff1e0; --ok: #1f7a4d;
+    --code-bg: #f3f1ea;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 -apple-system, "Segoe UI", system-ui, sans-serif; }
+  header.hero { padding: 48px 20px 28px; max-width: 920px; margin: 0 auto; }
+  header.hero h1 { font-size: 34px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.5px; }
+  header.hero p { margin: 0; color: var(--muted); max-width: 680px; }
+  nav.toc { position: sticky; top: 0; z-index: 5; background: rgba(251,250,247,.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  nav.toc div { max-width: 920px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 6px; flex-wrap: wrap; }
+  nav.toc a { font-size: 14px; color: var(--ink); text-decoration: none; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); }
+  nav.toc a:hover { border-color: var(--services); color: var(--services); }
+  main { max-width: 920px; margin: 0 auto; padding: 8px 20px 80px; }
+  section { margin-top: 56px; scroll-margin-top: 70px; }
+  h2 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.3px; }
+  h2 .no { display: inline-block; min-width: 34px; height: 34px; line-height: 34px; text-align: center; border-radius: 50%; background: var(--ink); color: #fff; font-size: 16px; margin-right: 10px; vertical-align: 2px; }
+  h3 { font-size: 18px; margin: 26px 0 6px; }
+  p { margin: 8px 0; }
+  .lead { color: var(--muted); margin-bottom: 18px; }
+  code { background: var(--code-bg); padding: 1px 6px; border-radius: 5px; font: 0.9em ui-monospace, "SF Mono", Menlo, monospace; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font: 13.5px/1.55 ui-monospace, "SF Mono", Menlo, monospace; margin: 12px 0; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin: 14px 0; }
+  .note { border-left: 4px solid var(--services); background: var(--services-bg); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 14px 0; }
+  .warn { border-left-color: var(--warn); background: var(--warn-bg); }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #f4f1e8; font-weight: 600; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  .tbl-wrap { overflow-x: auto; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 999px; white-space: nowrap; }
+  .t-assembly { background: var(--assembly-bg); color: var(--assembly); }
+  .t-services { background: var(--services-bg); color: var(--services); }
+  .t-core { background: var(--core-bg); color: var(--core); }
+  .t-protocol { background: var(--protocol-bg); color: var(--protocol); }
+  .t-adapter { background: var(--adapter-bg); color: var(--adapter); }
+  /* sơ đồ tổng quan */
+  .chain { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+  .chain .node { flex: 1 1 130px; background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; text-align: center; font-size: 14px; }
+  .chain .node b { display: block; font-size: 15px; margin-bottom: 2px; }
+  .chain .arrow { align-self: center; color: var(--muted); font-size: 20px; }
+  /* sơ đồ lớp */
+  .layers { display: grid; gap: 10px; margin: 18px 0; }
+  .layer { border: 2px solid; border-radius: 14px; padding: 12px 16px; }
+  .layer h4 { margin: 0 0 2px; font-size: 16px; }
+  .layer p { margin: 0; font-size: 14.5px; }
+  .L-assembly { border-color: var(--assembly); background: var(--assembly-bg); }
+  .L-services { border-color: var(--services); background: var(--services-bg); }
+  .L-core { border-color: var(--core); background: var(--core-bg); }
+  .L-protocol { border-color: var(--protocol); background: var(--protocol-bg); }
+  .L-adapter { border-color: var(--adapter); background: var(--adapter-bg); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .down { text-align: center; color: var(--muted); font-size: 13px; margin: -2px 0; }
+  @media (max-width: 640px) { .row2 { grid-template-columns: 1fr; } h2 { font-size: 22px; } }
+  /* luồng lệnh */
+  ol.flow { list-style: none; counter-reset: s; padding: 0; margin: 16px 0; }
+  ol.flow li { counter-increment: s; position: relative; padding: 10px 14px 10px 54px; margin: 8px 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  ol.flow li::before { content: counter(s); position: absolute; left: 14px; top: 10px; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 700; font-size: 14px; }
+  ol.flow li .tag { margin-left: 6px; }
+  ol.flow li small { display: block; color: var(--muted); font-size: 14px; }
+  /* widget */
+  .lab { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .lab { grid-template-columns: 1fr; } }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 6px 11px; cursor: pointer; color: var(--ink); }
+  button:hover { border-color: var(--services); color: var(--services); }
+  button.primary { background: var(--services); color: #fff; border-color: var(--services); }
+  input[type=text] { font: 14px ui-monospace, Menlo, monospace; width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  input[type=range] { width: 100%; }
+  .bulb { height: 54px; border-radius: 10px; border: 1px solid var(--line); background: #2b3138; position: relative; overflow: hidden; }
+  .bulb i { position: absolute; inset: 0; background: #fff4c2; opacity: 0; transition: opacity .2s; }
+  .bulb span { position: absolute; left: 12px; top: 14px; font-size: 14px; color: #fff; mix-blend-mode: difference; font-weight: 600; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 14.5px; margin: 10px 0; }
+  .kv b { font-weight: 600; }
+  .out { font: 13.5px ui-monospace, Menlo, monospace; background: var(--code-bg); border-radius: 8px; padding: 8px 10px; margin: 6px 0; word-break: break-all; }
+  .err { color: #b42318; }
+  svg text { font: 12px -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+  .legend { display: flex; gap: 14px; font-size: 13.5px; color: var(--muted); flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 22px; height: 3px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  .conv { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+  .conv h4 { margin: 0 0 4px; font-size: 15.5px; }
+  .conv p { margin: 0; font-size: 14.5px; color: var(--muted); }
+  .ok { color: var(--ok); font-weight: 600; }
+  .no-t { color: #b42318; font-weight: 600; }
+  footer { max-width: 920px; margin: 0 auto; padding: 0 20px 60px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Domisen: ý tưởng và cách viết code</h1>
+  <p>Mô hình nhà thông minh với 2 ESP32 nói chuyện qua MQTT. Trang này giải thích code firmware đang có: nó chia thành những phần nào, một lệnh đi qua code ra sao, và những quy ước để về sau thêm thiết bị mà code không rối.</p>
+</header>
+
+<nav class="toc"><div>
+  <a href="#tong-quan">1. Tổng quan</a>
+  <a href="#kien-truc">2. Lõi và adapter</a>
+  <a href="#luong-lenh">3. Đi theo một lệnh</a>
+  <a href="#logic">4. Logic chính</a>
+  <a href="#convention">5. Quy ước</a>
+  <a href="#them-thiet-bi">6. Thêm thiết bị</a>
+  <a href="#kiem-thu">7. Kiểm thử</a>
+  <a href="#gioi-han">8. Chưa có</a>
+  <a href="#ban-do">9. Bản đồ file</a>
+</div></nav>
+
+<main>
+
+<!-- ============ 1 ============ -->
+<section id="tong-quan">
+  <h2><span class="no">1</span>Tổng quan</h2>
+  <p class="lead">Mỗi ESP32 là một "board" (node). Board đọc cảm biến, điều khiển thiết bị, và gửi nhận tin nhắn qua một broker MQTT chạy trên laptop.</p>
+
+  <div class="chain">
+    <div class="node"><b>ESP32 guard</b>cửa, bếp, an ninh</div>
+    <div class="arrow">⇄</div>
+    <div class="node"><b>Mosquitto</b>broker MQTT, có mật khẩu</div>
+    <div class="arrow">⇄</div>
+    <div class="node"><b>Server</b>Bun + PostgreSQL<br><small>chưa làm</small></div>
+    <div class="arrow">⇄</div>
+    <div class="node"><b>Web dashboard</b><small>chưa làm</small></div>
+  </div>
+  <div class="chain" style="margin-top:-6px">
+    <div class="node"><b>ESP32 comfort</b>đèn, quạt, rèm, cảm biến</div>
+    <div class="arrow">⇄</div>
+    <div class="node" style="flex:3 1 300px;text-align:left"><b>MQTT là gì ở đây?</b>Một "bảng tin". Ai muốn nghe thì <i>subscribe</i> một topic, ai muốn nói thì <i>publish</i> lên topic. Board và server không nối trực tiếp với nhau, chỉ nối với broker.</div>
+  </div>
+
+  <h3>Hai chiều tin nhắn</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Hướng</th><th>Topic ví dụ</th><th>Nội dung</th></tr>
+    <tr><td>Xuống board (lệnh)</td><td><code>domisen/living/ceiling-light/cmd</code></td><td><code>{"on":true,"level":80}</code></td></tr>
+    <tr><td>Lên từ board (trạng thái)</td><td><code>domisen/living/ceiling-light/state</code></td><td><code>{"on":true,"level":80}</code></td></tr>
+    <tr><td>Lên từ board (nhịp sống)</td><td><code>domisen/node/comfort/uptime</code></td><td><code>125</code> (số giây, 5 giây một lần)</td></tr>
+  </table></div>
+  <p>Topic của thiết bị theo <b>phòng và thiết bị</b>, không theo board. Dời đèn từ board này sang board kia thì server và web không phải sửa gì.</p>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="kien-truc">
+  <h2><span class="no">2</span>Lõi và adapter</h2>
+  <p class="lead">Ý tưởng chính của cả dự án, học theo project Xóm: phần "suy nghĩ" (luật của đèn) tách hẳn khỏi phần "chạm phần cứng" (WiFi, chân GPIO).</p>
+
+  <div class="layers">
+    <div class="layer L-assembly"><h4>Lắp ráp <span class="tag t-assembly">src/guard, src/comfort</span></h4><p>Mỗi board có một <code>main.cpp</code>: tạo adapter, tạo thiết bị, đưa vào Hub. Không chứa logic.</p></div>
+    <div class="down">dùng ↓</div>
+    <div class="layer L-services"><h4>Dịch vụ <span class="tag t-services">shared/services</span></h4><p><code>Hub</code> (đăng ký thiết bị, chuyển lệnh, báo trạng thái), <code>DimmableLight</code>. Chỉ làm việc với interface, không biết phần cứng.</p></div>
+    <div class="down">dùng ↓</div>
+    <div class="row2">
+      <div class="layer L-protocol"><h4>Giao thức <span class="tag t-protocol">shared/protocol</span></h4><p>Tên topic và mã hóa JSON. <b>Một nguồn duy nhất</b> cho mọi tên topic.</p></div>
+      <div class="layer L-core"><h4>Lõi <span class="tag t-core">shared/core</span></h4><p>Luật thuần của đèn và các <b>port</b> (interface): <code>Transport</code>, <code>PwmOutput</code>, <code>Clock</code>.</p></div>
+    </div>
+    <div class="down">port được cài đặt bởi ↑</div>
+    <div class="row2">
+      <div class="layer L-adapter"><h4>Adapter thật <span class="tag t-adapter">shared/adapters_esp32</span></h4><p>WiFi + MQTT, PWM của ESP32, <code>millis()</code>. Chỉ chạy trên board.</p></div>
+      <div class="layer L-adapter"><h4>Adapter giả <span class="tag t-adapter">shared/adapters_fake</span></h4><p>Ghi lại tin đã gửi, giả lập nhận tin, đồng hồ tua được. Dùng để test trên laptop.</p></div>
+    </div>
+  </div>
+
+  <h3>Vì sao phải tách như vậy?</h3>
+  <div class="grid2">
+    <div class="conv"><h4>Test không cần board</h4><p>Hub và đèn chỉ biết interface <code>Transport</code>. Test đưa vào bản giả, chạy trên laptop trong vài giây, không cần WiFi, không cần cắm mạch.</p></div>
+    <div class="conv"><h4>Thêm thiết bị không sửa lõi</h4><p>Đèn trần và đèn ngủ dùng chung một lớp <code>DimmableLight</code>, chỉ khác tên và chân GPIO. Hub không phải sửa gì.</p></div>
+    <div class="conv"><h4>Đổi phần cứng không đụng logic</h4><p>Sau này đổi PubSubClient sang thư viện MQTT khác, hay đổi loại PWM: chỉ viết lại một adapter.</p></div>
+    <div class="conv"><h4>Lỗi dính phần cứng bị bắt ngay</h4><p>Lõi biên dịch được trên laptop (không có <code>Arduino.h</code>). Ai lỡ dùng <code>WiFi</code> trong lõi thì biên dịch lỗi.</p></div>
+  </div>
+
+  <h3>Port và adapter</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Port (interface trong lõi)</th><th>Adapter thật</th><th>Bản giả</th></tr>
+    <tr><td><code>Transport</code>: publish, subscribe, nhận tin, báo đã nối</td><td><code>MqttTransport</code></td><td><code>FakeTransport</code></td></tr>
+    <tr><td><code>PwmOutput</code>: <code>write(duty)</code> với duty từ 0 đến 1</td><td><code>Esp32Pwm</code> (LEDC)</td><td><code>FakePwm</code></td></tr>
+    <tr><td><code>Clock</code>: <code>nowMs()</code></td><td><code>ArduinoClock</code></td><td><code>FakeClock</code></td></tr>
+  </table></div>
+
+  <h3>Luật phụ thuộc</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Thư mục</th><th>Được include</th><th>Cấm</th></tr>
+    <tr><td><code>shared/core</code></td><td>chỉ thư viện chuẩn C++</td><td>Arduino, WiFi, ArduinoJson, mọi thư mục khác</td></tr>
+    <tr><td><code>shared/protocol</code></td><td>ArduinoJson, thư viện chuẩn</td><td>Arduino, WiFi, services, adapters</td></tr>
+    <tr><td><code>shared/services</code></td><td>core, protocol</td><td>Arduino, WiFi, ArduinoJson, adapters</td></tr>
+    <tr><td><code>shared/adapters_esp32</code></td><td>core, Arduino, PubSubClient</td><td>(thoải mái, đây là chỗ chạm phần cứng)</td></tr>
+    <tr><td><code>shared/adapters_fake</code></td><td>core</td><td>Arduino, adapters_esp32</td></tr>
+  </table></div>
+  <div class="note">Hai lớp bảo vệ: môi trường <code>native</code> của PlatformIO biên dịch lõi trên laptop (vi phạm là lỗi biên dịch), và script <code>tools/check-purity.sh</code> quét các dòng include bị cấm.</div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="luong-lenh">
+  <h2><span class="no">3</span>Đi theo một lệnh</h2>
+  <p class="lead">Bạn bấm gửi <code>{"on":true,"level":80}</code> tới topic <code>domisen/living/ceiling-light/cmd</code> trong MQTTX. Chuyện gì xảy ra trong code?</p>
+
+  <ol class="flow">
+    <li><b>MQTTX gửi tin</b> lên broker. Broker kiểm tra tài khoản rồi chuyển tin cho board <code>comfort</code>, vì board đã subscribe topic này.</li>
+    <li><b>MqttTransport nhận tin</b><span class="tag t-adapter">adapters_esp32</span><small>Callback của PubSubClient, đổi sang <code>std::string</code>, gọi <code>messageHandler_</code> mà Hub đã đăng ký.</small></li>
+    <li><b>Hub tìm thiết bị</b><span class="tag t-services">services</span><small><code>Hub::handleMessage</code> so topic với <code>cmdTopic(id)</code> của từng thiết bị đã <code>add</code>, ra đèn trần.</small></li>
+    <li><b>Đèn giải mã lệnh</b><span class="tag t-protocol">protocol</span><small><code>decodeLightCommand</code> kiểm tra JSON: có phải đối tượng, <code>on</code> có đúng kiểu bool, <code>level</code> có phải số nguyên. Sai thì dừng ở đây và báo lỗi (bước 9).</small></li>
+    <li><b>Tính trạng thái mới</b><span class="tag t-core">core</span><small><code>applyLightCommand(trạng thái cũ, on, level)</code>. Hàm thuần: nhận vào, trả ra, không có I/O.</small></li>
+    <li><b>Đổi độ sáng thành duty</b><span class="tag t-core">core</span><small><code>lightDuty</code>: mức 80 thành duty = 0,8<sup>2,2</sup> ≈ 0,612 (bù gamma, xem phần 4).</small></li>
+    <li><b>Ghi ra ngõ PWM</b><span class="tag t-services">services</span> → <span class="tag t-adapter">adapters_esp32</span><small><code>pwm_.write(0.612)</code> qua interface <code>PwmOutput</code>. <code>Esp32Pwm</code> đổi thành số nguyên 0 đến 1023: 0,612 × 1023 + 0,5 ≈ 626, rồi <code>ledcWrite</code>. LED sáng.</small></li>
+    <li><b>Báo lại trạng thái</b><span class="tag t-services">services</span><small><code>Hub::publishState</code> gửi <code>{"on":true,"level":80}</code> lên <code>.../state</code> với cờ <b>retain</b>.</small></li>
+    <li><b>Nếu lệnh sai</b><small>Trạng thái giữ nguyên, Hub gửi <code>{"error":"..."}</code> lên <code>.../error</code>. Thấy ngay trong MQTTX, không cần mở Serial.</small></li>
+  </ol>
+
+  <div class="note">Hàm tính toán (bước 4 đến 6) không biết MQTT, không biết GPIO. Hàm chạm phần cứng (bước 2 và 7) không biết luật của đèn. Mỗi phần chỉ có một lý do để sửa.</div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="logic">
+  <h2><span class="no">4</span>Logic chính</h2>
+
+  <h3>4.1 Luật của đèn (thử trực tiếp)</h3>
+  <p>Đây là bản JavaScript của đúng hàm <code>applyLightCommand</code> và <code>lightDuty</code> trong <code>shared/core/Light.h</code>. Bấm lệnh mẫu hoặc tự gõ JSON.</p>
+
+  <div class="card lab">
+    <div>
+      <div class="bulb" id="bulb"><i id="bulbGlow"></i><span id="bulbLabel">TẮT</span></div>
+      <div class="kv"><b>Trạng thái</b><span id="stateTxt"></span><b>Duty (0 đến 1)</b><span id="dutyTxt"></span><b>Giá trị PWM (0 đến 1023)</b><span id="pwmTxt"></span></div>
+      <div class="out" id="stateOut"></div>
+      <div class="out" id="errOut" style="display:none"></div>
+    </div>
+    <div>
+      <b style="font-size:14px">Lệnh mẫu</b>
+      <div class="btns" id="samples"></div>
+      <b style="font-size:14px">Hoặc tự gõ lệnh</b>
+      <input type="text" id="cmdIn" value='{"level":40}'>
+      <div class="btns"><button class="primary" id="sendBtn">Gửi lệnh</button><button id="resetBtn">Về trạng thái ban đầu</button></div>
+      <p style="font-size:14px;color:var(--muted)">Thử: <code>{"level":0}</code> rồi <code>{"on":true}</code> (mức cũ được nhớ). Hoặc <code>{"on":"yes"}</code> (lệnh sai, trạng thái giữ nguyên).</p>
+    </div>
+  </div>
+
+  <div class="tbl-wrap"><table>
+    <tr><th>Lệnh</th><th>Kết quả</th></tr>
+    <tr><td><code>{"on":true}</code></td><td>Bật, dùng mức đã nhớ (mặc định 100)</td></tr>
+    <tr><td><code>{"on":false}</code></td><td>Tắt, nhớ mức cũ</td></tr>
+    <tr><td><code>{"level":40}</code></td><td>Đặt mức 40 và bật (vì lệnh không nói rõ <code>on</code>)</td></tr>
+    <tr><td><code>{"level":0}</code></td><td>Tắt, giữ nguyên mức cũ để lần bật sau dùng lại</td></tr>
+    <tr><td><code>{"on":false,"level":80}</code></td><td>Đặt mức 80 nhưng tắt: <code>on</code> nói rõ thì thắng</td></tr>
+    <tr><td><code>level</code> ngoài 0 đến 100</td><td>Bị cắt về 0 hoặc 100</td></tr>
+    <tr><td>JSON sai, sai kiểu, hay <code>{}</code></td><td>Từ chối, trạng thái giữ nguyên, gửi lên <code>.../error</code></td></tr>
+  </table></div>
+
+  <h3>4.2 Vì sao có "gamma"?</h3>
+  <p>Mắt người cảm nhận độ sáng không tuyến tính. Nếu đưa mức 50 thành duty 0,5 thì đèn nhìn vẫn rất sáng, kéo từ 0 lên 30 thấy sáng vọt lên còn từ 70 lên 100 gần như không đổi. Hàm <code>duty = (level/100)<sup>2,2</sup></code> bù lại để kéo thanh trượt thấy đều. Kéo thanh dưới đây để thấy chênh lệch:</p>
+  <div class="card">
+    <input type="range" id="gSlider" min="0" max="100" value="50">
+    <div class="kv"><b>Mức</b><span id="gLevel"></span><b>Duty tuyến tính</b><span id="gLin"></span><b>Duty có gamma</b><span id="gGam"></span></div>
+    <svg id="gChart" viewBox="0 0 520 250" style="width:100%;max-width:560px;display:block;margin:6px 0" role="img" aria-label="Đường cong gamma so với đường thẳng"></svg>
+    <div class="legend"><span><i style="background:#b8bfc4"></i>tuyến tính</span><span><i style="background:#1c64b8"></i>có gamma 2,2 (đang dùng)</span></div>
+  </div>
+
+  <h3>4.3 Hub: vòng đời của một board</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Lúc</th><th>Hub làm gì</th></tr>
+    <tr><td><code>begin()</code></td><td>Đăng ký hai hàm xử lý với Transport (nhận tin, đã nối). Subscribe topic <code>ping</code> của board và topic <code>cmd</code> của từng thiết bị. Gọi <code>begin()</code> của từng thiết bị để đưa ngõ ra về trạng thái ban đầu (đèn tắt).</td></tr>
+    <tr><td>Mỗi lần (nối lại) vào broker</td><td>Gửi <code>status = online</code> (retain). Gửi lại trạng thái hiện tại của mọi thiết bị (retain). Đặt lại đồng hồ nhịp.</td></tr>
+    <tr><td>Có tin tới</td><td><code>ping</code> thì trả <code>pong</code> đúng nội dung đó. Topic <code>cmd</code> của thiết bị thì chuyển cho thiết bị, thành công thì báo state, thất bại thì báo error. Topic lạ thì bỏ qua.</td></tr>
+    <tr><td><code>loop()</code></td><td>Cứ 5 giây gửi <code>uptime</code>, và chỉ gửi khi đang nối được broker.</td></tr>
+  </table></div>
+
+  <h3>4.4 MqttTransport: giữ kết nối sống</h3>
+  <ul class="tight">
+    <li><b>Tự nối lại với "lùi dần":</b> thử lại sau 1 giây, hỏng thì 2, 4, 8 giây, tối đa 15 giây. Nối được thì quay về 1 giây. Tránh việc dồn dập quấy broker khi mạng đứt.</li>
+    <li><b>Nhớ topic đã subscribe:</b> mỗi lần nối lại, tự subscribe lại hết (broker đã quên khi mất kết nối).</li>
+    <li><b>Last Will:</b> lúc nối, board nhờ broker "nếu tôi mất kết nối mà không chào, hãy đăng <code>offline</code> lên <code>status</code>". Rút cáp board thì khoảng 1 phút sau topic đổi thành <code>offline</code>.</li>
+    <li><b>Retain:</b> tin <code>state</code> và <code>status</code> được broker giữ lại, nên người vào sau (web mới mở) thấy ngay trạng thái hiện tại thay vì đợi tin kế tiếp.</li>
+    <li><b>Thiếu cấu hình thì dừng:</b> chưa điền WiFi hay địa chỉ broker thì board in lỗi và dừng, không chạy tiếp một cách lặng lẽ.</li>
+  </ul>
+  <div class="tbl-wrap"><table>
+    <tr><th>Topic</th><th>Retain</th><th>Vì sao</th></tr>
+    <tr><td><code>.../state</code>, <code>node/.../status</code></td><td class="ok">có</td><td>Là "trạng thái hiện tại", ai vào sau cũng cần thấy</td></tr>
+    <tr><td><code>.../cmd</code>, <code>.../uptime</code>, <code>.../error</code>, <code>.../pong</code></td><td class="no-t">không</td><td>Là sự kiện tức thời. Retain lệnh cũ thì board khởi động lại sẽ làm lại lệnh cũ</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="convention">
+  <h2><span class="no">5</span>Quy ước</h2>
+  <p class="lead">Những luật viết ra để code sau này nhất quán. Luật đầy đủ ở <code>docs/architecture.md</code>, <code>docs/mqtt-topics.md</code>, <code>docs/gpio.md</code>.</p>
+
+  <h3>Đặt tên</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Cái gì</th><th>Quy ước</th><th>Ví dụ</th></tr>
+    <tr><td>Board</td><td>Đặt theo vai trò, không theo thứ tự</td><td><code>guard</code>, <code>comfort</code> (không phải esp32-a, esp32-b)</td></tr>
+    <tr><td>Thiết bị</td><td><code>&lt;phòng&gt;/&lt;thiết-bị&gt;</code>, tiếng Anh, chữ thường không dấu, kebab-case</td><td><code>living/ceiling-light</code></td></tr>
+    <tr><td>Topic</td><td>Mọi topic bắt đầu bằng <code>domisen/</code>. Board có nhóm riêng <code>node/</code> để khỏi lẫn với tên phòng</td><td><code>domisen/node/guard/status</code></td></tr>
+    <tr><td>Lớp</td><td>PascalCase, mỗi lớp một file cùng tên</td><td><code>DimmableLight</code> trong <code>DimmableLight.h</code></td></tr>
+    <tr><td>Hàm, biến</td><td>camelCase</td><td><code>applyLightCommand</code></td></tr>
+    <tr><td>Biến thành viên</td><td>Hậu tố gạch dưới</td><td><code>transport_</code>, <code>lastBeat_</code></td></tr>
+    <tr><td>Hằng số</td><td>Tiền tố <code>k</code></td><td><code>kMaxLightLevel</code></td></tr>
+    <tr><td>Namespace</td><td><code>domisen::&lt;lớp&gt;</code></td><td><code>domisen::core</code></td></tr>
+  </table></div>
+
+  <h3>Cấu trúc và luật code</h3>
+  <div class="grid2">
+    <div class="conv"><h4>Include tính từ <code>src/</code></h4><p><code>#include &lt;shared/core/Ports.h&gt;</code>. Không dùng <code>../</code>, không cần cờ <code>-I</code> ẩn. Đọc dòng include là biết file nằm ở đâu.</p></div>
+    <div class="conv"><h4>Một tên, một nguồn</h4><p>Tên topic chỉ ghép trong <code>protocol/Topics.h</code>. Không viết chuỗi <code>"domisen/..."</code> ở chỗ khác. Đổi tên topic là sửa đúng một chỗ.</p></div>
+    <div class="conv"><h4>Lõi thuần</h4><p><code>core</code> và <code>services</code> không dính <code>Arduino.h</code>, WiFi hay adapter. Bắt bằng biên dịch ở môi trường <code>native</code> và bằng <code>check-purity.sh</code>.</p></div>
+    <div class="conv"><h4>Thiết bị không biết phần cứng</h4><p><code>DimmableLight</code> nhận <code>PwmOutput&amp;</code>, không biết chân GPIO hay kênh LEDC. Chân GPIO chỉ xuất hiện trong <code>main.cpp</code> của board.</p></div>
+    <div class="conv"><h4>Thiếu cấu hình thì dừng</h4><p>Không âm thầm chạy với giá trị mặc định sai. Board báo rõ thiếu gì rồi dừng.</p></div>
+    <div class="conv"><h4>Lệnh sai thì không đổi gì</h4><p>Trạng thái giữ nguyên, có phản hồi lỗi rõ lý do trên topic <code>error</code>. Không bao giờ để thiết bị ở trạng thái nửa vời.</p></div>
+    <div class="conv"><h4>Bí mật không vào git</h4><p>WiFi và mật khẩu broker nằm trong <code>include/domisen_config.h</code> (trong <code>.gitignore</code>). Repo chỉ có <code>domisen_config.example.h</code>. File mật khẩu broker <code>broker/passwd</code> cũng không commit.</p></div>
+    <div class="conv"><h4>Ghim phiên bản thư viện</h4><p>Trong <code>platformio.ini</code> ghi đúng phiên bản (ví dụ <code>PubSubClient@2.8</code>). Máy nào cũng build ra cùng kết quả.</p></div>
+  </div>
+
+  <h3>Cách làm việc</h3>
+  <ul class="tight">
+    <li><b>Tài liệu là nguồn sự thật.</b> Muốn đổi chân GPIO, topic hay kiến trúc thì sửa tài liệu trước, rồi mới sửa code. Code khác tài liệu là code sai.</li>
+    <li><b>Chân GPIO ghi ở <code>docs/gpio.md</code>,</b> lấy từ kế hoạch gốc. Đấu dây và viết firmware đều nhìn vào cùng một bảng.</li>
+    <li><b>Test viết bằng tiếng Việt mô tả hành vi:</b> <code>test_lenh_sai_bao_loi_va_khong_doi_trang_thai</code> đọc là hiểu, không cần mở code.</li>
+    <li><b>Mỗi test dựng một "Rig" mới</b> (hai đèn, một Hub, các bản giả) nên test không ảnh hưởng nhau.</li>
+    <li><b>Comment tiếng Việt, giải thích "vì sao"</b> ngắn gọn, không nhắc lại điều code đã nói.</li>
+    <li><b>Commit message tiếng Việt,</b> mô tả điều đã đổi.</li>
+  </ul>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="them-thiet-bi">
+  <h2><span class="no">6</span>Thêm một thiết bị</h2>
+  <p class="lead">Ví dụ đã làm: đèn ngủ. Đây là toàn bộ phần thêm vào <code>src/comfort/main.cpp</code>:</p>
+
+<pre><code>static adapters::esp32::Esp32Pwm nightPwm(26, 1);   // GPIO26, kênh LEDC 1
+static services::DimmableLight nightLight("bedroom/night-light", nightPwm);
+
+void setup() {
+  ...
+  nightPwm.begin();
+  hub.add(nightLight);   // Hub tự subscribe, tự chuyển lệnh, tự báo trạng thái
+  ...
+}</code></pre>
+
+  <p>Hub làm hết phần còn lại: subscribe <code>domisen/bedroom/night-light/cmd</code>, chuyển lệnh, gửi <code>state</code>, gửi lại state mỗi lần nối lại broker.</p>
+
+  <h3>Khi là loại thiết bị mới (quạt qua relay, servo, cảm biến...)</h3>
+  <ol class="tight">
+    <li><b>Luật thuần</b> vào <code>shared/core</code> (ví dụ trạng thái và chuyển trạng thái của quạt).</li>
+    <li><b>Mã hóa lệnh, trạng thái</b> vào <code>shared/protocol</code>.</li>
+    <li><b>Lớp thiết bị</b> kế thừa <code>Device</code> trong <code>shared/services</code>: <code>id()</code>, <code>begin()</code>, <code>onCommand()</code>, <code>stateJson()</code>.</li>
+    <li><b>Cần loại phần cứng mới?</b> Thêm port vào <code>core/Ports.h</code> (ví dụ <code>DigitalOutput</code>), adapter thật, bản giả, và một contract test.</li>
+    <li><b>Viết test</b> với bản giả trước, chạy <code>pio test -e native</code>.</li>
+    <li><b>Lắp vào board</b> trong <code>main.cpp</code> bằng <code>hub.add(...)</code>.</li>
+    <li><b>Cập nhật</b> <code>docs/gpio.md</code> và <code>docs/mqtt-topics.md</code>.</li>
+  </ol>
+  <div class="note">Interface <code>Device</code> có bốn hàm: <code>id()</code> (tên topic), <code>begin()</code> (đưa ngõ ra về ban đầu), <code>onCommand(payload, error)</code> (trả false nếu lệnh sai), <code>stateJson()</code> (trạng thái hiện tại). Hub chỉ cần bốn hàm này nên không cần biết thiết bị là đèn hay servo.</div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="kiem-thu">
+  <h2><span class="no">7</span>Kiểm thử</h2>
+  <p class="lead">26 test chạy trên laptop bằng <code>pio test -e native</code>, không cần board.</p>
+
+  <div class="tbl-wrap"><table>
+    <tr><th>Bộ test</th><th>Số test</th><th>Kiểm tra</th></tr>
+    <tr><td><code>test_core</code></td><td>7</td><td>Luật đèn: nhớ mức khi tắt, level 0, <code>on</code> thắng <code>level</code>, cắt ngoài khoảng, giá trị gamma</td></tr>
+    <tr><td><code>test_protocol</code></td><td>6</td><td>Tên topic đúng chuỗi, giải mã lệnh đủ và thiếu, từ chối lệnh sai, mã hóa trạng thái và lỗi</td></tr>
+    <tr><td><code>test_services</code></td><td>11</td><td>Hub và đèn với bản giả: đăng ký topic, đèn tắt lúc khởi động, báo online, lệnh điều khiển PWM, hai đèn độc lập, lệnh sai, nối lại gửi lại trạng thái, ping/pong, nhịp uptime</td></tr>
+    <tr><td><code>test_contracts</code></td><td>2</td><td>Hành vi mà Hub dựa vào của <code>Transport</code> (chưa nối thì publish trả false, đăng ký giữ qua lần nối lại...) và <code>PwmOutput</code> (cắt về 0 đến 1)</td></tr>
+  </table></div>
+
+  <h3>Lệnh chạy</h3>
+<pre><code>cd firmware
+pio test -e native        # 26 test, vài giây
+pio run                   # biên dịch cả 2 board
+tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
+
+  <div class="note warn"><b>Chưa kiểm tra được:</b> adapter thật (<code>MqttTransport</code>, <code>Esp32Pwm</code>). Chúng cần board nên chỉ biết là biên dịch được, chưa chạy thử sau lần tái cấu trúc. Bản trước tái cấu trúc đã chạy thật trên board (nối WiFi, broker, gửi uptime, nhận lệnh ping).</div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="gioi-han">
+  <h2><span class="no">8</span>Chưa có và hạn chế</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Chưa làm</th><th>Ghi chú</th></tr>
+    <tr><td>Server (Bun + PostgreSQL) và web dashboard</td><td>Chỉ có thư mục trống kèm README. Chúng sẽ dùng đúng quy ước topic ở <code>docs/mqtt-topics.md</code></td></tr>
+    <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
+    <tr><td>Cảm biến, relay, servo, WS2812</td><td>Mới có một loại thiết bị là đèn chỉnh độ sáng (đèn trần, đèn ngủ). Các loại khác thêm theo mục 6</td></tr>
+    <tr><td>Chạy thử đèn thật trên board</td><td>Đã biên dịch và test logic, chưa nạp lại bản mới và thử với LED sau tái cấu trúc</td></tr>
+  </table></div>
+  <h3>Hạn chế đã biết</h3>
+  <ul class="tight">
+    <li><b>MQTT không mã hóa:</b> kết nối TCP thường, mật khẩu đi dạng rõ trong mạng. Đủ cho đồ án ở WiFi tin cậy, chưa đủ để đưa ra internet.</li>
+    <li><b>Chỉ QoS 0:</b> PubSubClient chỉ gửi mức "tối đa một lần", tin có thể mất nếu mạng chập chờn. Trạng thái được gửi lại mỗi lần nối nên về lâu dài vẫn đúng.</li>
+    <li><b>Bộ đệm 512 byte:</b> tin dài hơn bị bỏ. Lệnh và trạng thái hiện tại chỉ vài chục byte nên chưa vướng.</li>
+    <li><b>Địa chỉ broker ghi cứng trong config:</b> đổi WiFi thì IP laptop đổi, phải sửa <code>MQTT_HOST</code> và nạp lại.</li>
+  </ul>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="ban-do">
+  <h2><span class="no">9</span>Bản đồ file</h2>
+<pre><code>domisen/
+├── README.md                    cài đặt (Mac và Windows), cách chạy
+├── docs/
+│   ├── architecture.md          luật kiến trúc (nguồn sự thật)
+│   ├── mqtt-topics.md           quy ước topic và nội dung tin
+│   ├── gpio.md                  bảng chân GPIO của 2 board
+│   ├── giai-thich-code.html     trang này
+│   └── plan/                    bản chụp kế hoạch dự án
+├── broker/
+│   └── mosquitto.conf           cấu hình broker (passwd không commit)
+├── firmware/
+│   ├── platformio.ini           2 board + môi trường native
+│   ├── include/                 domisen_config.example.h (config thật không commit)
+│   ├── tools/                   check-purity.sh, setup-editor.sh
+│   ├── test/                    4 bộ test chạy trên laptop
+│   └── src/
+│       ├── shared/
+│       │   ├── core/            Ports.h, Light.h
+│       │   ├── protocol/        Topics.h, Light.h/.cpp, Error.h/.cpp
+│       │   ├── services/        Device.h, Hub.h/.cpp, DimmableLight.h/.cpp
+│       │   ├── adapters_esp32/  MqttTransport, Esp32Pwm, ArduinoClock
+│       │   └── adapters_fake/   FakeTransport, FakePwm, FakeClock
+│       ├── guard/main.cpp       lắp ráp board guard
+│       └── comfort/main.cpp     lắp ráp board comfort
+├── server/                      (chưa làm)
+└── web/                         (chưa làm)</code></pre>
+</section>
+
+</main>
+
+<footer>Trang này mô tả code ở thời điểm tạo. Khi kiến trúc đổi, sửa <code>docs/architecture.md</code> trước, rồi cập nhật trang này.</footer>
+
+<script>
+(function () {
+  // ---- bản JavaScript của core::applyLightCommand và core::lightDuty (shared/core/Light.h) ----
+  const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+  function apply(s, on, level) {
+    s = { on: s.on, level: s.level };
+    if (level !== undefined) {
+      const v = clamp(level, 0, 100);
+      if (v === 0) s.on = false;
+      else { s.level = v; if (on === undefined) s.on = true; }
+    }
+    if (on !== undefined) s.on = on;
+    return s;
+  }
+  const duty = s => s.on ? Math.pow(s.level / 100, 2.2) : 0;
+
+  // ---- bản JavaScript của protocol::decodeLightCommand ----
+  function decode(text) {
+    let o;
+    try { o = JSON.parse(text); } catch (e) { return { error: "không phải JSON hợp lệ" }; }
+    if (o === null || typeof o !== "object" || Array.isArray(o)) return { error: "lệnh phải là một đối tượng JSON" };
+    const cmd = {};
+    if (o.on !== undefined && o.on !== null) {
+      if (typeof o.on !== "boolean") return { error: "on phải là true hoặc false" };
+      cmd.on = o.on;
+    }
+    if (o.level !== undefined && o.level !== null) {
+      if (typeof o.level !== "number" || !Number.isInteger(o.level)) return { error: "level phải là số nguyên từ 0 đến 100" };
+      cmd.level = o.level;
+    }
+    if (cmd.on === undefined && cmd.level === undefined) return { error: "lệnh cần có on hoặc level" };
+    return { cmd };
+  }
+
+  const INIT = { on: false, level: 100 };
+  let state = { ...INIT };
+  const $ = id => document.getElementById(id);
+
+  function render() {
+    const d = duty(state);
+    $("bulbGlow").style.opacity = d.toFixed(3);
+    $("bulbLabel").textContent = state.on ? "BẬT " + state.level + "%" : "TẮT";
+    $("stateTxt").textContent = (state.on ? "bật" : "tắt") + ", mức nhớ " + state.level;
+    $("dutyTxt").textContent = d.toFixed(3);
+    $("pwmTxt").textContent = Math.floor(d * 1023 + 0.5);
+    $("stateOut").textContent = "state: " + JSON.stringify({ on: state.on, level: state.level });
+  }
+  function send(text) {
+    const r = decode(text);
+    const errBox = $("errOut");
+    if (r.error) {
+      errBox.style.display = "block";
+      errBox.className = "out err";
+      errBox.textContent = "error: " + JSON.stringify({ error: r.error }) + "  (trạng thái giữ nguyên)";
+    } else {
+      errBox.style.display = "none";
+      state = apply(state, r.cmd.on, r.cmd.level);
+    }
+    render();
+  }
+  const samples = ['{"on":true}', '{"on":false}', '{"level":40}', '{"level":0}', '{"on":true,"level":80}', '{"on":false,"level":80}', '{"level":500}', '{"on":"yes"}', 'rac'];
+  samples.forEach(t => {
+    const b = document.createElement("button");
+    b.textContent = t;
+    b.onclick = () => { $("cmdIn").value = t; send(t); };
+    $("samples").appendChild(b);
+  });
+  $("sendBtn").onclick = () => send($("cmdIn").value);
+  $("cmdIn").addEventListener("keydown", e => { if (e.key === "Enter") send($("cmdIn").value); });
+  $("resetBtn").onclick = () => { state = { ...INIT }; $("errOut").style.display = "none"; render(); };
+  render();
+
+  // ---- biểu đồ gamma ----
+  const W = 520, H = 250, L = 44, R = 12, T = 26, B = 34;
+  const X = v => L + (v / 100) * (W - L - R);
+  const Y = v => H - B - v * (H - T - B);
+  function chart() {
+    const lvl = +$("gSlider").value;
+    const lin = lvl / 100, gam = Math.pow(lin, 2.2);
+    $("gLevel").textContent = lvl;
+    $("gLin").textContent = lin.toFixed(3);
+    $("gGam").textContent = gam.toFixed(3);
+    let pts = "";
+    for (let i = 0; i <= 100; i += 2) pts += X(i).toFixed(1) + "," + Y(Math.pow(i / 100, 2.2)).toFixed(1) + " ";
+    let s = "";
+    [0, 0.25, 0.5, 0.75, 1].forEach(g => {
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(g) + '" y2="' + Y(g) + '" stroke="#e4e0d6"/>';
+      s += '<text x="' + (L - 6) + '" y="' + (Y(g) + 4) + '" text-anchor="end">' + g + '</text>';
+    });
+    [0, 25, 50, 75, 100].forEach(v => {
+      s += '<text x="' + X(v) + '" y="' + (H - B + 16) + '" text-anchor="middle">' + v + '</text>';
+    });
+    s += '<text x="' + ((L + W - R) / 2) + '" y="' + (H - 4) + '" text-anchor="middle">mức sáng (level)</text>';
+    s += '<text x="4" y="12">duty</text>';
+    s += '<line x1="' + X(0) + '" y1="' + Y(0) + '" x2="' + X(100) + '" y2="' + Y(1) + '" stroke="#b8bfc4" stroke-width="2.5"/>';
+    s += '<polyline points="' + pts + '" fill="none" stroke="#1c64b8" stroke-width="3"/>';
+    s += '<line x1="' + X(lvl) + '" x2="' + X(lvl) + '" y1="' + Y(0) + '" y2="' + Y(lin) + '" stroke="#e4e0d6" stroke-dasharray="4 3"/>';
+    s += '<circle cx="' + X(lvl) + '" cy="' + Y(lin) + '" r="5" fill="#b8bfc4"/>';
+    s += '<circle cx="' + X(lvl) + '" cy="' + Y(gam) + '" r="6" fill="#1c64b8"/>';
+    $("gChart").innerHTML = s;
+  }
+  $("gSlider").addEventListener("input", chart);
+  chart();
+})();
+</script>
+</body>
+</html>
