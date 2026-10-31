@@ -33,7 +33,7 @@ Nếu đổi chân thì sửa file này trước, rồi mới sửa code.
 
 ## Cần nhớ
 
-- GPIO34, 35, 36, 39 chỉ **đọc**, không có pull-up/pull-down nội. Không dùng làm ngõ ra.
+- GPIO34, 35, 36, 39 chỉ **đọc**, không có pull-up/pull-down nội. Không dùng làm đầu ra.
 - Không dùng GPIO6 đến 11 (nối flash) và hạn chế GPIO0, 2, 12, 15 (ảnh hưởng lúc khởi động).
 - GPIO2 là LED có sẵn trên board, dùng cho bản thử đầu tiên.
 - Mọi servo, relay, quạt, WS2812 lấy nguồn 5V từ adapter, chung GND với ESP32.

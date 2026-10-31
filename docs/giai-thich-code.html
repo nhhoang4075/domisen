@@ -475,7 +475,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <li><b>Đèn giải mã lệnh</b><span class="tag t-protocol">protocol</span><small><code>decodeLightCommand</code> kiểm tra JSON: có phải đối tượng, <code>on</code> có đúng kiểu bool, <code>level</code> có phải số nguyên. Sai thì dừng ở đây và báo lỗi (bước 9).</small></li>
     <li><b>Tính trạng thái mới</b><span class="tag t-core">core</span><small><code>applyLightCommand(trạng thái cũ, on, level)</code>. Hàm thuần: nhận vào, trả ra, không có I/O.</small></li>
     <li><b>Đổi độ sáng thành duty</b><span class="tag t-core">core</span><small><code>lightDuty</code>: mức 80 thành duty = 0,8<sup>2,2</sup> ≈ 0,612 (bù gamma, xem tab PWM và gamma).</small></li>
-    <li><b>Ghi ra ngõ PWM</b><span class="tag t-services">services</span> → <span class="tag t-adapter">adapters_esp32</span><small><code>pwm_.write(0.612)</code> qua interface <code>PwmOutput</code>. <code>Esp32Pwm</code> đổi thành số nguyên 0 đến 1023: 0,612 × 1023 + 0,5 ≈ 626, rồi <code>ledcWrite</code>. LED sáng.</small></li>
+    <li><b>Ghi ra đầu ra PWM</b><span class="tag t-services">services</span> → <span class="tag t-adapter">adapters_esp32</span><small><code>pwm_.write(0.612)</code> qua interface <code>PwmOutput</code>. <code>Esp32Pwm</code> đổi thành số nguyên 0 đến 1023: 0,612 × 1023 + 0,5 ≈ 626, rồi <code>ledcWrite</code>. LED sáng.</small></li>
     <li><b>Báo lại trạng thái</b><span class="tag t-services">services</span><small><code>Hub::publishState</code> gửi <code>{"on":true,"level":80}</code> lên <code>.../state</code> với cờ <b>retain</b>.</small></li>
     <li><b>Nếu lệnh sai</b><small>Trạng thái giữ nguyên, Hub gửi <code>{"error":"..."}</code> lên <code>.../error</code>. Thấy ngay trong MQTTX, không cần mở Serial.</small></li>
   </ol>
@@ -530,7 +530,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
   <h3>Hub: vòng đời của một board</h3>
   <div class="tbl-wrap"><table>
     <tr><th>Lúc</th><th>Hub làm gì</th></tr>
-    <tr><td><code>begin()</code></td><td>Đăng ký hai hàm xử lý với Transport (nhận tin, đã nối). Subscribe topic <code>ping</code> của board và topic <code>cmd</code> của từng thiết bị. Gọi <code>begin()</code> của từng thiết bị để đưa ngõ ra về trạng thái ban đầu (đèn tắt).</td></tr>
+    <tr><td><code>begin()</code></td><td>Đăng ký hai hàm xử lý với Transport (nhận tin, đã nối). Subscribe topic <code>ping</code> của board và topic <code>cmd</code> của từng thiết bị. Gọi <code>begin()</code> của từng thiết bị để đưa đầu ra về trạng thái ban đầu (đèn tắt).</td></tr>
     <tr><td>Mỗi lần (nối lại) vào broker</td><td>Gửi <code>status = online</code> (retain). Gửi lại trạng thái hiện tại của mọi thiết bị (retain). Đặt lại đồng hồ nhịp.</td></tr>
     <tr><td>Có tin tới</td><td><code>ping</code> thì trả <code>pong</code> đúng nội dung đó. Topic <code>cmd</code> của thiết bị thì chuyển cho thiết bị, thành công thì báo state, thất bại thì báo error. Topic lạ thì bỏ qua.</td></tr>
     <tr><td><code>loop()</code></td><td>Cứ 5 giây gửi <code>uptime</code>, và chỉ gửi khi đang nối được broker.</td></tr>
@@ -619,7 +619,7 @@ void setup() {
     <li><b>Lắp vào board</b> trong <code>main.cpp</code> bằng <code>hub.add(...)</code>.</li>
     <li><b>Cập nhật</b> <code>docs/gpio.md</code> và <code>docs/mqtt-topics.md</code>.</li>
   </ol>
-  <div class="note">Interface <code>Device</code> có bốn hàm: <code>id()</code> (tên topic), <code>begin()</code> (đưa ngõ ra về ban đầu), <code>onCommand(payload, error)</code> (trả false nếu lệnh sai), <code>stateJson()</code> (trạng thái hiện tại). Hub chỉ cần bốn hàm này nên không cần biết thiết bị là đèn hay servo.</div>
+  <div class="note">Interface <code>Device</code> có bốn hàm: <code>id()</code> (tên topic), <code>begin()</code> (đưa đầu ra về ban đầu), <code>onCommand(payload, error)</code> (trả false nếu lệnh sai), <code>stateJson()</code> (trạng thái hiện tại). Hub chỉ cần bốn hàm này nên không cần biết thiết bị là đèn hay servo.</div>
 </section>
 
 <!-- ============ 7 ============ -->

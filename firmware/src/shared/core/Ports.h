@@ -12,7 +12,7 @@ class Clock {
   virtual uint32_t nowMs() const = 0;
 };
 
-// Ngõ ra PWM. duty nằm trong 0.0 .. 1.0, adapter tự giới hạn và đổi sang độ phân giải của phần cứng.
+// Đầu ra PWM. duty nằm trong 0.0 .. 1.0, adapter tự giới hạn và đổi sang độ phân giải của phần cứng.
 class PwmOutput {
  public:
   virtual ~PwmOutput() = default;

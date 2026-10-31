@@ -1,4 +1,4 @@
-// Luật thuần của đèn chỉnh được độ sáng. Không biết JSON, MQTT hay chân GPIO.
+// Nguyên lý của đèn chỉnh được độ sáng. Không biết JSON, MQTT hay chân GPIO.
 #pragma once
 #include <algorithm>
 #include <cmath>

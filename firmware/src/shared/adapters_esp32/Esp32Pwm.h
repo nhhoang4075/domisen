@@ -3,7 +3,7 @@
 
 namespace domisen::adapters::esp32 {
 
-// PWM bằng LEDC của ESP32. Mỗi ngõ ra cần một kênh riêng (0..15).
+// PWM bằng LEDC của ESP32. Mỗi đầu ra cần một kênh riêng (0..15).
 class Esp32Pwm : public core::PwmOutput {
  public:
   Esp32Pwm(int pin, int channel, int freqHz = 5000, int resolutionBits = 10);
