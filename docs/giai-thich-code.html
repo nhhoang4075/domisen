@@ -19,29 +19,49 @@
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 -apple-system, "Segoe UI", system-ui, sans-serif; }
-  header.hero { padding: 48px 20px 28px; max-width: 920px; margin: 0 auto; }
+  header.hero { padding: 40px 20px 20px; max-width: 1320px; margin: 0 auto; }
   header.hero h1 { font-size: 34px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.5px; }
   header.hero p { margin: 0; color: var(--muted); max-width: 680px; }
-  nav.toc { position: sticky; top: 0; z-index: 5; background: rgba(251,250,247,.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
-  nav.toc div { max-width: 920px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 6px; flex-wrap: wrap; }
-  nav.toc a { font-size: 14px; color: var(--ink); text-decoration: none; padding: 5px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); white-space: nowrap; }
-  nav.toc a:hover { border-color: var(--services); color: var(--services); }
-  nav.toc a[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
-  nav.toc a:focus-visible { outline: 2px solid var(--services); outline-offset: 2px; }
+  /* bố cục: thanh trái (các tab), nội dung, thanh phải (mục trong tab) */
+  .shell { display: grid; grid-template-columns: 224px minmax(0, 1fr) 212px; gap: 32px; max-width: 1320px; margin: 0 auto; padding: 0 20px; align-items: start; }
+  nav.toc, aside.onpage { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; font-size: 14.5px; }
+  nav.toc { counter-reset: tab; padding-bottom: 20px; }
+  nav.toc .grp { margin: 18px 0 4px; padding: 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  nav.toc .grp:first-child { margin-top: 2px; }
+  nav.toc a { display: block; color: var(--ink); text-decoration: none; padding: 6px 10px; border-radius: 8px; line-height: 1.35; counter-increment: tab; }
+  nav.toc a::before { content: counter(tab) ". "; color: var(--muted); }
+  nav.toc a:hover { background: #f1eee5; }
+  nav.toc a[aria-current="page"] { background: var(--ink); color: #fff; font-weight: 600; }
+  nav.toc a[aria-current="page"]::before { color: #cfd6dc; }
+  nav.toc a:focus-visible, aside.onpage a:focus-visible { outline: 2px solid var(--services); outline-offset: 2px; }
+  aside.onpage .ttl { margin: 2px 0 6px; padding-left: 12px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  aside.onpage a { display: block; color: var(--muted); text-decoration: none; padding: 4px 10px 4px 12px; border-left: 2px solid var(--line); line-height: 1.35; font-size: 13.5px; }
+  aside.onpage a:hover { color: var(--ink); }
+  aside.onpage a.on { color: var(--ink); border-left-color: var(--services); font-weight: 600; }
+  aside.onpage:empty { display: none; }
   .pager { display: flex; justify-content: space-between; gap: 10px; margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); }
   .pager button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 10px 16px; min-width: 150px; }
   .pager button small { color: var(--muted); font-size: 12.5px; }
   .pager button b { font-size: 15px; }
   .pager .next { align-items: flex-end; margin-left: auto; }
   .pager button:hover small { color: inherit; }
-  @media (max-width: 640px) { nav.toc div { flex-wrap: nowrap; overflow-x: auto; } .pager button { min-width: 0; flex: 1; } }
-  main { max-width: 920px; margin: 0 auto; padding: 8px 20px 80px; }
-  section { display: none; margin-top: 30px; }
+  @media (max-width: 1180px) { .shell { grid-template-columns: 224px minmax(0, 1fr); } aside.onpage { display: none; } }
+  @media (max-width: 820px) {
+    .shell { display: block; padding: 0; }
+    nav.toc { top: 0; z-index: 5; max-height: none; display: flex; gap: 6px; overflow-x: auto; padding: 10px 16px; background: rgba(251,250,247,.95); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+    nav.toc .grp { display: none; }
+    nav.toc a { white-space: nowrap; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 5px 13px; }
+    nav.toc a[aria-current="page"] { border-color: var(--ink); }
+    main { padding: 0 16px 60px; }
+    .pager button { min-width: 0; flex: 1; }
+  }
+  main { min-width: 0; padding: 0 0 80px; }
+  section { display: none; margin-top: 4px; }
   section.active { display: block; animation: fade .18s ease; }
   @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-  h2 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.3px; }
+  h2 { font-size: 26px; margin: 0 0 6px; scroll-margin-top: 16px; letter-spacing: -0.3px; }
   h2 .no { display: inline-block; min-width: 34px; height: 34px; line-height: 34px; text-align: center; border-radius: 50%; background: var(--ink); color: #fff; font-size: 16px; margin-right: 10px; vertical-align: 2px; }
-  h3 { font-size: 18px; margin: 26px 0 6px; }
+  h3 { font-size: 18px; margin: 26px 0 6px; scroll-margin-top: 16px; }
   p { margin: 8px 0; }
   .lead { color: var(--muted); margin-bottom: 18px; }
   code { background: var(--code-bg); padding: 1px 6px; border-radius: 5px; font: 0.9em ui-monospace, "SF Mono", Menlo, monospace; }
@@ -111,9 +131,18 @@
   .conv { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
   .conv h4 { margin: 0 0 4px; font-size: 15.5px; }
   .conv p { margin: 0; font-size: 14.5px; color: var(--muted); }
+  .part { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px 8px; margin: 12px 0; }
+  .part .ph { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .part .ph b { font-size: 17px; }
+  .part dl { margin: 6px 0 0; display: grid; grid-template-columns: 110px 1fr; gap: 0 16px; }
+  .part dt { color: var(--muted); font-weight: 600; font-size: 14px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .part dd { margin: 0; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .part dt:nth-last-of-type(1), .part dd:last-of-type { border-bottom: none; }
+  @media (max-width: 640px) { .part dl { grid-template-columns: 1fr; } .part dt { border-bottom: none; padding-bottom: 0; } }
+  h4.sub { font-size: 16px; margin: 20px 0 4px; scroll-margin-top: 16px; }
   .ok { color: var(--ok); font-weight: 600; }
   .no-t { color: #b42318; font-weight: 600; }
-  footer { max-width: 920px; margin: 0 auto; padding: 0 20px 60px; color: var(--muted); font-size: 14px; }
+  footer { max-width: 1320px; margin: 0 auto; padding: 0 20px 60px; color: var(--muted); font-size: 14px; }
 </style>
 <noscript><style>section { display: block !important; }</style></noscript>
 </head>
@@ -124,24 +153,30 @@
   <p>Mô hình nhà thông minh với 2 ESP32 nói chuyện qua MQTT. Trang này giải thích code firmware đang có: nó chia thành những phần nào, một lệnh đi qua code ra sao, và những quy ước để về sau thêm thiết bị mà code không rối.</p>
 </header>
 
-<nav class="toc" aria-label="Các phần"><div role="tablist">
-  <a href="#tong-quan" role="tab" aria-controls="tong-quan">1. Tổng quan</a>
-  <a href="#mqttx" role="tab" aria-controls="mqttx">2. MQTTX</a>
-  <a href="#kien-truc" role="tab" aria-controls="kien-truc">3. Lõi và adapter</a>
-  <a href="#luong-lenh" role="tab" aria-controls="luong-lenh">4. Đi theo một lệnh</a>
-  <a href="#logic" role="tab" aria-controls="logic">5. Logic chính</a>
-  <a href="#convention" role="tab" aria-controls="convention">6. Quy ước</a>
-  <a href="#them-thiet-bi" role="tab" aria-controls="them-thiet-bi">7. Thêm thiết bị</a>
-  <a href="#kiem-thu" role="tab" aria-controls="kiem-thu">8. Kiểm thử</a>
-  <a href="#gioi-han" role="tab" aria-controls="gioi-han">9. Chưa có</a>
-  <a href="#ban-do" role="tab" aria-controls="ban-do">10. Bản đồ file</a>
-</div></nav>
+<div class="shell">
+
+<nav class="toc" aria-label="Các phần">
+  <div class="grp">Bắt đầu</div>
+  <a href="#tong-quan">Tổng quan</a>
+  <a href="#linh-kien">Linh kiện và khái niệm</a>
+  <a href="#mqttx">MQTTX</a>
+  <div class="grp">Cách viết code</div>
+  <a href="#kien-truc">Lõi và adapter</a>
+  <a href="#luong-lenh">Đi theo một lệnh</a>
+  <a href="#logic">Logic chính</a>
+  <a href="#convention">Quy ước</a>
+  <a href="#them-thiet-bi">Thêm thiết bị</a>
+  <a href="#kiem-thu">Kiểm thử</a>
+  <div class="grp">Tham khảo</div>
+  <a href="#gioi-han">Chưa có</a>
+  <a href="#ban-do">Bản đồ file</a>
+</nav>
 
 <main>
 
 <!-- ============ 1 ============ -->
 <section id="tong-quan">
-  <h2><span class="no">1</span>Tổng quan</h2>
+  <h2><span class="no"></span>Tổng quan</h2>
   <p class="lead">Mỗi ESP32 là một "board" (node). Board đọc cảm biến, điều khiển thiết bị, và gửi nhận tin nhắn qua một broker MQTT chạy trên laptop.</p>
 
   <div class="chain">
@@ -156,7 +191,7 @@
   <div class="chain" style="margin-top:-6px">
     <div class="node"><b>ESP32 comfort</b>đèn, quạt, rèm, cảm biến</div>
     <div class="arrow">⇄</div>
-    <div class="node" style="flex:3 1 300px;text-align:left"><b>MQTT là gì ở đây?</b>Một "bảng tin". Ai muốn nghe thì <i>subscribe</i> một topic, ai muốn nói thì <i>publish</i> lên topic. Board và server không nối trực tiếp với nhau, chỉ nối với broker. Công cụ để nghe và gửi tin bằng tay là MQTTX (xem tab 2).</div>
+    <div class="node" style="flex:3 1 300px;text-align:left"><b>MQTT là gì ở đây?</b>Một "bảng tin". Ai muốn nghe thì <i>subscribe</i> một topic, ai muốn nói thì <i>publish</i> lên topic. Board và server không nối trực tiếp với nhau, chỉ nối với broker. Công cụ để nghe và gửi tin bằng tay là MQTTX (xem tab MQTTX).</div>
   </div>
 
   <h3>Hai chiều tin nhắn</h3>
@@ -170,9 +205,104 @@
 </section>
 
 
+<!-- ============ LINH KIỆN ============ -->
+<section id="linh-kien">
+  <h2><span class="no"></span>Linh kiện và khái niệm</h2>
+  <p class="lead">Giải thích ở mức tổng quan: linh kiện hay khái niệm đó là gì, dùng để làm gì trong dự án, và những tính chất cần biết để khỏi mắc lỗi. Không đi sâu vào mạch bên trong hay thanh ghi. Tab này <b>mở rộng dần</b>: lắp tới linh kiện nào thì thêm một mục cho linh kiện đó.</p>
+
+  <h3>ESP32 và chân GPIO</h3>
+  <div class="part">
+    <div class="ph"><b>ESP32</b><span class="tag t-core">đang dùng</span></div>
+    <dl>
+      <dt>Là gì</dt><dd>Một máy tính nhỏ trên một con chip, có sẵn WiFi và Bluetooth. Chạy đúng một chương trình (firmware) do mình nạp vào, và điều khiển thế giới bên ngoài qua các chân.</dd>
+      <dt>Trong dự án</dt><dd>Hai board: <b>guard</b> và <b>comfort</b>. Mỗi board đọc cảm biến, điều khiển thiết bị, và nói chuyện với broker qua WiFi.</dd>
+      <dt>Cần biết</dt><dd>
+        <ul class="tight">
+          <li><b>Chỉ có WiFi 2,4 GHz.</b> Mạng chỉ phát 5 GHz thì board không thấy.</li>
+          <li><b>Điện áp 3,3 V.</b> Chân xuất ra tối đa 3,3 V, và chịu được tối đa khoảng 3,3 V đi vào. Cắm tín hiệu 5 V vào chân là có thể hỏng chip.</li>
+          <li><b>Mỗi chân chịu dòng nhỏ</b> (khuyến nghị khoảng 20 mA). Đủ cho một LED, không đủ cho động cơ hay relay: những thứ đó phải qua mạch đệm hoặc module có sẵn mạch đệm.</li>
+          <li><b>Một số chân chỉ đọc được</b> (GPIO 34, 35, 36, 39 chỉ làm đầu vào). Một số chân có việc riêng lúc khởi động, nên không phải chân nào cũng gắn tùy ý. Bảng chân đã chọn nằm ở <code>docs/gpio.md</code>.</li>
+        </ul>
+      </dd>
+    </dl>
+  </div>
+
+  <h3>Các kiểu tín hiệu trên một chân</h3>
+  <p>GPIO (General Purpose Input Output) là chân dùng chung: cùng một chân, tùy phần mềm đặt, có thể làm nhiều việc. Dự án dùng bốn kiểu:</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Kiểu</th><th>Ý nghĩa</th><th>Ví dụ trong dự án</th></tr>
+    <tr><td><b>Ra số</b> (digital out)</td><td>Đặt chân ở mức cao hoặc thấp: bật hoặc tắt</td><td>Relay, buzzer</td></tr>
+    <tr><td><b>Vào số</b> (digital in)</td><td>Đọc chân đang ở mức cao hay thấp: có hay không</td><td>Cảm biến chuyển động, công tắc cửa, nút cảm ứng</td></tr>
+    <tr><td><b>Vào tương tự</b> (analog in)</td><td>Đọc một giá trị liên tục (ESP32 cho số từ 0 đến 4095 ứng với 0 đến 3,3 V)</td><td>Cảm biến ánh sáng, cảm biến khí</td></tr>
+    <tr><td><b>Ra PWM</b></td><td>Xuất xung bật tắt nhanh với tỉ lệ chỉnh được, để điều chỉnh mức. Xem mục dưới</td><td>Độ sáng đèn LED, servo</td></tr>
+  </table></div>
+  <p>Ngoài ra có chân nối theo "bus" (I2C, SPI) để nói chuyện với module phức tạp hơn như màn hình OLED hay đầu đọc thẻ. Phần này sẽ được viết khi lắp tới các module đó.</p>
+
+  <h3>PWM: bật tắt thật nhanh để chỉnh mức</h3>
+  <p>Chân ESP32 chỉ có hai mức: 0 V hoặc 3,3 V, không có "1,5 V" để cho LED sáng một nửa. <b>PWM</b> (Pulse Width Modulation, điều chế độ rộng xung) giải quyết bằng cách bật tắt chân rất nhanh và đổi <b>tỉ lệ thời gian ở mức cao</b>. Tỉ lệ này gọi là <b>duty</b> (chu kỳ làm việc), từ 0 đến 1. LED nhận 5000 lần bật tắt mỗi giây nên mắt không thấy nhấp nháy, chỉ thấy độ sáng trung bình. Kéo thanh dưới đây:</p>
+  <div class="card">
+    <input type="range" id="pwmSlider" min="0" max="100" value="25" aria-label="Duty">
+    <div class="kv"><b>Duty</b><span id="pwmDuty"></span><b>Điện áp trung bình</b><span id="pwmVolt"></span><b>Mỗi chu kỳ (5 kHz)</b><span id="pwmCycle"></span></div>
+    <svg id="pwmChart" viewBox="0 0 520 110" style="width:100%;max-width:560px;display:block;margin:6px 0" role="img" aria-label="Sóng PWM theo duty"></svg>
+    <div class="legend"><span><i style="background:#1c64b8"></i>điện áp trên chân</span><span><i style="background:#c2570c"></i>mức trung bình mà LED "cảm" được</span></div>
+  </div>
+
+  <h4 class="sub">LEDC là gì?</h4>
+  <p><b>LEDC</b> là viết tắt của "LED Control": khối phần cứng trong ESP32 chuyên sinh xung PWM. Chip tự bật tắt chân theo cấu hình, CPU không phải làm gì và chương trình chính không bị chậm. Có 16 kênh, mỗi kênh đặt được tần số và độ phân giải riêng, rồi gắn vào một chân. Tên có chữ LED vì mục đích ban đầu, nhưng servo hay buzzer cũng dùng được. Trong code, <code>Esp32Pwm</code> là chỗ duy nhất gọi LEDC; phần còn lại chỉ biết cổng <code>PwmOutput.write(duty)</code>.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Thông số</th><th>Giá trị</th><th>Ý nghĩa</th></tr>
+    <tr><td>Tần số</td><td>5 kHz</td><td>5000 chu kỳ mỗi giây, đủ nhanh để mắt không thấy nhấp nháy</td></tr>
+    <tr><td>Độ phân giải</td><td>10 bit</td><td>Chia duty thành 1024 nấc (giá trị 0 đến 1023)</td></tr>
+    <tr><td>Kênh</td><td>0 và 1</td><td>Đèn trần dùng kênh 0, đèn ngủ dùng kênh 1</td></tr>
+  </table></div>
+
+  <h4 class="sub">Đèn ngoài đời có dùng cách này không?</h4>
+  <p>Có, rất phổ biến. Có ba cách điều chỉnh độ sáng:</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Cách</th><th>Nguyên lý</th><th>Gặp ở</th></tr>
+    <tr><td><b>PWM</b></td><td>Bật tắt nhanh, đổi tỉ lệ bật</td><td>Đèn LED có dimmer, đèn nền màn hình và TV, dây LED, đèn xe. Hãng thường dùng tần số từ vài trăm Hz đến hàng chục kHz</td></tr>
+    <tr><td><b>Giảm dòng liên tục</b></td><td>Đổi dòng chạy qua LED, không bật tắt. Không nhấp nháy nhưng mạch đắt hơn và màu hơi đổi khi mờ</td><td>Bộ nguồn LED chất lượng cao, đèn quảng cáo "không nhấp nháy"</td></tr>
+    <tr><td><b>Cắt pha</b></td><td>Cắt bớt một phần mỗi nửa chu kỳ của dòng điện xoay chiều 220 V (100 lần mỗi giây ở lưới 50 Hz)</td><td>Núm xoay dimmer gắn tường cho bóng sợi đốt và bóng LED loại "dimmable"</td></tr>
+  </table></div>
+  <div class="note">PWM tần số thấp có thể gây mỏi mắt và hiện sọc khi quay bằng camera điện thoại. 5 kHz của dự án là đủ cho mô hình. Tần số cao hơn thì tốn nhiều "độ phân giải" hơn (ít nấc duty hơn trên cùng một chip), nên đây là đánh đổi chứ không phải càng cao càng tốt.</div>
+
+  <h3>Gamma: số 2,2 từ đâu ra?</h3>
+  <p>Có hai điều tách biệt. Một là LED phát ra lượng sáng <b>tỉ lệ thuận với duty</b> (duty gấp đôi thì ánh sáng gấp đôi). Hai là mắt người không cảm nhận theo tỉ lệ thuận: ánh sáng phải tăng gấp nhiều lần thì mới thấy "sáng gấp đôi". Nên nếu đưa mức 50 thành duty 0,5 thì đèn trông đã rất sáng, kéo thanh trượt thấy đèn vọt lên ở đầu rồi gần như không đổi ở cuối. Bù lại bằng hàm mũ: <code>duty = (level/100)<sup>2,2</sup></code>. Biểu đồ so sánh có trong tab Logic chính.</p>
+  <h4 class="sub">2,2 có phải con số "kinh nghiệm" không?</h4>
+  <p>Gần như vậy. Đây là một <b>quy ước mượn từ ngành hiển thị</b>, không phải hằng số suy ra chính xác cho LED:</p>
+  <ul class="tight">
+    <li>Các nghiên cứu về thị giác cho thấy độ sáng cảm nhận xấp xỉ <i>độ sáng thật</i> lũy thừa khoảng 0,33 đến 0,45. Đảo ngược lại thì độ sáng cần cấp xấp xỉ <i>mức mong muốn</i> lũy thừa khoảng 2,2 đến 3.</li>
+    <li>2,2 là gamma của chuẩn màu sRGB mà mọi màn hình dùng, nên là con số quen thuộc, dễ tra cứu và dễ so sánh.</li>
+    <li>Thư viện LED và đèn thương mại thường chọn trong khoảng <b>2,2 đến 2,8</b>, tùy loại LED và mắt người chỉnh. Một công thức khác chính xác hơn là đường cong độ sáng CIE 1931, nhưng phức tạp hơn nhiều so với lợi ích ở mô hình này.</li>
+  </ul>
+  <p>Vì vậy coi 2,2 là <b>giá trị khởi đầu hợp lý</b>. Nếu thử trên đèn thật thấy các mức thấp vẫn quá sáng thì tăng lên (2,5 chẳng hạn): đổi hằng <code>kLightGamma</code> trong <code>shared/core/Light.h</code>. Cách thử: gửi lần lượt level 10, 20, 30 đến 100 và xem các nấc có trông đều nhau không.</p>
+  <div class="note warn"><b>Hệ quả cần biết:</b> ở mức rất thấp, duty nhỏ đến mức làm tròn về 0. Mức 1 đến 3 cho giá trị PWM bằng 0, tức đèn vẫn tắt dù trạng thái là "bật". Mức 4 mới ra giá trị 1 trên 1023. Muốn đèn ngủ mờ hơn nữa thì cần tăng độ phân giải hoặc đổi cách ánh xạ.</div>
+
+  <h3>LED và điện trở hạn dòng</h3>
+  <div class="part">
+    <div class="ph"><b>LED + điện trở</b><span class="tag t-core">đang dùng</span></div>
+    <dl>
+      <dt>Là gì</dt><dd>LED là đi-ốt phát sáng: chỉ cho dòng đi <b>một chiều</b>, từ chân dài (anode, +) sang chân ngắn (cathode, −). Nó không tự giới hạn dòng, nên phải nối nối tiếp với một điện trở để khỏi cháy LED (và khỏi quá tải chân ESP32).</dd>
+      <dt>Trong dự án</dt><dd>Thay cho đèn trần và đèn ngủ thật. Nối <code>GPIO25 → điện trở → chân dài LED</code>, <code>chân ngắn LED → GND</code>.</dd>
+      <dt>Cần biết</dt><dd>
+        <ul class="tight">
+          <li><b>Dòng = (3,3 V − điện áp rơi trên LED) ÷ điện trở.</b> LED đỏ rơi khoảng 2 V, nên với 220 Ω dòng khoảng (3,3 − 2) ÷ 220 ≈ 6 mA: đủ sáng và an toàn.</li>
+          <li><b>LED trắng, xanh dương rơi khoảng 3 V</b>, nên còn rất ít điện áp "dư". Dùng điện trở nhỏ hơn (khoảng 47 đến 100 Ω) kẻo đèn mờ.</li>
+          <li>Cắm ngược chiều thì không sáng nhưng không hỏng. Chân dài là dương.</li>
+          <li>Điện trở đặt ở phía nào của LED (trước hay sau) cũng được, miễn là nối tiếp.</li>
+        </ul>
+      </dd>
+    </dl>
+  </div>
+
+  <h3>Sẽ thêm dần</h3>
+  <p>Các linh kiện khác trong bộ (relay, servo, cảm biến nhiệt độ, ánh sáng, chuyển động, khí gas, đầu đọc thẻ, màn hình OLED, LED màu...) chưa có mục ở đây. Mỗi khi bắt đầu lắp một loại, mục của nó được thêm vào tab này theo cùng một khuôn: <b>là gì, trong dự án, cần biết</b>.</p>
+</section>
+
+
 <!-- ============ MQTTX ============ -->
 <section id="mqttx">
-  <h2><span class="no">2</span>MQTTX</h2>
+  <h2><span class="no"></span>MQTTX</h2>
   <p class="lead">MQTTX là ứng dụng có giao diện để <b>xem và gửi tin MQTT</b>. Dự án chưa có server hay web, nên lúc này MQTTX đóng vai "server giả": bạn dùng nó để nghe board đang nói gì, và ra lệnh cho board.</p>
 
   <h3>MQTTX khác Mosquitto thế nào?</h3>
@@ -224,7 +354,7 @@
     <tr><td><code>+</code></td><td>đúng một tầng, tùy ý</td><td><code>domisen/node/+/status</code> nghe trạng thái của mọi board</td></tr>
     <tr><td>không có</td><td>đúng topic đó</td><td><code>domisen/living/ceiling-light/state</code></td></tr>
   </table></div>
-  <p>Vừa subscribe xong bạn đã thấy ngay vài tin cũ (<code>status</code>, <code>state</code>): đó là các tin <b>retain</b> mà broker giữ lại (xem phần 5). Sau đó <code>uptime</code> của board chạy về mỗi 5 giây.</p>
+  <p>Vừa subscribe xong bạn đã thấy ngay vài tin cũ (<code>status</code>, <code>state</code>): đó là các tin <b>retain</b> mà broker giữ lại (xem tab Logic chính, mục MqttTransport). Sau đó <code>uptime</code> của board chạy về mỗi 5 giây.</p>
 
   <h3>Gửi lệnh: publish</h3>
   <p>Khung dưới cùng của MQTTX:</p>
@@ -271,7 +401,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
 
 <!-- ============ 2 ============ -->
 <section id="kien-truc">
-  <h2><span class="no">3</span>Lõi và adapter</h2>
+  <h2><span class="no"></span>Lõi và adapter</h2>
   <p class="lead">Ý tưởng chính của cả dự án, học theo project Xóm: phần "suy nghĩ" (luật của đèn) tách hẳn khỏi phần "chạm phần cứng" (WiFi, chân GPIO).</p>
 
   <div class="layers">
@@ -320,7 +450,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
 
 <!-- ============ 3 ============ -->
 <section id="luong-lenh">
-  <h2><span class="no">4</span>Đi theo một lệnh</h2>
+  <h2><span class="no"></span>Đi theo một lệnh</h2>
   <p class="lead">Bạn bấm gửi <code>{"on":true,"level":80}</code> tới topic <code>domisen/living/ceiling-light/cmd</code> trong MQTTX. Chuyện gì xảy ra trong code?</p>
 
   <ol class="flow">
@@ -329,7 +459,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <li><b>Hub tìm thiết bị</b><span class="tag t-services">services</span><small><code>Hub::handleMessage</code> so topic với <code>cmdTopic(id)</code> của từng thiết bị đã <code>add</code>, ra đèn trần.</small></li>
     <li><b>Đèn giải mã lệnh</b><span class="tag t-protocol">protocol</span><small><code>decodeLightCommand</code> kiểm tra JSON: có phải đối tượng, <code>on</code> có đúng kiểu bool, <code>level</code> có phải số nguyên. Sai thì dừng ở đây và báo lỗi (bước 9).</small></li>
     <li><b>Tính trạng thái mới</b><span class="tag t-core">core</span><small><code>applyLightCommand(trạng thái cũ, on, level)</code>. Hàm thuần: nhận vào, trả ra, không có I/O.</small></li>
-    <li><b>Đổi độ sáng thành duty</b><span class="tag t-core">core</span><small><code>lightDuty</code>: mức 80 thành duty = 0,8<sup>2,2</sup> ≈ 0,612 (bù gamma, xem phần 5).</small></li>
+    <li><b>Đổi độ sáng thành duty</b><span class="tag t-core">core</span><small><code>lightDuty</code>: mức 80 thành duty = 0,8<sup>2,2</sup> ≈ 0,612 (bù gamma, xem tab Linh kiện và khái niệm).</small></li>
     <li><b>Ghi ra ngõ PWM</b><span class="tag t-services">services</span> → <span class="tag t-adapter">adapters_esp32</span><small><code>pwm_.write(0.612)</code> qua interface <code>PwmOutput</code>. <code>Esp32Pwm</code> đổi thành số nguyên 0 đến 1023: 0,612 × 1023 + 0,5 ≈ 626, rồi <code>ledcWrite</code>. LED sáng.</small></li>
     <li><b>Báo lại trạng thái</b><span class="tag t-services">services</span><small><code>Hub::publishState</code> gửi <code>{"on":true,"level":80}</code> lên <code>.../state</code> với cờ <b>retain</b>.</small></li>
     <li><b>Nếu lệnh sai</b><small>Trạng thái giữ nguyên, Hub gửi <code>{"error":"..."}</code> lên <code>.../error</code>. Thấy ngay trong MQTTX, không cần mở Serial.</small></li>
@@ -340,9 +470,9 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
 
 <!-- ============ 4 ============ -->
 <section id="logic">
-  <h2><span class="no">5</span>Logic chính</h2>
+  <h2><span class="no"></span>Logic chính</h2>
 
-  <h3>5.1 Luật của đèn (thử trực tiếp)</h3>
+  <h3>Luật của đèn (thử trực tiếp)</h3>
   <p>Đây là bản JavaScript của đúng hàm <code>applyLightCommand</code> và <code>lightDuty</code> trong <code>shared/core/Light.h</code>. Bấm lệnh mẫu hoặc tự gõ JSON.</p>
 
   <div class="card lab">
@@ -373,8 +503,8 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <tr><td>JSON sai, sai kiểu, hay <code>{}</code></td><td>Từ chối, trạng thái giữ nguyên, gửi lên <code>.../error</code></td></tr>
   </table></div>
 
-  <h3>5.2 Vì sao có "gamma"?</h3>
-  <p>Mắt người cảm nhận độ sáng không tuyến tính. Nếu đưa mức 50 thành duty 0,5 thì đèn nhìn vẫn rất sáng, kéo từ 0 lên 30 thấy sáng vọt lên còn từ 70 lên 100 gần như không đổi. Hàm <code>duty = (level/100)<sup>2,2</sup></code> bù lại để kéo thanh trượt thấy đều. Kéo thanh dưới đây để thấy chênh lệch:</p>
+  <h3>Vì sao có "gamma"?</h3>
+  <p>Mắt người cảm nhận độ sáng không tuyến tính. Nếu đưa mức 50 thành duty 0,5 thì đèn nhìn vẫn rất sáng, kéo từ 0 lên 30 thấy sáng vọt lên còn từ 70 lên 100 gần như không đổi. Hàm <code>duty = (level/100)<sup>2,2</sup></code> bù lại để kéo thanh trượt thấy đều. Số 2,2 từ đâu ra và có nên chỉnh không: xem tab Linh kiện và khái niệm. Kéo thanh dưới đây để thấy chênh lệch:</p>
   <div class="card">
     <input type="range" id="gSlider" min="0" max="100" value="50">
     <div class="kv"><b>Mức</b><span id="gLevel"></span><b>Duty tuyến tính</b><span id="gLin"></span><b>Duty có gamma</b><span id="gGam"></span></div>
@@ -382,7 +512,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <div class="legend"><span><i style="background:#b8bfc4"></i>tuyến tính</span><span><i style="background:#1c64b8"></i>có gamma 2,2 (đang dùng)</span></div>
   </div>
 
-  <h3>5.3 Hub: vòng đời của một board</h3>
+  <h3>Hub: vòng đời của một board</h3>
   <div class="tbl-wrap"><table>
     <tr><th>Lúc</th><th>Hub làm gì</th></tr>
     <tr><td><code>begin()</code></td><td>Đăng ký hai hàm xử lý với Transport (nhận tin, đã nối). Subscribe topic <code>ping</code> của board và topic <code>cmd</code> của từng thiết bị. Gọi <code>begin()</code> của từng thiết bị để đưa ngõ ra về trạng thái ban đầu (đèn tắt).</td></tr>
@@ -391,7 +521,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <tr><td><code>loop()</code></td><td>Cứ 5 giây gửi <code>uptime</code>, và chỉ gửi khi đang nối được broker.</td></tr>
   </table></div>
 
-  <h3>5.4 MqttTransport: giữ kết nối sống</h3>
+  <h3>MqttTransport: giữ kết nối sống</h3>
   <ul class="tight">
     <li><b>Tự nối lại với "lùi dần":</b> thử lại sau 1 giây, hỏng thì 2, 4, 8 giây, tối đa 15 giây. Nối được thì quay về 1 giây. Tránh việc dồn dập quấy broker khi mạng đứt.</li>
     <li><b>Nhớ topic đã subscribe:</b> mỗi lần nối lại, tự subscribe lại hết (broker đã quên khi mất kết nối).</li>
@@ -408,7 +538,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
 
 <!-- ============ 5 ============ -->
 <section id="convention">
-  <h2><span class="no">6</span>Quy ước</h2>
+  <h2><span class="no"></span>Quy ước</h2>
   <p class="lead">Những luật viết ra để code sau này nhất quán. Luật đầy đủ ở <code>docs/architecture.md</code>, <code>docs/mqtt-topics.md</code>, <code>docs/gpio.md</code>.</p>
 
   <h3>Đặt tên</h3>
@@ -449,7 +579,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
 
 <!-- ============ 6 ============ -->
 <section id="them-thiet-bi">
-  <h2><span class="no">7</span>Thêm một thiết bị</h2>
+  <h2><span class="no"></span>Thêm một thiết bị</h2>
   <p class="lead">Ví dụ đã làm: đèn ngủ. Đây là toàn bộ phần thêm vào <code>src/comfort/main.cpp</code>:</p>
 
 <pre><code>static adapters::esp32::Esp32Pwm nightPwm(26, 1);   // GPIO26, kênh LEDC 1
@@ -479,7 +609,7 @@ void setup() {
 
 <!-- ============ 7 ============ -->
 <section id="kiem-thu">
-  <h2><span class="no">8</span>Kiểm thử</h2>
+  <h2><span class="no"></span>Kiểm thử</h2>
   <p class="lead">26 test chạy trên laptop bằng <code>pio test -e native</code>, không cần board.</p>
 
   <div class="tbl-wrap"><table>
@@ -501,12 +631,12 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
 
 <!-- ============ 8 ============ -->
 <section id="gioi-han">
-  <h2><span class="no">9</span>Chưa có và hạn chế</h2>
+  <h2><span class="no"></span>Chưa có và hạn chế</h2>
   <div class="tbl-wrap"><table>
     <tr><th>Chưa làm</th><th>Ghi chú</th></tr>
     <tr><td>Server (Bun + PostgreSQL) và web dashboard</td><td>Chỉ có thư mục trống kèm README. Chúng sẽ dùng đúng quy ước topic ở <code>docs/mqtt-topics.md</code></td></tr>
     <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
-    <tr><td>Cảm biến, relay, servo, WS2812</td><td>Mới có một loại thiết bị là đèn chỉnh độ sáng (đèn trần, đèn ngủ). Các loại khác thêm theo mục 7</td></tr>
+    <tr><td>Cảm biến, relay, servo, WS2812</td><td>Mới có một loại thiết bị là đèn chỉnh độ sáng (đèn trần, đèn ngủ). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
     <tr><td>Chạy thử đèn thật trên board</td><td>Đã biên dịch và test logic, chưa nạp lại bản mới và thử với LED sau tái cấu trúc</td></tr>
   </table></div>
   <h3>Hạn chế đã biết</h3>
@@ -520,7 +650,7 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
 
 <!-- ============ 9 ============ -->
 <section id="ban-do">
-  <h2><span class="no">10</span>Bản đồ file</h2>
+  <h2><span class="no"></span>Bản đồ file</h2>
 <pre><code>domisen/
 ├── README.md                    cài đặt (Mac và Windows), cách chạy
 ├── docs/
@@ -550,6 +680,10 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
 </section>
 
 </main>
+
+<aside class="onpage" id="onpage" aria-label="Trong phần này"></aside>
+
+</div>
 
 <footer>Trang này mô tả code ở thời điểm tạo. Khi kiến trúc đổi, sửa <code>docs/architecture.md</code> trước, rồi cập nhật trang này.</footer>
 
@@ -656,26 +790,86 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
   }
   $("gSlider").addEventListener("input", chart);
   chart();
-  // ---- chia tab ----
+  // ---- sóng PWM ----
+  function pwmWave() {
+    const d = +$("pwmSlider").value / 100;
+    $("pwmDuty").textContent = Math.round(d * 100) + "%";
+    $("pwmVolt").textContent = (3.3 * d).toFixed(2).replace(".", ",") + " V";
+    $("pwmCycle").textContent = "0,2 ms, bật " + (0.2 * d).toFixed(2).replace(".", ",") + " ms";
+    const Lm = 10, Wd = 500, hi = 18, lo = 78, n = 5, pw = Wd / n;
+    let path = "M" + Lm + "," + lo;
+    for (let i = 0; i < n; i++) {
+      const x0 = Lm + i * pw, x1 = x0 + pw * d, x2 = x0 + pw;
+      if (d > 0) path += " L" + x0 + "," + hi + " L" + x1 + "," + hi + " L" + x1 + "," + lo;
+      path += " L" + x2 + "," + lo;
+    }
+    const avgY = lo - d * (lo - hi);
+    let g = '<line x1="' + Lm + '" x2="' + (Lm + Wd) + '" y1="' + lo + '" y2="' + lo + '" stroke="#e4e0d6"/>';
+    g += '<line x1="' + Lm + '" x2="' + (Lm + Wd) + '" y1="' + hi + '" y2="' + hi + '" stroke="#e4e0d6" stroke-dasharray="3 3"/>';
+    g += '<text x="' + (Lm + Wd) + '" y="' + (hi - 5) + '" text-anchor="end">3,3 V</text>';
+    g += '<text x="' + (Lm + Wd) + '" y="' + (lo + 16) + '" text-anchor="end">0 V</text>';
+    g += '<path d="' + path + '" fill="none" stroke="#1c64b8" stroke-width="2.6" stroke-linejoin="round"/>';
+    g += '<line x1="' + Lm + '" x2="' + (Lm + Wd) + '" y1="' + avgY + '" y2="' + avgY + '" stroke="#c2570c" stroke-width="2.2"/>';
+    $("pwmChart").innerHTML = g;
+  }
+  $("pwmSlider").addEventListener("input", pwmWave);
+  pwmWave();
+
+  // ---- chia tab, hai thanh bên ----
   const tabs = Array.from(document.querySelectorAll('nav.toc a'));
   const secs = tabs.map(a => document.getElementById(a.getAttribute('href').slice(1)));
   const KEY = 'domisen-doc-tab';
-  const nav = document.querySelector('nav.toc');
+  const shell = document.querySelector('.shell');
+  const onpage = $("onpage");
+  let spy = null;
+
+  // số thứ tự tab đặt theo thứ tự trong thanh trái, nên thêm hay đổi chỗ tab không phải đánh số lại
+  secs.forEach((sec, k) => { sec.querySelector('h2 .no').textContent = k + 1; });
+
+  // thanh phải: các mục h3 của tab đang xem, tô sáng mục đang đọc
+  function buildOnPage(sec) {
+    if (spy) { spy.disconnect(); spy = null; }
+    onpage.innerHTML = '';
+    const heads = Array.from(sec.querySelectorAll('h3'));
+    if (heads.length < 2) return;
+    const t = document.createElement('div');
+    t.className = 'ttl';
+    t.textContent = 'Trong phần này';
+    onpage.appendChild(t);
+    const links = heads.map((h, k) => {
+      if (!h.id) h.id = sec.id + '-m' + k;
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.onclick = e => { e.preventDefault(); h.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      onpage.appendChild(a);
+      return a;
+    });
+    const mark = i => links.forEach((a, k) => a.classList.toggle('on', k === i));
+    const update = () => {
+      let cur = 0;
+      heads.forEach((h, k) => { if (h.getBoundingClientRect().top <= 120) cur = k; });
+      mark(cur);
+    };
+    spy = { disconnect: () => window.removeEventListener('scroll', update) };
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+  }
 
   function show(i, opts) {
     opts = opts || {};
     i = Math.max(0, Math.min(tabs.length - 1, i));
     tabs.forEach((a, k) => {
       const on = k === i;
-      a.setAttribute('aria-selected', on ? 'true' : 'false');
-      a.tabIndex = on ? 0 : -1;
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
       secs[k].classList.toggle('active', on);
     });
     const id = secs[i].id;
     try { history.replaceState(null, '', '#' + id); } catch (e) {}
     try { localStorage.setItem(KEY, id); } catch (e) {}
     tabs[i].scrollIntoView({ block: 'nearest', inline: 'center' });
-    if (!opts.initial) window.scrollTo({ top: Math.max(0, nav.offsetTop), behavior: 'auto' });
+    buildOnPage(secs[i]);
+    if (!opts.initial && window.scrollY > shell.offsetTop) window.scrollTo({ top: shell.offsetTop, behavior: 'auto' });
   }
 
   // nút phần trước / sau ở cuối mỗi phần
@@ -697,8 +891,11 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
   tabs.forEach((a, k) => {
     a.addEventListener('click', e => { e.preventDefault(); show(k); });
     a.addEventListener('keydown', e => {
-      if (e.key === 'ArrowRight') { e.preventDefault(); show(k + 1); tabs[Math.min(k + 1, tabs.length - 1)].focus(); }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); show(k - 1); tabs[Math.max(k - 1, 0)].focus(); }
+      const next = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? k + 1 : (e.key === 'ArrowUp' || e.key === 'ArrowLeft') ? k - 1 : null;
+      if (next === null) return;
+      e.preventDefault();
+      show(next);
+      tabs[Math.max(0, Math.min(tabs.length - 1, next))].focus();
     });
   });
   window.addEventListener('hashchange', () => {
