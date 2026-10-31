@@ -137,6 +137,18 @@ void test_nhip_uptime() {
   TEST_ASSERT_EQUAL_STRING("10", r.transport.last("domisen/node/comfort/uptime")->payload.c_str());
 }
 
+// millis() quay về 0 sau khoảng 49,7 ngày, nhưng uptime gửi lên không được bị đặt lại.
+void test_uptime_khong_bi_dat_lai_khi_dong_ho_quay_vong() {
+  Rig r;
+  r.transport.simulateConnect();
+  r.clock.set(4294965295u);  // 2000 ms nữa là quay vòng
+  r.hub.loop();
+  TEST_ASSERT_EQUAL_STRING("4294965", r.transport.last("domisen/node/comfort/uptime")->payload.c_str());
+  r.clock.advance(10000);    // đồng hồ đã quay về giá trị nhỏ
+  r.hub.loop();
+  TEST_ASSERT_EQUAL_STRING("4294975", r.transport.last("domisen/node/comfort/uptime")->payload.c_str());
+}
+
 void test_mat_ket_noi_thi_khong_gui_uptime() {
   Rig r;
   r.transport.simulateConnect();
@@ -158,6 +170,7 @@ int main() {
   RUN_TEST(test_ping_tra_pong);
   RUN_TEST(test_topic_la_bi_bo_qua);
   RUN_TEST(test_nhip_uptime);
+  RUN_TEST(test_uptime_khong_bi_dat_lai_khi_dong_ho_quay_vong);
   RUN_TEST(test_mat_ket_noi_thi_khong_gui_uptime);
   return UNITY_END();
 }

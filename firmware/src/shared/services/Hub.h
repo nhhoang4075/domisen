@@ -27,6 +27,8 @@ class Hub {
   core::Clock& clock_;
   uint32_t heartbeatMs_;
   uint32_t lastBeat_ = 0;
+  uint32_t lastTick_ = 0;   // lần loop() trước, để cộng dồn uptime
+  uint64_t uptimeMs_ = 0;   // không quay vòng như millis() (khoảng 49,7 ngày)
   std::vector<Device*> devices_;
 };
 

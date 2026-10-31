@@ -47,11 +47,14 @@ void Hub::handleMessage(const std::string& topic, const std::string& payload) {
 }
 
 void Hub::loop() {
-  if (!transport_.connected()) return;
   uint32_t now = clock_.nowMs();
+  // Phép trừ 32 bit vẫn đúng khi đồng hồ quay về 0, nên cộng dồn vào số 64 bit thì uptime không bị đặt lại.
+  uptimeMs_ += now - lastTick_;
+  lastTick_ = now;
+  if (!transport_.connected()) return;
   if (now - lastBeat_ < heartbeatMs_) return;
   lastBeat_ = now;
-  transport_.publish(protocol::nodeUptimeTopic(node_), std::to_string(now / 1000), false);
+  transport_.publish(protocol::nodeUptimeTopic(node_), std::to_string(uptimeMs_ / 1000), false);
 }
 
 }  // namespace domisen::services
