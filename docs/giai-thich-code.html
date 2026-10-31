@@ -126,14 +126,15 @@
 
 <nav class="toc" aria-label="Các phần"><div role="tablist">
   <a href="#tong-quan" role="tab" aria-controls="tong-quan">1. Tổng quan</a>
-  <a href="#kien-truc" role="tab" aria-controls="kien-truc">2. Lõi và adapter</a>
-  <a href="#luong-lenh" role="tab" aria-controls="luong-lenh">3. Đi theo một lệnh</a>
-  <a href="#logic" role="tab" aria-controls="logic">4. Logic chính</a>
-  <a href="#convention" role="tab" aria-controls="convention">5. Quy ước</a>
-  <a href="#them-thiet-bi" role="tab" aria-controls="them-thiet-bi">6. Thêm thiết bị</a>
-  <a href="#kiem-thu" role="tab" aria-controls="kiem-thu">7. Kiểm thử</a>
-  <a href="#gioi-han" role="tab" aria-controls="gioi-han">8. Chưa có</a>
-  <a href="#ban-do" role="tab" aria-controls="ban-do">9. Bản đồ file</a>
+  <a href="#mqttx" role="tab" aria-controls="mqttx">2. MQTTX</a>
+  <a href="#kien-truc" role="tab" aria-controls="kien-truc">3. Lõi và adapter</a>
+  <a href="#luong-lenh" role="tab" aria-controls="luong-lenh">4. Đi theo một lệnh</a>
+  <a href="#logic" role="tab" aria-controls="logic">5. Logic chính</a>
+  <a href="#convention" role="tab" aria-controls="convention">6. Quy ước</a>
+  <a href="#them-thiet-bi" role="tab" aria-controls="them-thiet-bi">7. Thêm thiết bị</a>
+  <a href="#kiem-thu" role="tab" aria-controls="kiem-thu">8. Kiểm thử</a>
+  <a href="#gioi-han" role="tab" aria-controls="gioi-han">9. Chưa có</a>
+  <a href="#ban-do" role="tab" aria-controls="ban-do">10. Bản đồ file</a>
 </div></nav>
 
 <main>
@@ -155,7 +156,7 @@
   <div class="chain" style="margin-top:-6px">
     <div class="node"><b>ESP32 comfort</b>đèn, quạt, rèm, cảm biến</div>
     <div class="arrow">⇄</div>
-    <div class="node" style="flex:3 1 300px;text-align:left"><b>MQTT là gì ở đây?</b>Một "bảng tin". Ai muốn nghe thì <i>subscribe</i> một topic, ai muốn nói thì <i>publish</i> lên topic. Board và server không nối trực tiếp với nhau, chỉ nối với broker.</div>
+    <div class="node" style="flex:3 1 300px;text-align:left"><b>MQTT là gì ở đây?</b>Một "bảng tin". Ai muốn nghe thì <i>subscribe</i> một topic, ai muốn nói thì <i>publish</i> lên topic. Board và server không nối trực tiếp với nhau, chỉ nối với broker. Công cụ để nghe và gửi tin bằng tay là MQTTX (xem tab 2).</div>
   </div>
 
   <h3>Hai chiều tin nhắn</h3>
@@ -168,9 +169,109 @@
   <p>Topic của thiết bị theo <b>phòng và thiết bị</b>, không theo board. Dời đèn từ board này sang board kia thì server và web không phải sửa gì.</p>
 </section>
 
+
+<!-- ============ MQTTX ============ -->
+<section id="mqttx">
+  <h2><span class="no">2</span>MQTTX</h2>
+  <p class="lead">MQTTX là ứng dụng có giao diện để <b>xem và gửi tin MQTT</b>. Dự án chưa có server hay web, nên lúc này MQTTX đóng vai "server giả": bạn dùng nó để nghe board đang nói gì, và ra lệnh cho board.</p>
+
+  <h3>MQTTX khác Mosquitto thế nào?</h3>
+  <div class="chain">
+    <div class="node"><b>ESP32</b>client (người gửi, người nhận thư)</div>
+    <div class="arrow">⇄</div>
+    <div class="node"><b>Mosquitto</b>broker (bưu điện, chuyển thư)</div>
+    <div class="arrow">⇄</div>
+    <div class="node"><b>MQTTX</b>client, có giao diện</div>
+  </div>
+  <p><b>Mosquitto</b> là broker: chạy ngầm, nhận tin rồi chuyển cho ai đã đăng ký. <b>MQTTX</b> không chuyển tin, nó chỉ là một "người dùng" nối vào broker giống như board, nhưng có cửa sổ để bạn nhìn và gõ. Vì vậy phải bật Mosquitto trước, rồi mới nối MQTTX được.</p>
+  <p>MQTTX do hãng EMQX làm, miễn phí, có bản Mac, Windows và Linux nên cả nhóm dùng chung một công cụ.</p>
+
+  <h3>Trong dự án này dùng để làm gì?</h3>
+  <ul class="tight">
+    <li>Xem board có <b>online</b> không và <code>uptime</code> có tăng đều không.</li>
+    <li>Gửi lệnh <b>bật, tắt, chỉnh độ sáng</b> đèn mà chưa cần web.</li>
+    <li>Gửi lệnh sai để xem thiết bị phản hồi lỗi ra sao (topic <code>.../error</code>).</li>
+    <li>Rút cáp board để xem <code>status</code> tự đổi sang <code>offline</code> (Last Will).</li>
+    <li>Sau này có server và web, MQTTX vẫn dùng để <b>soi lỗi</b>: xem chính xác server đã gửi gì xuống board.</li>
+  </ul>
+
+  <h3>Cài đặt</h3>
+<pre><code>brew install --cask mqttx          # macOS
+# Windows: tải bản cài từ https://mqttx.app</code></pre>
+  <div class="note warn">Công cụ cùng loại là MQTT Explorer, nhưng gói của nó trên Homebrew đã bị vô hiệu hóa (không qua kiểm tra bảo mật của macOS), nên dự án dùng MQTTX.</div>
+
+  <h3>Tạo kết nối tới broker</h3>
+  <p>Bấm dấu <b>+</b> (New Connection) và điền:</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Ô</th><th>Nhập</th><th>Ghi chú</th></tr>
+    <tr><td>Name</td><td><code>Domisen</code></td><td>Tên gì cũng được</td></tr>
+    <tr><td>Host</td><td><code>mqtt://</code> và <code>localhost</code></td><td>Mặc định MQTTX điền <code>broker.emqx.io</code>, <b>phải xóa</b></td></tr>
+    <tr><td>Port</td><td><code>1883</code></td><td>Giữ nguyên</td></tr>
+    <tr><td>Username</td><td><code>domisen</code></td><td>Tài khoản tạo bằng <code>mosquitto_passwd</code></td></tr>
+    <tr><td>Password</td><td>mật khẩu của bạn</td><td>Do người chạy broker đặt</td></tr>
+    <tr><td>SSL/TLS</td><td>tắt</td><td>Broker chưa bật mã hóa</td></tr>
+    <tr><td>Phần Advanced</td><td>giữ nguyên</td><td></td></tr>
+  </table></div>
+  <div class="note warn"><code>broker.emqx.io</code> là broker <b>công cộng</b> trên internet, ai cũng đọc được. Không bao giờ nối vào đó khi làm dự án, vì lệnh điều khiển nhà của bạn sẽ đi qua một nơi lạ.</div>
+  <p><b>Máy khác trong nhóm:</b> Host nhập <b>IP của máy đang chạy broker</b> (lấy bằng <code>ipconfig getifaddr en0</code> trên Mac), không phải <code>localhost</code>. Phải cùng mạng WiFi.</p>
+  <p>Bấm <b>Connect</b>. Kết nối thành công thì hiện chấm xanh bên cạnh tên.</p>
+
+  <h3>Nghe tin: subscribe</h3>
+  <p>Bấm <b>New Subscription</b>, nhập topic <code>domisen/#</code>. Ký tự đặc biệt trong topic:</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Ký tự</th><th>Nghĩa</th><th>Ví dụ</th></tr>
+    <tr><td><code>#</code></td><td>mọi thứ phía sau, mọi tầng</td><td><code>domisen/#</code> nghe toàn bộ dự án</td></tr>
+    <tr><td><code>+</code></td><td>đúng một tầng, tùy ý</td><td><code>domisen/node/+/status</code> nghe trạng thái của mọi board</td></tr>
+    <tr><td>không có</td><td>đúng topic đó</td><td><code>domisen/living/ceiling-light/state</code></td></tr>
+  </table></div>
+  <p>Vừa subscribe xong bạn đã thấy ngay vài tin cũ (<code>status</code>, <code>state</code>): đó là các tin <b>retain</b> mà broker giữ lại (xem phần 5). Sau đó <code>uptime</code> của board chạy về mỗi 5 giây.</p>
+
+  <h3>Gửi lệnh: publish</h3>
+  <p>Khung dưới cùng của MQTTX:</p>
+  <ol class="tight">
+    <li>Ô <b>Topic</b>: gõ topic đích, ví dụ <code>domisen/living/ceiling-light/cmd</code>. Gõ đúng từng chữ, phân biệt hoa thường.</li>
+    <li>Ô nội dung: gõ lệnh. Menu bên trái chọn định dạng: <b>JSON</b> cho lệnh JSON, <b>Plaintext</b> cho chữ thường (như <code>xin chao</code>). Ở chế độ JSON, nội dung phải là JSON hợp lệ.</li>
+    <li><b>QoS 0</b>, và để <b>Retain tắt</b> khi gửi lệnh.</li>
+    <li>Bấm nút <b>mũi tên xanh</b> ở góc dưới bên phải.</li>
+  </ol>
+  <div class="note warn"><b>Đừng bật Retain khi gửi lệnh.</b> Broker sẽ giữ lệnh đó và gửi lại cho board mỗi lần board nối lại, nên đèn sẽ tự bật lại mỗi khi board khởi động. Retain chỉ dành cho trạng thái (<code>state</code>, <code>status</code>), không dành cho lệnh.</div>
+
+  <h3>Các thử nghiệm nên làm</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Gửi tới topic</th><th>Nội dung</th><th>Kết quả mong đợi</th></tr>
+    <tr><td><code>domisen/living/ceiling-light/cmd</code></td><td><code>{"on":true,"level":80}</code></td><td>Đèn sáng khoảng 80%. Topic <code>.../state</code> hiện <code>{"on":true,"level":80}</code></td></tr>
+    <tr><td>như trên</td><td><code>{"level":20}</code></td><td>Đèn mờ đi</td></tr>
+    <tr><td>như trên</td><td><code>{"on":false}</code></td><td>Đèn tắt, state <code>"on":false</code></td></tr>
+    <tr><td>như trên</td><td><code>{"on":"yes"}</code></td><td>Đèn giữ nguyên. Topic <code>.../error</code> hiện <code>{"error":"on phải là true hoặc false"}</code></td></tr>
+    <tr><td><code>domisen/node/comfort/ping</code></td><td><code>xin chao</code> (Plaintext)</td><td>Topic <code>domisen/node/comfort/pong</code> trả lại <code>xin chao</code></td></tr>
+    <tr><td colspan="2">Rút cáp USB của board, chờ khoảng 1 phút</td><td><code>domisen/node/comfort/status</code> đổi thành <code>offline</code>. Cắm lại thì thành <code>online</code></td></tr>
+  </table></div>
+  <p>Tin do chính bạn gửi cũng hiện trong danh sách (viền khác màu) vì bạn đã subscribe <code>domisen/#</code>, đừng nhầm đó là tin của board.</p>
+
+  <h3>Gặp lỗi thì xem đâu</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Dấu hiệu</th><th>Thường là</th></tr>
+    <tr><td>MQTTX báo <code>not authorised</code></td><td>Sai username hoặc password</td></tr>
+    <tr><td>MQTTX báo quá thời gian, không nối được</td><td>Broker chưa chạy, hoặc sai Host/Port, hoặc máy khác mạng WiFi</td></tr>
+    <tr><td>Nối được nhưng không thấy tin của board</td><td>Board chưa nối WiFi hay broker. Mở Serial xem log, hoặc thử subscribe <code>#</code></td></tr>
+    <tr><td>Gửi lệnh mà đèn không đổi</td><td>Gõ sai topic (hoa thường, thiếu <code>/cmd</code>), board chưa nối, hoặc nhìn topic <code>.../error</code> xem có báo lỗi lệnh không</td></tr>
+    <tr><td>Đèn tự bật lại khi khởi động board</td><td>Lỡ gửi lệnh với Retain bật. Gửi một tin rỗng có Retain bật tới đúng topic đó để xóa</td></tr>
+  </table></div>
+
+  <h3>Cách khác, không cần giao diện</h3>
+  <p>Mosquitto có sẵn hai lệnh dòng lệnh, làm đúng việc của MQTTX:</p>
+<pre><code># nghe mọi thứ của dự án
+mosquitto_sub -h localhost -u domisen -P 'MẬT_KHẨU' -t 'domisen/#' -v
+
+# gửi lệnh bật đèn trần
+mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
+  -t domisen/living/ceiling-light/cmd -m '{"on":true,"level":80}'</code></pre>
+  <p>Dùng MQTTX khi cần xem nhiều topic cùng lúc và gửi qua lại nhiều lần. Dùng dòng lệnh khi cần thử nhanh hoặc ghi vào script.</p>
+</section>
+
 <!-- ============ 2 ============ -->
 <section id="kien-truc">
-  <h2><span class="no">2</span>Lõi và adapter</h2>
+  <h2><span class="no">3</span>Lõi và adapter</h2>
   <p class="lead">Ý tưởng chính của cả dự án, học theo project Xóm: phần "suy nghĩ" (luật của đèn) tách hẳn khỏi phần "chạm phần cứng" (WiFi, chân GPIO).</p>
 
   <div class="layers">
@@ -219,7 +320,7 @@
 
 <!-- ============ 3 ============ -->
 <section id="luong-lenh">
-  <h2><span class="no">3</span>Đi theo một lệnh</h2>
+  <h2><span class="no">4</span>Đi theo một lệnh</h2>
   <p class="lead">Bạn bấm gửi <code>{"on":true,"level":80}</code> tới topic <code>domisen/living/ceiling-light/cmd</code> trong MQTTX. Chuyện gì xảy ra trong code?</p>
 
   <ol class="flow">
@@ -228,7 +329,7 @@
     <li><b>Hub tìm thiết bị</b><span class="tag t-services">services</span><small><code>Hub::handleMessage</code> so topic với <code>cmdTopic(id)</code> của từng thiết bị đã <code>add</code>, ra đèn trần.</small></li>
     <li><b>Đèn giải mã lệnh</b><span class="tag t-protocol">protocol</span><small><code>decodeLightCommand</code> kiểm tra JSON: có phải đối tượng, <code>on</code> có đúng kiểu bool, <code>level</code> có phải số nguyên. Sai thì dừng ở đây và báo lỗi (bước 9).</small></li>
     <li><b>Tính trạng thái mới</b><span class="tag t-core">core</span><small><code>applyLightCommand(trạng thái cũ, on, level)</code>. Hàm thuần: nhận vào, trả ra, không có I/O.</small></li>
-    <li><b>Đổi độ sáng thành duty</b><span class="tag t-core">core</span><small><code>lightDuty</code>: mức 80 thành duty = 0,8<sup>2,2</sup> ≈ 0,612 (bù gamma, xem phần 4).</small></li>
+    <li><b>Đổi độ sáng thành duty</b><span class="tag t-core">core</span><small><code>lightDuty</code>: mức 80 thành duty = 0,8<sup>2,2</sup> ≈ 0,612 (bù gamma, xem phần 5).</small></li>
     <li><b>Ghi ra ngõ PWM</b><span class="tag t-services">services</span> → <span class="tag t-adapter">adapters_esp32</span><small><code>pwm_.write(0.612)</code> qua interface <code>PwmOutput</code>. <code>Esp32Pwm</code> đổi thành số nguyên 0 đến 1023: 0,612 × 1023 + 0,5 ≈ 626, rồi <code>ledcWrite</code>. LED sáng.</small></li>
     <li><b>Báo lại trạng thái</b><span class="tag t-services">services</span><small><code>Hub::publishState</code> gửi <code>{"on":true,"level":80}</code> lên <code>.../state</code> với cờ <b>retain</b>.</small></li>
     <li><b>Nếu lệnh sai</b><small>Trạng thái giữ nguyên, Hub gửi <code>{"error":"..."}</code> lên <code>.../error</code>. Thấy ngay trong MQTTX, không cần mở Serial.</small></li>
@@ -239,9 +340,9 @@
 
 <!-- ============ 4 ============ -->
 <section id="logic">
-  <h2><span class="no">4</span>Logic chính</h2>
+  <h2><span class="no">5</span>Logic chính</h2>
 
-  <h3>4.1 Luật của đèn (thử trực tiếp)</h3>
+  <h3>5.1 Luật của đèn (thử trực tiếp)</h3>
   <p>Đây là bản JavaScript của đúng hàm <code>applyLightCommand</code> và <code>lightDuty</code> trong <code>shared/core/Light.h</code>. Bấm lệnh mẫu hoặc tự gõ JSON.</p>
 
   <div class="card lab">
@@ -272,7 +373,7 @@
     <tr><td>JSON sai, sai kiểu, hay <code>{}</code></td><td>Từ chối, trạng thái giữ nguyên, gửi lên <code>.../error</code></td></tr>
   </table></div>
 
-  <h3>4.2 Vì sao có "gamma"?</h3>
+  <h3>5.2 Vì sao có "gamma"?</h3>
   <p>Mắt người cảm nhận độ sáng không tuyến tính. Nếu đưa mức 50 thành duty 0,5 thì đèn nhìn vẫn rất sáng, kéo từ 0 lên 30 thấy sáng vọt lên còn từ 70 lên 100 gần như không đổi. Hàm <code>duty = (level/100)<sup>2,2</sup></code> bù lại để kéo thanh trượt thấy đều. Kéo thanh dưới đây để thấy chênh lệch:</p>
   <div class="card">
     <input type="range" id="gSlider" min="0" max="100" value="50">
@@ -281,7 +382,7 @@
     <div class="legend"><span><i style="background:#b8bfc4"></i>tuyến tính</span><span><i style="background:#1c64b8"></i>có gamma 2,2 (đang dùng)</span></div>
   </div>
 
-  <h3>4.3 Hub: vòng đời của một board</h3>
+  <h3>5.3 Hub: vòng đời của một board</h3>
   <div class="tbl-wrap"><table>
     <tr><th>Lúc</th><th>Hub làm gì</th></tr>
     <tr><td><code>begin()</code></td><td>Đăng ký hai hàm xử lý với Transport (nhận tin, đã nối). Subscribe topic <code>ping</code> của board và topic <code>cmd</code> của từng thiết bị. Gọi <code>begin()</code> của từng thiết bị để đưa ngõ ra về trạng thái ban đầu (đèn tắt).</td></tr>
@@ -290,7 +391,7 @@
     <tr><td><code>loop()</code></td><td>Cứ 5 giây gửi <code>uptime</code>, và chỉ gửi khi đang nối được broker.</td></tr>
   </table></div>
 
-  <h3>4.4 MqttTransport: giữ kết nối sống</h3>
+  <h3>5.4 MqttTransport: giữ kết nối sống</h3>
   <ul class="tight">
     <li><b>Tự nối lại với "lùi dần":</b> thử lại sau 1 giây, hỏng thì 2, 4, 8 giây, tối đa 15 giây. Nối được thì quay về 1 giây. Tránh việc dồn dập quấy broker khi mạng đứt.</li>
     <li><b>Nhớ topic đã subscribe:</b> mỗi lần nối lại, tự subscribe lại hết (broker đã quên khi mất kết nối).</li>
@@ -307,7 +408,7 @@
 
 <!-- ============ 5 ============ -->
 <section id="convention">
-  <h2><span class="no">5</span>Quy ước</h2>
+  <h2><span class="no">6</span>Quy ước</h2>
   <p class="lead">Những luật viết ra để code sau này nhất quán. Luật đầy đủ ở <code>docs/architecture.md</code>, <code>docs/mqtt-topics.md</code>, <code>docs/gpio.md</code>.</p>
 
   <h3>Đặt tên</h3>
@@ -348,7 +449,7 @@
 
 <!-- ============ 6 ============ -->
 <section id="them-thiet-bi">
-  <h2><span class="no">6</span>Thêm một thiết bị</h2>
+  <h2><span class="no">7</span>Thêm một thiết bị</h2>
   <p class="lead">Ví dụ đã làm: đèn ngủ. Đây là toàn bộ phần thêm vào <code>src/comfort/main.cpp</code>:</p>
 
 <pre><code>static adapters::esp32::Esp32Pwm nightPwm(26, 1);   // GPIO26, kênh LEDC 1
@@ -378,7 +479,7 @@ void setup() {
 
 <!-- ============ 7 ============ -->
 <section id="kiem-thu">
-  <h2><span class="no">7</span>Kiểm thử</h2>
+  <h2><span class="no">8</span>Kiểm thử</h2>
   <p class="lead">26 test chạy trên laptop bằng <code>pio test -e native</code>, không cần board.</p>
 
   <div class="tbl-wrap"><table>
@@ -400,12 +501,12 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
 
 <!-- ============ 8 ============ -->
 <section id="gioi-han">
-  <h2><span class="no">8</span>Chưa có và hạn chế</h2>
+  <h2><span class="no">9</span>Chưa có và hạn chế</h2>
   <div class="tbl-wrap"><table>
     <tr><th>Chưa làm</th><th>Ghi chú</th></tr>
     <tr><td>Server (Bun + PostgreSQL) và web dashboard</td><td>Chỉ có thư mục trống kèm README. Chúng sẽ dùng đúng quy ước topic ở <code>docs/mqtt-topics.md</code></td></tr>
     <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
-    <tr><td>Cảm biến, relay, servo, WS2812</td><td>Mới có một loại thiết bị là đèn chỉnh độ sáng (đèn trần, đèn ngủ). Các loại khác thêm theo mục 6</td></tr>
+    <tr><td>Cảm biến, relay, servo, WS2812</td><td>Mới có một loại thiết bị là đèn chỉnh độ sáng (đèn trần, đèn ngủ). Các loại khác thêm theo mục 7</td></tr>
     <tr><td>Chạy thử đèn thật trên board</td><td>Đã biên dịch và test logic, chưa nạp lại bản mới và thử với LED sau tái cấu trúc</td></tr>
   </table></div>
   <h3>Hạn chế đã biết</h3>
@@ -419,7 +520,7 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
 
 <!-- ============ 9 ============ -->
 <section id="ban-do">
-  <h2><span class="no">9</span>Bản đồ file</h2>
+  <h2><span class="no">10</span>Bản đồ file</h2>
 <pre><code>domisen/
 ├── README.md                    cài đặt (Mac và Windows), cách chạy
 ├── docs/

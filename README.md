@@ -44,6 +44,15 @@ brew install --cask mqttx
 2. Cài driver USB nếu cắm board mà không thấy cổng COM trong Device Manager: CH340 hoặc CP2102, tùy chip in trên board.
 3. Cài [MQTTX](https://mqttx.app/) để xem tin nhắn (bản Mac cũng dùng MQTTX).
 
+### MQTTX là gì
+
+MQTTX là ứng dụng có giao diện để **xem và gửi tin MQTT** bằng tay, dùng thay cho server và web khi chúng chưa có.
+Nó không phải broker: Mosquitto chuyển tin, MQTTX chỉ là một "người dùng" nối vào broker như board.
+Tạo kết nối với Host `localhost` (máy khác trong nhóm dùng IP máy chạy broker), Port `1883`, Username `domisen`,
+Password do người chạy broker đặt, SSL tắt. **Đừng dùng broker `broker.emqx.io` mà MQTTX điền sẵn**, đó là broker công cộng.
+Subscribe `domisen/#` để nghe, gửi lệnh bằng ô ở dưới cùng, **để Retain tắt** khi gửi lệnh.
+Hướng dẫn đầy đủ kèm các thử nghiệm: tab MQTTX của [`docs/giai-thich-code.html`](docs/giai-thich-code.html).
+
 ### Xem tin nhắn không cần giao diện
 
 Có sẵn cùng Mosquitto, thấy mọi tin của dự án:
