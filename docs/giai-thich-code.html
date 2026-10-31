@@ -24,10 +24,21 @@
   header.hero p { margin: 0; color: var(--muted); max-width: 680px; }
   nav.toc { position: sticky; top: 0; z-index: 5; background: rgba(251,250,247,.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
   nav.toc div { max-width: 920px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 6px; flex-wrap: wrap; }
-  nav.toc a { font-size: 14px; color: var(--ink); text-decoration: none; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); }
+  nav.toc a { font-size: 14px; color: var(--ink); text-decoration: none; padding: 5px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); white-space: nowrap; }
   nav.toc a:hover { border-color: var(--services); color: var(--services); }
+  nav.toc a[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
+  nav.toc a:focus-visible { outline: 2px solid var(--services); outline-offset: 2px; }
+  .pager { display: flex; justify-content: space-between; gap: 10px; margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .pager button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 10px 16px; min-width: 150px; }
+  .pager button small { color: var(--muted); font-size: 12.5px; }
+  .pager button b { font-size: 15px; }
+  .pager .next { align-items: flex-end; margin-left: auto; }
+  .pager button:hover small { color: inherit; }
+  @media (max-width: 640px) { nav.toc div { flex-wrap: nowrap; overflow-x: auto; } .pager button { min-width: 0; flex: 1; } }
   main { max-width: 920px; margin: 0 auto; padding: 8px 20px 80px; }
-  section { margin-top: 56px; scroll-margin-top: 70px; }
+  section { display: none; margin-top: 30px; }
+  section.active { display: block; animation: fade .18s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   h2 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.3px; }
   h2 .no { display: inline-block; min-width: 34px; height: 34px; line-height: 34px; text-align: center; border-radius: 50%; background: var(--ink); color: #fff; font-size: 16px; margin-right: 10px; vertical-align: 2px; }
   h3 { font-size: 18px; margin: 26px 0 6px; }
@@ -104,6 +115,7 @@
   .no-t { color: #b42318; font-weight: 600; }
   footer { max-width: 920px; margin: 0 auto; padding: 0 20px 60px; color: var(--muted); font-size: 14px; }
 </style>
+<noscript><style>section { display: block !important; }</style></noscript>
 </head>
 <body>
 
@@ -112,16 +124,16 @@
   <p>Mô hình nhà thông minh với 2 ESP32 nói chuyện qua MQTT. Trang này giải thích code firmware đang có: nó chia thành những phần nào, một lệnh đi qua code ra sao, và những quy ước để về sau thêm thiết bị mà code không rối.</p>
 </header>
 
-<nav class="toc"><div>
-  <a href="#tong-quan">1. Tổng quan</a>
-  <a href="#kien-truc">2. Lõi và adapter</a>
-  <a href="#luong-lenh">3. Đi theo một lệnh</a>
-  <a href="#logic">4. Logic chính</a>
-  <a href="#convention">5. Quy ước</a>
-  <a href="#them-thiet-bi">6. Thêm thiết bị</a>
-  <a href="#kiem-thu">7. Kiểm thử</a>
-  <a href="#gioi-han">8. Chưa có</a>
-  <a href="#ban-do">9. Bản đồ file</a>
+<nav class="toc" aria-label="Các phần"><div role="tablist">
+  <a href="#tong-quan" role="tab" aria-controls="tong-quan">1. Tổng quan</a>
+  <a href="#kien-truc" role="tab" aria-controls="kien-truc">2. Lõi và adapter</a>
+  <a href="#luong-lenh" role="tab" aria-controls="luong-lenh">3. Đi theo một lệnh</a>
+  <a href="#logic" role="tab" aria-controls="logic">4. Logic chính</a>
+  <a href="#convention" role="tab" aria-controls="convention">5. Quy ước</a>
+  <a href="#them-thiet-bi" role="tab" aria-controls="them-thiet-bi">6. Thêm thiết bị</a>
+  <a href="#kiem-thu" role="tab" aria-controls="kiem-thu">7. Kiểm thử</a>
+  <a href="#gioi-han" role="tab" aria-controls="gioi-han">8. Chưa có</a>
+  <a href="#ban-do" role="tab" aria-controls="ban-do">9. Bản đồ file</a>
 </div></nav>
 
 <main>
@@ -543,6 +555,60 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
   }
   $("gSlider").addEventListener("input", chart);
   chart();
+  // ---- chia tab ----
+  const tabs = Array.from(document.querySelectorAll('nav.toc a'));
+  const secs = tabs.map(a => document.getElementById(a.getAttribute('href').slice(1)));
+  const KEY = 'domisen-doc-tab';
+  const nav = document.querySelector('nav.toc');
+
+  function show(i, opts) {
+    opts = opts || {};
+    i = Math.max(0, Math.min(tabs.length - 1, i));
+    tabs.forEach((a, k) => {
+      const on = k === i;
+      a.setAttribute('aria-selected', on ? 'true' : 'false');
+      a.tabIndex = on ? 0 : -1;
+      secs[k].classList.toggle('active', on);
+    });
+    const id = secs[i].id;
+    try { history.replaceState(null, '', '#' + id); } catch (e) {}
+    try { localStorage.setItem(KEY, id); } catch (e) {}
+    tabs[i].scrollIntoView({ block: 'nearest', inline: 'center' });
+    if (!opts.initial) window.scrollTo({ top: Math.max(0, nav.offsetTop), behavior: 'auto' });
+  }
+
+  // nút phần trước / sau ở cuối mỗi phần
+  secs.forEach((sec, k) => {
+    const pager = document.createElement('div');
+    pager.className = 'pager';
+    const mk = (idx, cls, label) => {
+      const b = document.createElement('button');
+      b.className = cls;
+      b.innerHTML = '<small>' + label + '</small><b>' + tabs[idx].textContent + '</b>';
+      b.onclick = () => show(idx);
+      return b;
+    };
+    if (k > 0) pager.appendChild(mk(k - 1, 'prev', '← Phần trước'));
+    if (k < secs.length - 1) pager.appendChild(mk(k + 1, 'next', 'Phần sau →'));
+    sec.appendChild(pager);
+  });
+
+  tabs.forEach((a, k) => {
+    a.addEventListener('click', e => { e.preventDefault(); show(k); });
+    a.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); show(k + 1); tabs[Math.min(k + 1, tabs.length - 1)].focus(); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); show(k - 1); tabs[Math.max(k - 1, 0)].focus(); }
+    });
+  });
+  window.addEventListener('hashchange', () => {
+    const k = secs.findIndex(x => '#' + x.id === location.hash);
+    if (k >= 0) show(k);
+  });
+
+  // mở tab: ưu tiên đường dẫn #..., rồi tab xem lần trước, rồi tab đầu
+  let start = secs.findIndex(x => '#' + x.id === location.hash);
+  if (start < 0) { try { const saved = localStorage.getItem(KEY); start = secs.findIndex(x => x.id === saved); } catch (e) {} }
+  show(start < 0 ? 0 : start, { initial: true });
 })();
 </script>
 </body>
