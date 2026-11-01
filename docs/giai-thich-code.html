@@ -652,7 +652,7 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
     <tr><td>Server (Bun + PostgreSQL) và web dashboard</td><td>Chỉ có thư mục trống kèm README. Chúng sẽ dùng đúng quy ước topic ở <code>docs/mqtt-topics.md</code></td></tr>
     <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
     <tr><td>Cảm biến, relay, servo, WS2812</td><td>Mới có một loại thiết bị là đèn chỉnh độ sáng (đèn trần, đèn ngủ). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
-    <tr><td>Chạy thử đèn thật trên board</td><td>Đã biên dịch và test logic, chưa nạp lại bản mới và thử với LED sau tái cấu trúc</td></tr>
+    <tr><td>Đèn trần (GPIO25) trên board thật</td><td>Đèn ngủ (GPIO26, LED đỏ) đã chạy thật với MQTTX: bật tắt, chỉnh mức, lệnh sai, ping, Last Will. Đèn trần dùng chung class nên chạy cùng cách, nhưng chưa nối LED trắng để thử</td></tr>
   </table></div>
   <h3>Hạn chế đã biết</h3>
   <ul class="tight">
