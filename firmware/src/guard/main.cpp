@@ -1,10 +1,11 @@
-// Board guard: cửa, bếp, an ninh. Chưa có thiết bị nào, mới chỉ nối broker và báo trạng thái.
-// Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
+// Board guard: cửa, bếp, an ninh. Hiện có servo cửa chính. Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
+#include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
 #include <shared/protocol/Topics.h>
 #include <shared/services/Hub.h>
+#include <shared/services/PositionDevice.h>
 
 #include "domisen_config.h"
 
@@ -24,10 +25,19 @@ static adapters::esp32::MqttTransport transport({
     .willTopic = protocol::nodeStatusTopic(NODE),
 });
 static adapters::esp32::ArduinoClock clock_;
+
+// Servo cửa SG90 (GPIO13, kênh LEDC 2). Góc là hằng số, chỉnh khi lắp cơ khí.
+static adapters::esp32::Esp32Pwm doorPwm(13, 2, 50, 16);
+static const float kDoorClosedDeg = 0.0f;
+static const float kDoorOpenDeg = 90.0f;
+static services::PositionDevice door("entrance/door", doorPwm, {{"closed", kDoorClosedDeg}, {"open", kDoorOpenDeg}});
+
 static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
   Serial.begin(115200);
+  doorPwm.begin();
+  hub.add(door);
   hub.begin();
   transport.begin();
 }

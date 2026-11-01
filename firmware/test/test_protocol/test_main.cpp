@@ -2,9 +2,12 @@
 #include <shared/protocol/Climate.h>
 #include <shared/protocol/Error.h>
 #include <shared/protocol/Light.h>
+#include <shared/protocol/Position.h>
 #include <shared/protocol/Switch.h>
 #include <shared/protocol/Topics.h>
 #include <unity.h>
+
+#include <vector>
 
 using namespace domisen::protocol;
 
@@ -92,6 +95,36 @@ void test_ma_hoa_loi() {
   TEST_ASSERT_EQUAL_STRING("{\"error\":\"hỏng\"}", encodeError("hỏng").c_str());
 }
 
+// Servo cửa: danh sách vị trí theo thứ tự khai báo trong main.cpp.
+void test_giai_ma_vi_tri() {
+  std::vector<std::string> names = {"closed", "open"};
+  std::string pos = "closed", err;
+  TEST_ASSERT_TRUE(decodePositionCommand("{\"position\":\"open\"}", names, pos, err));
+  TEST_ASSERT_EQUAL_STRING("open", pos.c_str());
+  TEST_ASSERT_TRUE(decodePositionCommand("{\"position\":\"closed\"}", names, pos, err));
+  TEST_ASSERT_EQUAL_STRING("closed", pos.c_str());
+}
+
+void test_vi_tri_sai_bao_loi_neu_danh_sach() {
+  std::vector<std::string> names = {"closed", "open"};
+  std::string pos = "open", err;
+  const std::string expected = "position phải là một trong: closed, open";
+  TEST_ASSERT_FALSE(decodePositionCommand("{}", names, pos, err));  // thiếu trường
+  TEST_ASSERT_EQUAL_STRING(expected.c_str(), err.c_str());
+  TEST_ASSERT_FALSE(decodePositionCommand("{\"position\":1}", names, pos, err));  // sai kiểu
+  TEST_ASSERT_EQUAL_STRING(expected.c_str(), err.c_str());
+  TEST_ASSERT_FALSE(decodePositionCommand("{\"position\":\"middle\"}", names, pos, err));  // không có trong danh sách
+  TEST_ASSERT_EQUAL_STRING(expected.c_str(), err.c_str());
+  TEST_ASSERT_FALSE(decodePositionCommand("khong phai json", names, pos, err));
+  TEST_ASSERT_FALSE(decodePositionCommand("[\"open\"]", names, pos, err));
+  TEST_ASSERT_EQUAL_STRING("open", pos.c_str());  // lệnh sai không đổi vị trí
+}
+
+void test_ma_hoa_vi_tri() {
+  TEST_ASSERT_EQUAL_STRING("{\"position\":\"open\"}", encodePositionState("open").c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"position\":\"closed\"}", encodePositionState("closed").c_str());
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_topics);
@@ -104,5 +137,8 @@ int main() {
   RUN_TEST(test_lenh_bat_tat_sai_bi_tu_choi);
   RUN_TEST(test_ma_hoa_trang_thai_bat_tat);
   RUN_TEST(test_ma_hoa_loi);
+  RUN_TEST(test_giai_ma_vi_tri);
+  RUN_TEST(test_vi_tri_sai_bao_loi_neu_danh_sach);
+  RUN_TEST(test_ma_hoa_vi_tri);
   return UNITY_END();
 }

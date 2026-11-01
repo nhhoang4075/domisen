@@ -1,5 +1,6 @@
-// Luật thuần của đèn: không cần phần cứng, không cần JSON.
+// Luật thuần của đèn và servo: không cần phần cứng, không cần JSON.
 #include <shared/core/Light.h>
+#include <shared/core/Servo.h>
 #include <unity.h>
 
 using namespace domisen::core;
@@ -51,6 +52,18 @@ void test_duty_gamma() {
   TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.2176f, lightDuty({true, 50}));  // 0,5 mũ 2,2
 }
 
+// Giá trị mong đợi lấy từ docs/mqtt-topics.md: xung 0,5 ms đến 2,4 ms trong chu kỳ 20 ms.
+void test_servo_duty_ba_goc() {
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, servoDuty(0.0f));    // 0,5 / 20
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.0725f, servoDuty(90.0f));  // 1,45 / 20
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.12f, servoDuty(180.0f));   // 2,4 / 20
+}
+
+void test_servo_goc_ngoai_khoang_bi_cat() {
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, servoDuty(-30.0f));
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.12f, servoDuty(200.0f));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_mac_dinh_tat_muc_100);
@@ -60,5 +73,7 @@ int main() {
   RUN_TEST(test_on_ghi_ro_thang_level);
   RUN_TEST(test_level_ngoai_khoang_bi_cat);
   RUN_TEST(test_duty_gamma);
+  RUN_TEST(test_servo_duty_ba_goc);
+  RUN_TEST(test_servo_goc_ngoai_khoang_bi_cat);
   return UNITY_END();
 }
