@@ -67,6 +67,80 @@ Tự bật quạt theo nhiệt độ là luật của **server** (đọc `living
 
 Đấu dây: module relay 1 kênh 5V. IN vào GPIO16, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `kFanRelayActiveLow` trong `comfort/main.cpp`. Module đang dùng chạy mức cao (hút khi IN lên 5 V) nên hằng số này là `false`.
 
+## Cảm biến hai trạng thái (chưa làm: PIR, cảm biến mưa, nút cảm ứng)
+
+Cùng một kiểu thiết bị, chỉ khác id, chân, tên trường và mức tín hiệu. Chỉ gửi `state` (retain), không có lệnh: gửi vào `.../cmd` nhận lỗi "chỉ đọc" như DHT22.
+
+| # | Id | Board, chân | Trường | Mức tín hiệu |
+|---|---|---|---|---|
+| 6 | `living/motion` (PIR HC-SR501) | comfort, GPIO39 | `motion` | HIGH là có chuyển động |
+| 16 | `balcony/rain` (cảm biến mưa, chân DO) | comfort, GPIO34 | `raining` | LOW là đang mưa (module kéo DO xuống khi ướt) |
+| 19 | `living/wall-button` (TTP223) | comfort, GPIO27 | `pressed` | HIGH là đang chạm |
+
+Ví dụ `domisen/living/motion/state`: `{"motion":true}`.
+- Giá trị chỉ đổi khi tín hiệu đã **ổn định ít nhất 50 ms** (chống nhiễu).
+- Gửi ngay khi đổi, và gửi lại khi nối lại broker. Lần đọc đầu tiên sau khi khởi động cũng được gửi.
+- GPIO34 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo).
+- Mức tín hiệu (HIGH hay LOW là "bật") là hằng số của từng thiết bị trong `main.cpp`; chủ dự án kiểm tra trên module thật.
+- PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware.
+
+## Còi và quạt hút (chưa làm: #10 còi, #9 quạt hút bếp)
+
+Dùng lại thiết bị bật tắt của quạt phòng khách: lệnh `{"on":true}` hoặc `{"on":false}`, state `{"on":true}` (retain), khởi động ở trạng thái tắt.
+
+| # | Id | Board, chân | Phần cứng |
+|---|---|---|---|
+| 10 | `house/alarm` | guard, GPIO27 | Module buzzer 5V, chân VCC vào 5V |
+| 9 | `kitchen/exhaust-fan` | guard, GPIO16 | Relay như quạt phòng khách |
+
+Module buzzer và relay có thể chạy mức cao hoặc mức thấp: là hằng số `ActiveLow` trong `guard/main.cpp`, chủ dự án chỉnh khi thử trên board. Việc tự bật còi và quạt hút khi có gas (an toàn, chạy ngay trên board) làm sau khi có cảm biến MQ-2.
+
+## Servo: cửa, rèm, giàn phơi (chưa làm)
+
+Servo SG90 góc 0 đến 180 độ. Mỗi thiết bị có **hai vị trí có tên**, mỗi vị trí ứng với một góc.
+
+| # | Id | Board, chân | Vị trí (tên: góc ban đầu) |
+|---|---|---|---|
+| 7 | `entrance/door` | guard, GPIO13 | `closed`: 0, `open`: 90 |
+| 14 | `living/curtain` | comfort, GPIO13 | `open`: 0, `closed`: 90 |
+| 17 | `balcony/clothesline` | comfort, GPIO33 | `in`: 0, `out`: 90 |
+
+Lệnh `{"position":"open"}`, state `{"position":"open"}` (retain). Tên vị trí không có trong bảng thì báo lỗi và giữ nguyên. Khởi động ở vị trí **đầu tiên** của hàng (`closed`, `open`, `in`).
+Góc là hằng số trong `main.cpp`, chủ dự án chỉnh khi lắp cơ khí. Servo cần 5V từ adapter, không lấy từ ESP32 (xem `docs/gpio.md`).
+Điều khiển bằng PWM 50 Hz, xung 0,5 ms (0 độ) đến 2,4 ms (180 độ), bằng cổng `PwmOutput` và `Esp32Pwm(pin, kênh, 50, 16)` đã có, **không thêm thư viện servo**. Mỗi servo một kênh LEDC riêng (kênh 0 và 1 đã dùng cho đèn).
+
+## Đèn màu WS2812 (chưa làm: #15 đèn tâm trạng)
+
+`living/mood-light`, comfort GPIO32, thanh 8 bóng. Cả thanh luôn cùng một màu.
+
+| Lệnh gửi | Kết quả |
+|---|---|
+| `{"on":true}` | Bật, dùng màu và mức đã nhớ (mặc định trắng ấm `#FFB46B`, mức 100) |
+| `{"on":false}` | Tắt, nhớ màu và mức cũ |
+| `{"color":"#FF0000"}` | Đổi màu và bật nếu lệnh không kèm `on` |
+| `{"level":40}` | Đổi độ sáng 0 đến 100, và bật nếu lệnh không kèm `on` (0 là tắt, giữ mức cũ) |
+
+State `{"on":true,"color":"#FF0000","level":40}` (retain). `color` là chuỗi `#RRGGBB` (chữ hoa hoặc thường, trả về chữ hoa). Sai định dạng thì báo lỗi và giữ nguyên.
+Độ sáng nhân thẳng vào từng kênh màu (không bù gamma). Lệnh gửi về qua thư viện `Adafruit NeoPixel` đặt trong `adapters_esp32`.
+Điện: 5V từ adapter. Thử trên USB thì chủ dự án giữ mức tối đa 50.
+
+## Màn hình OLED (chưa làm: #8)
+
+`entrance/display`, guard, I2C: GPIO21 SDA, GPIO22 SCL, SSD1306 128x64, địa chỉ 0x3C. Lệnh `{"text":"Xin chao"}`, state `{"text":"Xin chao"}` (retain).
+- Tối đa 4 dòng, các dòng ngăn bằng `\n`, mỗi dòng tối đa 21 ký tự (phông chữ cỡ 1). Chỉ nhận ASCII in được (khoảng trắng đến `~`): tiếng Việt có dấu bị từ chối với lỗi rõ ràng, giữ nguyên màn hình.
+- Quá 4 dòng hoặc dòng quá dài: báo lỗi, giữ nguyên.
+- Khởi động: màn hình trống, state `{"text":""}`.
+- Thư viện `Adafruit SSD1306` và `Adafruit GFX`, chỉ nằm trong `adapters_esp32`.
+
+## Đầu đọc thẻ RC522 (chưa làm: #11)
+
+`entrance/card-reader`, guard, SPI: GPIO5 SDA (SS), GPIO18 SCK, GPIO23 MOSI, GPIO19 MISO, GPIO4 RST. **Nguồn 3,3V, không cắm 5V.** Thư viện `MFRC522`.
+Khi quẹt thẻ: gửi `domisen/entrance/card-reader/state` là `{"uid":"A3F2197C"}` (UID hex **chữ hoa**, không dấu cách), **không retain**.
+- Đây là **sự kiện**, không phải trạng thái: không gửi lại khi nối lại broker (nếu không cửa sẽ tự mở lại khi mất rồi có mạng).
+- Cùng một thẻ giữ trên đầu đọc không gửi lặp: chỉ gửi lại sau khi thẻ rời đi, hoặc sau 2 giây.
+- Không có lệnh: gửi vào `.../cmd` nhận lỗi "chỉ đọc".
+- `Device` cần thêm hai hàm có mặc định cũ, để cảm biến sự kiện báo cho Hub biết: `retainState()` (mặc định `true`) và `publishOnConnect()` (mặc định `true`). Thiết bị này trả `false` cho cả hai.
+
 ## Danh sách thiết bị (đề xuất, sửa nếu sai tên phòng)
 
 | # | Topic gốc | Board |

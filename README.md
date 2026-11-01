@@ -101,6 +101,8 @@ Mở thư mục `domisen` (không phải thư mục cha). `.vscode/settings.json
 
 ## Quy tắc làm việc
 
+Luật đầy đủ (kiến trúc, nhánh, PR, cách review) nằm ở [`AGENTS.md`](AGENTS.md). Tóm tắt:
+
 - Chân GPIO ghi ở `docs/gpio.md`, topic ghi ở `docs/mqtt-topics.md`. Đổi thì sửa tài liệu trước.
 - `firmware/include/domisen_config.h` chứa WiFi và mật khẩu, **không commit**.
 - Thư viện đã ghim phiên bản trong `platformio.ini`, đừng tự nâng.

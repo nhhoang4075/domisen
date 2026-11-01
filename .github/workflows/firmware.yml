@@ -1,0 +1,32 @@
+name: firmware
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firmware
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ runner.os }}-${{ hashFiles('firmware/platformio.ini') }}
+      - run: pip install platformio
+      - run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Test lõi, protocol, services trên laptop
+        run: pio test -e native
+      - name: Lõi không dính phần cứng
+        run: bash tools/check-purity.sh
+      - name: Biên dịch cả hai board
+        run: |
+          cp include/domisen_config.example.h include/domisen_config.h
+          pio run

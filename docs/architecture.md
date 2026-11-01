@@ -52,6 +52,23 @@ Khởi động luôn ở trạng thái tắt, và adapter đặt mức "tắt" t
 Việc tự bật quạt theo nhiệt độ **không nằm trên board**: đó là luật tiện nghi, chạy trên server (xem `docs/plan`, nguyên tắc "việc an toàn xử lý ngay tại nhà").
 Board chỉ nhận lệnh `on` và báo state. Quạt hút khi có gas (an toàn) mới do board guard tự quyết, làm sau.
 
+## Thiết bị sẽ thêm (đã duyệt, chưa làm)
+
+Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqtt-topics.md`. Ở đây chỉ ghi phần kiến trúc: port mới, lớp mới, chỗ đặt.
+
+| Thiết bị | Port | Lớp dịch vụ | Adapter thật | Bản giả |
+|---|---|---|---|---|
+| PIR, cảm biến mưa, nút cảm ứng | `DigitalInput` (`read()` trả `bool`) | `BinarySensorDevice` (id, tên trường, mức tín hiệu, chống nhiễu 50 ms) | `Esp32DigitalIn` | `FakeDigitalInput` |
+| Còi, quạt hút bếp | `DigitalOutput` (đã có) | `SwitchDevice` (đã có) | `Esp32DigitalOut` (đã có) | `FakeDigitalOutput` (đã có) |
+| Servo cửa, rèm, giàn phơi | `PwmOutput` (đã có) | `PositionDevice` (các vị trí có tên và góc); luật đổi góc ra duty nằm ở `core` | `Esp32Pwm(pin, kênh, 50, 16)` (đã có) | `FakePwm` (đã có) |
+| Đèn WS2812 | `PixelStrip` (`setColor(r, g, b)` cho cả thanh) | `ColorLight` (luật bật tắt, màu, độ sáng nằm ở `core`) | `Ws2812Strip` (Adafruit NeoPixel) | `FakePixelStrip` |
+| OLED | `TextDisplay` (`show(các dòng)`) | `DisplayDevice` (kiểm tra ASCII, số dòng, độ dài) | `Ssd1306Display` | `FakeTextDisplay` |
+| RC522 | `CardReader` (`poll()` trả UID hoặc rỗng) | `CardReaderDevice` (chống lặp 2 giây) | `Rc522Reader` | `FakeCardReader` |
+
+- `Device` thêm hai hàm có giá trị mặc định cũ: `virtual bool retainState() const { return true; }` và `virtual bool publishOnConnect() const { return true; }`. Hub dùng chúng khi gửi state. Chỉ `CardReaderDevice` trả `false`.
+- Mỗi port mới có contract test (luật 6) và bản giả; mỗi lớp dịch vụ có test chạy trên laptop với bản giả.
+- Thư viện bên thứ ba chỉ được include trong `adapters_esp32`. Thư viện nào chỉ board `comfort` hoặc `guard` cần thì khai báo `lib_deps` riêng cho env đó, và env còn lại loại file adapter tương ứng khỏi `build_src_filter` (giống `Dht22Sensor` cho `guard`).
+
 ## Thêm một thiết bị
 
 1. Nếu là loại mới (relay, servo...): thêm luật thuần ở `core`, mã hóa ở `protocol`, lớp thiết bị ở `services`, có test với bản giả.
