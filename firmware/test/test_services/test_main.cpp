@@ -338,6 +338,20 @@ struct DoorRig {
   }
 };
 
+void test_servo_danh_sach_rong_khong_lam_gi_va_bao_loi() {
+  FakeTransport transport;
+  FakeClock clock;
+  FakePwm pwm;
+  PositionDevice empty{"entrance/door", pwm, {}};
+  Hub hub{"guard", transport, clock, 5000};
+  hub.add(empty);
+  hub.begin();
+  transport.simulateConnect();
+  transport.simulateMessage("domisen/entrance/door/cmd", "{\"position\":\"open\"}");
+  TEST_ASSERT_NOT_NULL(transport.last(DOOR_ERROR));
+  TEST_ASSERT_EQUAL_STRING("{}", transport.last(DOOR_STATE)->payload.c_str());
+}
+
 void test_cua_khoi_dong_o_vi_tri_dau_tien() {
   DoorRig r;
   TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, r.pwm.last);  // closed = 0 độ
@@ -411,6 +425,7 @@ void test_cua_va_rem_chung_mot_lop() {
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_cua_khoi_dong_o_vi_tri_dau_tien);
+  RUN_TEST(test_servo_danh_sach_rong_khong_lam_gi_va_bao_loi);
   RUN_TEST(test_cua_lenh_hop_le_chuyen_va_bao_state);
   RUN_TEST(test_cua_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_cua_noi_lai_gui_lai_state);

@@ -7,7 +7,9 @@ namespace domisen::services {
 PositionDevice::PositionDevice(std::string id, core::PwmOutput& pwm, std::vector<PositionOption> positions)
     : id_(std::move(id)), pwm_(pwm), positions_(std::move(positions)) {}
 
-void PositionDevice::begin() { moveTo(0); }
+void PositionDevice::begin() {
+  if (!positions_.empty()) moveTo(0);
+}
 
 bool PositionDevice::onCommand(const std::string& payload, std::string& error) {
   std::vector<std::string> names;
@@ -25,7 +27,10 @@ bool PositionDevice::onCommand(const std::string& payload, std::string& error) {
   return false;
 }
 
-std::string PositionDevice::stateJson() const { return protocol::encodePositionState(positions_[current_].name); }
+std::string PositionDevice::stateJson() const {
+  if (positions_.empty()) return "{}";
+  return protocol::encodePositionState(positions_[current_].name);
+}
 
 void PositionDevice::moveTo(std::size_t index) {
   current_ = index;

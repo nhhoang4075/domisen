@@ -9,7 +9,7 @@
 
 namespace domisen::services {
 
-// Một vị trí có tên và góc (độ). Danh sách không được rỗng, vị trí đầu tiên là vị trí khi khởi động.
+// Một vị trí có tên và góc (độ). Vị trí đầu tiên là vị trí khi khởi động. Danh sách rỗng thì thiết bị không làm gì và mọi lệnh đều báo lỗi.
 struct PositionOption {
   std::string name;
   float angle;
