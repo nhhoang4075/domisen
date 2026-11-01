@@ -724,7 +724,7 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
     <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
     <tr><td>Servo, WS2812, quang trở, PIR</td><td>Mới có ba loại thiết bị: đèn chỉnh độ sáng, cảm biến nhiệt độ, độ ẩm (DHT22) và thiết bị bật tắt (quạt). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
     <tr><td>Tự bật quạt theo nhiệt độ</td><td>Chưa làm, và sẽ do <b>server</b> làm (đọc <code>living/climate/state</code>, gửi lệnh vào <code>living/fan/cmd</code>, có độ trễ để quạt không bật tắt liên tục). Hiện bật tắt tay bằng MQTTX</td></tr>
-    <tr><td>Quạt trên board thật</td><td>Code và test với bản giả đã xong. Chưa lắp relay nên chưa biết module chạy mức thấp hay mức cao</td></tr>
+    <tr><td>Hiệu chuẩn quạt</td><td>Đã chạy thật trên board comfort: gửi <code>{"on":true}</code> thì relay hút và quạt quay, <code>{"on":false}</code> thì dừng. Module relay của dự án chạy <b>mức cao</b> (hút khi IN lên 5 V), nên <code>kFanRelayActiveLow = false</code></td></tr>
     <tr><td>Hiệu chuẩn DHT22</td><td>Đã chạy thật trên board comfort: <code>domisen/living/climate/state</code> gửi đều 10 giây một lần, độ ẩm tăng vọt (97 %) rồi giảm dần khi hà hơi vào cảm biến. Chưa so với nhiệt kế hay ẩm kế chuẩn nên chưa biết độ lệch tuyệt đối</td></tr>
     <tr><td>Đèn trần (GPIO25) trên board thật</td><td>Đèn ngủ (GPIO26, LED đỏ) đã chạy thật với MQTTX: bật tắt, chỉnh mức, lệnh sai, ping, Last Will. Đèn trần dùng chung class nên chạy cùng cách, nhưng chưa nối LED trắng để thử</td></tr>
   </table></div>

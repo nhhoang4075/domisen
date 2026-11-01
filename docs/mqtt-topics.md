@@ -65,7 +65,7 @@ Thiếu `on`, hoặc `on` không phải `true`/`false` thì giữ nguyên trạn
 
 Tự bật quạt theo nhiệt độ là luật của **server** (đọc `living/climate/state`, gửi lệnh vào `living/fan/cmd`), không nằm trong board. Hiện chỉ điều khiển tay, ví dụ bằng MQTTX.
 
-Đấu dây: module relay 1 kênh 5V. IN vào GPIO16, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `kFanRelayActiveLow` trong `comfort/main.cpp`.
+Đấu dây: module relay 1 kênh 5V. IN vào GPIO16, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `kFanRelayActiveLow` trong `comfort/main.cpp`. Module đang dùng chạy mức cao (hút khi IN lên 5 V) nên hằng số này là `false`.
 
 ## Danh sách thiết bị (đề xuất, sửa nếu sai tên phòng)
 

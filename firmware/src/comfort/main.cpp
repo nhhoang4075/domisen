@@ -36,7 +36,7 @@ static adapters::esp32::Esp32Pwm nightPwm(26, 1);    // GPIO26, kênh LEDC 1
 static services::DimmableLight ceilingLight("living/ceiling-light", ceilingPwm);
 static services::DimmableLight nightLight("bedroom/night-light", nightPwm);
 
-static const bool kFanRelayActiveLow = true;  // module relay hút khi IN xuống mức thấp; đảo lại nếu quạt chạy ngược
+static const bool kFanRelayActiveLow = false;  // relay của bạn hút khi IN lên 5V (mức cao); module khác có thể hút ở mức thấp
 static adapters::esp32::Esp32DigitalOut fanRelay(16, kFanRelayActiveLow);  // GPIO16
 static services::SwitchDevice fan("living/fan", fanRelay);
 
