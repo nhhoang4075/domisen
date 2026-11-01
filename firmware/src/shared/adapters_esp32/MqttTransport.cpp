@@ -8,7 +8,7 @@ MqttTransport::MqttTransport(MqttConfig config) : config_(std::move(config)), mq
 
 void MqttTransport::begin() {
   if (config_.wifiSsid.empty() || config_.host.empty()) {
-    Serial.println("[domisen] thiếu WIFI_SSID hoặc MQTT_HOST trong include/domisen_config.h, dừng.");
+    Serial.println("[domisen] thiếu WIFI_SSID hoặc MQTT_HOST, dừng.");
     while (true) delay(1000);
   }
   WiFi.mode(WIFI_STA);
