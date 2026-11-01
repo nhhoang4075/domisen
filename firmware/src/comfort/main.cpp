@@ -5,8 +5,10 @@
 #include <shared/adapters_esp32/Esp32DigitalOut.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
+#include <shared/adapters_esp32/Ws2812Strip.h>
 #include <shared/protocol/Topics.h>
 #include <shared/services/ClimateDevice.h>
+#include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
 #include <shared/services/SwitchDevice.h>
@@ -43,6 +45,9 @@ static services::SwitchDevice fan("living/fan", fanRelay);
 static adapters::esp32::Dht22Sensor dht(14);  // GPIO14
 static services::ClimateDevice climate("living/climate", dht);
 
+static adapters::esp32::Ws2812Strip moodStrip(32, 8);  // GPIO32, thanh 8 bóng
+static services::ColorLight moodLight("living/mood-light", moodStrip);
+
 static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
@@ -51,10 +56,12 @@ void setup() {
   nightPwm.begin();
   fanRelay.begin();
   dht.begin();
+  moodStrip.begin();
   hub.add(ceilingLight);
   hub.add(nightLight);
   hub.add(fan);
   hub.add(climate);
+  hub.add(moodLight);
   hub.begin();
   transport.begin();
 }

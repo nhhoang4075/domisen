@@ -2,6 +2,7 @@
 // (hiện là bản giả). Adapter thật cần board nên chỉ kiểm tra được khi nạp lên thiết bị.
 #include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeDigitalOutput.h>
+#include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
 #include <unity.h>
@@ -77,10 +78,28 @@ template <typename O> void digitalOutputContract() {
   TEST_ASSERT_FALSE(o.last);
 }
 
+// ---- PixelStrip ----
+template <typename S> void pixelStripContract() {
+  S s;
+  s.setColor(255, 180, 107);
+  TEST_ASSERT_EQUAL_UINT8(255, s.last.r);
+  TEST_ASSERT_EQUAL_UINT8(180, s.last.g);
+  TEST_ASSERT_EQUAL_UINT8(107, s.last.b);
+  s.setColor(0, 0, 0);  // tắt là đen, cả thanh
+  TEST_ASSERT_EQUAL_UINT8(0, s.last.r);
+  TEST_ASSERT_EQUAL_UINT8(0, s.last.g);
+  TEST_ASSERT_EQUAL_UINT8(0, s.last.b);
+  s.setColor(1, 2, 3);  // kênh nào ra kênh đó, không đảo thứ tự
+  TEST_ASSERT_EQUAL_UINT8(1, s.last.r);
+  TEST_ASSERT_EQUAL_UINT8(2, s.last.g);
+  TEST_ASSERT_EQUAL_UINT8(3, s.last.b);
+}
+
 void test_fake_transport() { transportContract<adapters::fake::FakeTransport>(); }
 void test_fake_pwm() { pwmContract<adapters::fake::FakePwm>(); }
 void test_fake_digital_output() { digitalOutputContract<adapters::fake::FakeDigitalOutput>(); }
 void test_fake_climate() { climateContract<adapters::fake::FakeClimateSensor>(); }
+void test_fake_pixel_strip() { pixelStripContract<adapters::fake::FakePixelStrip>(); }
 
 int main() {
   UNITY_BEGIN();
@@ -88,5 +107,6 @@ int main() {
   RUN_TEST(test_fake_pwm);
   RUN_TEST(test_fake_climate);
   RUN_TEST(test_fake_digital_output);
+  RUN_TEST(test_fake_pixel_strip);
   return UNITY_END();
 }

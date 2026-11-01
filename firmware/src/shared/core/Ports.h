@@ -39,6 +39,14 @@ class DigitalOutput {
   virtual void write(bool on) = 0;
 };
 
+// Thanh đèn nhiều bóng nhận cùng một màu (WS2812). Mỗi kênh 0..255 là màu thực tế đã nhân độ sáng:
+// lõi tính hết, adapter chỉ đẩy ra phần cứng.
+class PixelStrip {
+ public:
+  virtual ~PixelStrip() = default;
+  virtual void setColor(uint8_t r, uint8_t g, uint8_t b) = 0;
+};
+
 // Đường truyền tin nhắn (MQTT). Adapter lo nối lại và đăng ký lại topic sau mỗi lần nối lại.
 class Transport {
  public:
