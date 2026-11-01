@@ -687,7 +687,7 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
     <tr><td>Server (Bun + PostgreSQL) và web dashboard</td><td>Chỉ có thư mục trống kèm README. Chúng sẽ dùng đúng quy ước topic ở <code>docs/mqtt-topics.md</code></td></tr>
     <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
     <tr><td>Relay, servo, WS2812, quang trở, PIR</td><td>Mới có hai loại thiết bị: đèn chỉnh độ sáng (đèn trần, đèn ngủ) và cảm biến nhiệt độ, độ ẩm (DHT22). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
-    <tr><td>DHT22 trên board thật</td><td>Code, test với cảm biến giả và biên dịch đã xong. Cần cắm 3 dây vào GPIO14, nạp và xem <code>domisen/living/climate/state</code> trong MQTTX để biết số đo thật</td></tr>
+    <tr><td>Hiệu chuẩn DHT22</td><td>Đã chạy thật trên board comfort: <code>domisen/living/climate/state</code> gửi đều 10 giây một lần, độ ẩm tăng vọt (97 %) rồi giảm dần khi hà hơi vào cảm biến. Chưa so với nhiệt kế hay ẩm kế chuẩn nên chưa biết độ lệch tuyệt đối</td></tr>
     <tr><td>Đèn trần (GPIO25) trên board thật</td><td>Đèn ngủ (GPIO26, LED đỏ) đã chạy thật với MQTTX: bật tắt, chỉnh mức, lệnh sai, ping, Last Will. Đèn trần dùng chung class nên chạy cùng cách, nhưng chưa nối LED trắng để thử</td></tr>
   </table></div>
   <h3>Hạn chế đã biết</h3>
