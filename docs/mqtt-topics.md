@@ -79,7 +79,7 @@ Cùng một kiểu thiết bị, chỉ khác id, chân, tên trường và mức
 
 Ví dụ `domisen/living/motion/state`: `{"motion":true}`.
 - Giá trị chỉ đổi khi tín hiệu đã **ổn định ít nhất 50 ms** (chống nhiễu).
-- Gửi ngay khi đổi, và gửi lại khi nối lại broker. Lần đọc đầu tiên sau khi khởi động cũng được gửi.
+- Gửi ngay khi đổi, và gửi lại khi nối lại broker. Lần đọc đầu tiên sau khi khởi động được nhận ngay (không chờ 50 ms) và gửi đi. Trước lần đọc đầu tiên, state là `{"motion":null}` (cùng cách với DHT22 khi chưa đo được).
 - GPIO34 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo).
 - Mức tín hiệu (HIGH hay LOW là "bật") là hằng số của từng thiết bị trong `main.cpp`; chủ dự án kiểm tra trên module thật.
 - PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware.

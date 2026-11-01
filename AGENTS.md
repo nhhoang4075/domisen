@@ -29,6 +29,16 @@ Code lệch `docs/mqtt-topics.md` hay `docs/architecture.md` là **lỗi của c
 - **Trước khi code**, liệt kê yêu cầu cụ thể trong issue và tài liệu (tên trường, giá trị, chân, thư viện, mã lỗi) và làm đúng như vậy.
 - Chi tiết nhỏ không có trong tài liệu (tên hàm, tên biến, bố cục file) do người làm quyết định, miễn đúng kiến trúc.
 
+## Viết issue giao việc
+
+Issue **không thể** giải thích hết logic và API. Mỗi issue giao việc định hướng bằng đường dẫn rõ ràng, đáng tin, để người làm tự đọc:
+
+- Có mục **"Thư viện và tài liệu cần đọc"** gồm: thư viện cần dùng (tên đầy đủ, **phiên bản ghim cứng**, ghi rõ chỉ board nào dùng), API (liên kết đến tài liệu chính thức của đúng hàm hoặc lớp cần dùng), và tài liệu để hiểu linh kiện (datasheet, hướng dẫn của nhà sản xuất).
+- **Ưu tiên nguồn chính thống:** tài liệu Espressif, PlatformIO, kho mã và trang tài liệu của chính thư viện, datasheet của nhà sản xuất chip. Bài của cộng đồng chỉ dùng bổ sung và ghi rõ đó là bài cộng đồng.
+- **Mở thử từng liên kết trước khi đăng.** Không ghi liên kết từ trí nhớ. Không có liên kết ổn định thì ghi thẳng "chưa có liên kết", không đoán đường dẫn.
+- Nói rõ phần **chưa kiểm chứng** (ví dụ: phiên bản thư viện đã có trên registry nhưng chưa biên dịch với nền tảng đang ghim).
+- Không chép API vào issue. Issue chỉ nói **việc cần đạt, giá trị cụ thể trong tài liệu dự án** (tên trường, chân, số), và đường dẫn đến nơi đọc cách làm.
+
 ## Công cụ
 
 PlatformIO (xem README). Mọi lệnh chạy trong thư mục `firmware`:
