@@ -22,7 +22,7 @@ Nếu đổi chân thì sửa file này trước, rồi mới sửa code.
 | 1 | Đèn trần (LED trắng) | GPIO25 | Qua 220 Ω, PWM chỉnh độ sáng |
 | 2 | Đèn ngủ (LED vàng) | GPIO26 | Qua 220 Ω, PWM |
 | 3 | Relay quạt phòng khách | GPIO16 | Quạt lấy điện 5V từ adapter qua relay |
-| 4 | DHT22 | GPIO14 | |
+| 4 | DHT22 (module 3 chân) | GPIO14 | Nguồn 3,3V. Đọc chậm nhất 2 giây một lần, firmware đọc 10 giây một lần |
 | 5 | Quang trở (AO) | GPIO35 | ADC1, đọc được khi WiFi bật |
 | 6 | PIR HC-SR501 | GPIO39 | Chân chỉ đọc |
 | 14 | Servo rèm SG90 | GPIO13 | Dây đỏ nối 5V adapter |

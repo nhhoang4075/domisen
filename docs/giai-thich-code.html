@@ -164,7 +164,8 @@
   <a href="#esp32">ESP32 và GPIO</a>
   <a href="#pwm">PWM và gamma</a>
   <a href="#led">LED và điện trở</a>
-  <div class="soon">Thêm dần khi lắp tới: relay, servo, cảm biến, đầu đọc thẻ, màn hình OLED...</div>
+  <a href="#dht22">DHT22</a>
+  <div class="soon">Thêm dần khi lắp tới: relay, servo, quang trở, PIR, đầu đọc thẻ, màn hình OLED...</div>
   <div class="grp">Cách viết code</div>
   <a href="#kien-truc">Lõi và adapter</a>
   <a href="#luong-lenh">Đi theo một lệnh</a>
@@ -315,6 +316,39 @@
 
 </section>
 
+<!-- ============ DHT22 ============ -->
+<section id="dht22">
+  <h2><span class="no"></span>DHT22</h2>
+  <p class="lead">Cảm biến nhiệt độ và độ ẩm của phòng khách, nối vào board comfort.</p>
+
+  <div class="part">
+    <div class="ph"><b>DHT22 (AM2302)</b><span class="tag t-core">đang dùng</span></div>
+    <dl>
+      <dt>Là gì</dt><dd>Một module nhỏ có sẵn bộ đo nhiệt độ, bộ đo độ ẩm và một chip nhỏ đổi số đo thành tín hiệu số. Nó gửi cả hai số qua <b>một dây DATA duy nhất</b> theo giao thức riêng, nên ESP32 chỉ cần một chân GPIO. Nhiệt độ đo trong khoảng −40 đến 80 °C (sai số khoảng ±0,5 °C), độ ẩm 0 đến 100 % (sai số khoảng ±2 %).</dd>
+      <dt>Trong dự án</dt><dd>Module 3 chân: <b>S (DATA)</b> vào GPIO14, <b>V</b> vào 3V3, <b>G</b> vào GND. Trên board mở rộng, cắm 3 dây dupont vào đúng bộ G-V-S của GPIO14. Board gửi <code>{"temp":27.5,"humidity":62}</code> lên <code>domisen/living/climate/state</code> mỗi 10 giây (retain). Sau này server dùng số đo này để bật quạt khi nóng.</dd>
+      <dt>Cần biết</dt><dd>
+        <ul class="tight">
+          <li><b>Đọc chậm:</b> cảm biến cần khoảng 2 giây giữa hai lần đo. Firmware đo 10 giây một lần, rất dư.</li>
+          <li><b>Đọc có thể lỗi</b> (dây lỏng, nhiễu). Khi đó thư viện trả <code>NaN</code>; adapter đổi thành "không có số đo", và board gửi <code>{"temp":null,"humidity":null}</code> thay vì giữ số cũ, để bên nhận biết cảm biến đang hỏng.</li>
+          <li><b>Cảm biến chỉ đọc:</b> gửi lệnh vào <code>.../cmd</code> sẽ nhận lỗi "chỉ đọc".</li>
+          <li>Hà hơi vào cảm biến thì độ ẩm tăng vọt trong vài giây, dùng để thử nhanh.</li>
+          <li>Dùng thư viện <b>DHT sensor library</b> của Adafruit (kèm Adafruit Unified Sensor). Chỉ <code>Dht22Sensor</code> trong <code>adapters_esp32</code> biết thư viện này.</li>
+        </ul>
+      </dd>
+    </dl>
+  </div>
+
+  <h3>Code nằm ở đâu</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Phần</th><th>File</th><th>Việc làm</th></tr>
+    <tr><td>Port</td><td><code>core/Ports.h</code></td><td><code>ClimateSensor::read()</code> trả số đo hoặc <code>nullopt</code> nếu lỗi</td></tr>
+    <tr><td>Adapter thật</td><td><code>adapters_esp32/Dht22Sensor</code></td><td>Gọi thư viện DHT, đổi <code>NaN</code> thành <code>nullopt</code></td></tr>
+    <tr><td>Bản giả</td><td><code>adapters_fake/FakeClimateSensor.h</code></td><td>Test đặt trước số đo hoặc lỗi</td></tr>
+    <tr><td>Mã hóa JSON</td><td><code>protocol/Climate</code></td><td>Làm tròn 1 chữ số thập phân, hoặc <code>null</code></td></tr>
+    <tr><td>Thiết bị</td><td><code>services/ClimateDevice</code></td><td>Đo theo chu kỳ trong <code>tick()</code>, Hub gửi state khi <code>tick()</code> trả true</td></tr>
+  </table></div>
+</section>
+
 <!-- ============ MQTTX ============ -->
 <section id="mqttx">
   <h2><span class="no"></span>MQTTX</h2>
@@ -422,11 +456,11 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
   <div class="layers">
     <div class="layer L-assembly"><h4>Lắp ráp <span class="tag t-assembly">src/guard, src/comfort</span></h4><p>Mỗi board có một <code>main.cpp</code>: tạo adapter, tạo thiết bị, đưa vào Hub. Không chứa logic.</p></div>
     <div class="down">dùng ↓</div>
-    <div class="layer L-services"><h4>Dịch vụ <span class="tag t-services">shared/services</span></h4><p><code>Hub</code> (đăng ký thiết bị, chuyển lệnh, báo trạng thái), <code>DimmableLight</code>. Chỉ làm việc với interface, không biết phần cứng.</p></div>
+    <div class="layer L-services"><h4>Dịch vụ <span class="tag t-services">shared/services</span></h4><p><code>Hub</code> (đăng ký thiết bị, chuyển lệnh, báo trạng thái), <code>DimmableLight</code>, <code>ClimateDevice</code>. Chỉ làm việc với interface, không biết phần cứng.</p></div>
     <div class="down">dùng ↓</div>
     <div class="row2">
       <div class="layer L-protocol"><h4>Giao thức <span class="tag t-protocol">shared/protocol</span></h4><p>Tên topic và mã hóa JSON. <b>Một nguồn duy nhất</b> cho mọi tên topic.</p></div>
-      <div class="layer L-core"><h4>Lõi <span class="tag t-core">shared/core</span></h4><p>Luật thuần của đèn và các <b>port</b> (interface): <code>Transport</code>, <code>PwmOutput</code>, <code>Clock</code>.</p></div>
+      <div class="layer L-core"><h4>Lõi <span class="tag t-core">shared/core</span></h4><p>Luật thuần của đèn và các <b>port</b> (interface): <code>Transport</code>, <code>PwmOutput</code>, <code>Clock</code>, <code>ClimateSensor</code>.</p></div>
     </div>
     <div class="down">port được cài đặt bởi ↑</div>
     <div class="row2">
@@ -449,6 +483,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <tr><td><code>Transport</code>: publish, subscribe, nhận tin, báo đã nối</td><td><code>MqttTransport</code></td><td><code>FakeTransport</code></td></tr>
     <tr><td><code>PwmOutput</code>: <code>write(duty)</code> với duty từ 0 đến 1</td><td><code>Esp32Pwm</code> (LEDC)</td><td><code>FakePwm</code></td></tr>
     <tr><td><code>Clock</code>: <code>nowMs()</code></td><td><code>ArduinoClock</code></td><td><code>FakeClock</code></td></tr>
+    <tr><td><code>ClimateSensor</code>: <code>read()</code> trả nhiệt độ, độ ẩm hoặc lỗi</td><td><code>Dht22Sensor</code></td><td><code>FakeClimateSensor</code></td></tr>
   </table></div>
 
   <h3>Luật phụ thuộc</h3>
@@ -651,7 +686,8 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
     <tr><th>Chưa làm</th><th>Ghi chú</th></tr>
     <tr><td>Server (Bun + PostgreSQL) và web dashboard</td><td>Chỉ có thư mục trống kèm README. Chúng sẽ dùng đúng quy ước topic ở <code>docs/mqtt-topics.md</code></td></tr>
     <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
-    <tr><td>Cảm biến, relay, servo, WS2812</td><td>Mới có một loại thiết bị là đèn chỉnh độ sáng (đèn trần, đèn ngủ). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
+    <tr><td>Relay, servo, WS2812, quang trở, PIR</td><td>Mới có hai loại thiết bị: đèn chỉnh độ sáng (đèn trần, đèn ngủ) và cảm biến nhiệt độ, độ ẩm (DHT22). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
+    <tr><td>DHT22 trên board thật</td><td>Code, test với cảm biến giả và biên dịch đã xong. Cần cắm 3 dây vào GPIO14, nạp và xem <code>domisen/living/climate/state</code> trong MQTTX để biết số đo thật</td></tr>
     <tr><td>Đèn trần (GPIO25) trên board thật</td><td>Đèn ngủ (GPIO26, LED đỏ) đã chạy thật với MQTTX: bật tắt, chỉnh mức, lệnh sai, ping, Last Will. Đèn trần dùng chung class nên chạy cùng cách, nhưng chưa nối LED trắng để thử</td></tr>
   </table></div>
   <h3>Hạn chế đã biết</h3>
@@ -684,10 +720,10 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
 │   └── src/
 │       ├── shared/
 │       │   ├── core/            Ports.h, Light.h
-│       │   ├── protocol/        Topics.h, Light.h/.cpp, Error.h/.cpp
-│       │   ├── services/        Device.h, Hub.h/.cpp, DimmableLight.h/.cpp
-│       │   ├── adapters_esp32/  MqttTransport, Esp32Pwm, ArduinoClock
-│       │   └── adapters_fake/   FakeTransport, FakePwm, FakeClock
+│       │   ├── protocol/        Topics.h, Light.h/.cpp, Climate.h/.cpp, Error.h/.cpp
+│       │   ├── services/        Device.h, Hub.h/.cpp, DimmableLight, ClimateDevice
+│       │   ├── adapters_esp32/  MqttTransport, Esp32Pwm, ArduinoClock, Dht22Sensor
+│       │   └── adapters_fake/   FakeTransport, FakePwm, FakeClock, FakeClimateSensor
 │       ├── guard/main.cpp       lắp ráp board guard
 │       └── comfort/main.cpp     lắp ráp board comfort
 ├── server/                      (chưa làm)

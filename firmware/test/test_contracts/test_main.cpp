@@ -1,5 +1,6 @@
 // Contract của từng port: hành vi mà Hub và thiết bị dựa vào. Chạy cho mọi adapter chạy được trên laptop
 // (hiện là bản giả). Adapter thật cần board nên chỉ kiểm tra được khi nạp lên thiết bị.
+#include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
 #include <unity.h>
@@ -54,12 +55,26 @@ template <typename P> void pwmContract() {
   TEST_ASSERT_EQUAL_FLOAT(1.0f, p.last);
 }
 
+// ---- ClimateSensor ----
+template <typename S> void climateContract() {
+  S s;
+  s.next = core::ClimateReading{27.5f, 62.0f};
+  auto ok = s.read();
+  TEST_ASSERT_TRUE(ok.has_value());
+  TEST_ASSERT_EQUAL_FLOAT(27.5f, ok->temp);
+  TEST_ASSERT_EQUAL_FLOAT(62.0f, ok->humidity);
+  s.next = std::nullopt;  // đọc lỗi phải là nullopt, không phải NaN
+  TEST_ASSERT_FALSE(s.read().has_value());
+}
+
 void test_fake_transport() { transportContract<adapters::fake::FakeTransport>(); }
 void test_fake_pwm() { pwmContract<adapters::fake::FakePwm>(); }
+void test_fake_climate() { climateContract<adapters::fake::FakeClimateSensor>(); }
 
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_fake_transport);
   RUN_TEST(test_fake_pwm);
+  RUN_TEST(test_fake_climate);
   return UNITY_END();
 }

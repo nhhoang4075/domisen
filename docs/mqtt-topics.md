@@ -39,6 +39,19 @@ Board trả lời bằng `.../state`: `{"on":true,"level":80}`. Gửi lại mỗ
 
 Đấu dây: GPIO25, điện trở 220 ohm, chân dài (anode) của LED, chân ngắn (cathode) về GND. PWM 5 kHz, 10 bit, có bù gamma 2,2.
 
+## Nhiệt độ và độ ẩm (đã làm: #4 DHT22)
+
+Topic `domisen/living/climate/state` (retain), board gửi mỗi 10 giây và mỗi lần nối lại broker. Không có lệnh: gửi vào `.../cmd` sẽ nhận lỗi "chỉ đọc".
+
+| Trường | Ý nghĩa |
+|---|---|
+| `temp` | Nhiệt độ, độ C, làm tròn 1 chữ số thập phân |
+| `humidity` | Độ ẩm tương đối, %, làm tròn 1 chữ số thập phân |
+
+Ví dụ `{"temp":27.5,"humidity":62}`. Cảm biến đọc lỗi (dây lỏng, chưa đo được lần nào) thì gửi `{"temp":null,"humidity":null}`.
+
+Đấu dây: DHT22 loại module 3 chân. Chân S (DATA) vào GPIO14, V vào 3V3, G vào GND. Trên board mở rộng cắm đúng bộ G-V-S của GPIO14.
+
 ## Danh sách thiết bị (đề xuất, sửa nếu sai tên phòng)
 
 | # | Topic gốc | Board |

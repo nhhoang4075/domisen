@@ -2,6 +2,7 @@
 #pragma once
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace domisen::core {
@@ -17,6 +18,18 @@ class PwmOutput {
  public:
   virtual ~PwmOutput() = default;
   virtual void write(float duty) = 0;
+};
+
+struct ClimateReading {
+  float temp;      // độ C
+  float humidity;  // % độ ẩm tương đối
+};
+
+// Cảm biến nhiệt độ và độ ẩm. Trả nullopt nếu lần đọc này lỗi (adapter không được trả NaN).
+class ClimateSensor {
+ public:
+  virtual ~ClimateSensor() = default;
+  virtual std::optional<ClimateReading> read() = 0;
 };
 
 // Đường truyền tin nhắn (MQTT). Adapter lo nối lại và đăng ký lại topic sau mỗi lần nối lại.

@@ -9,11 +9,11 @@ Code dùng chung nằm trong `src/shared/`, điểm vào của từng board nằ
 
 | Thư mục | Chứa | Được include |
 |---|---|---|
-| `shared/core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock` | Chỉ thư viện chuẩn C++ |
+| `shared/core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock`, `ClimateSensor` | Chỉ thư viện chuẩn C++ |
 | `shared/protocol` | Tên topic, mã hóa và giải mã JSON của lệnh, trạng thái, lỗi | ArduinoJson, thư viện chuẩn |
-| `shared/services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, nhận port qua constructor | `shared/core`, `shared/protocol` |
-| `shared/adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock` | `shared/core`, Arduino, PubSubClient |
-| `shared/adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock` | `shared/core` |
+| `shared/services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, `ClimateDevice`, nhận port qua constructor | `shared/core`, `shared/protocol` |
+| `shared/adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock`, `Dht22Sensor` (thư viện DHT của Adafruit) | `shared/core`, Arduino, PubSubClient |
+| `shared/adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock`, `FakeClimateSensor` | `shared/core` |
 | `guard/`, `comfort/` | Chỉ **lắp ráp**: tạo adapter, tạo thiết bị, đưa vào `Hub` | Tất cả |
 
 ## Luật
@@ -34,6 +34,14 @@ Code dùng chung nằm trong `src/shared/`, điểm vào của từng board nằ
 | `Transport` (MQTT) | `MqttTransport` | `FakeTransport` (ghi lại tin đã gửi, giả lập nhận tin) |
 | `PwmOutput` | `Esp32Pwm` (LEDC) | `FakePwm` |
 | `Clock` | `ArduinoClock` (`millis()`) | `FakeClock` (tua được) |
+| `ClimateSensor` (nhiệt độ, độ ẩm) | `Dht22Sensor` | `FakeClimateSensor` (đặt trước giá trị đọc được) |
+
+## Thiết bị chỉ gửi số đo (cảm biến)
+
+Cảm biến không nhận lệnh mà tự gửi trạng thái theo chu kỳ. `Device` có hàm `tick(nowMs)`: Hub gọi mỗi vòng `loop()` khi đã nối broker,
+thiết bị tự đo giờ và trả `true` khi cần gửi lại state (Hub gửi retain). Đèn không cần làm gì vì mặc định `tick` trả `false`.
+Khi cảm biến đọc lỗi, state gửi giá trị `null` thay vì giữ số cũ, để bên nhận biết cảm biến đang hỏng.
+Cảm biến nhận lệnh thì trả lỗi "chỉ đọc" như mọi lệnh sai.
 
 ## Thêm một thiết bị
 

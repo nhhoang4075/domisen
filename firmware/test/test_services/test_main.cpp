@@ -1,15 +1,19 @@
 // Hub và DimmableLight, chạy với bản giả: không cần board, không cần mạng.
+#include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeClock.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
+#include <shared/services/ClimateDevice.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
 #include <unity.h>
 
 using namespace domisen;
+using adapters::fake::FakeClimateSensor;
 using adapters::fake::FakeClock;
 using adapters::fake::FakePwm;
 using adapters::fake::FakeTransport;
+using services::ClimateDevice;
 using services::DimmableLight;
 using services::Hub;
 
@@ -158,6 +162,95 @@ void test_mat_ket_noi_thi_khong_gui_uptime() {
   TEST_ASSERT_EQUAL(0, r.transport.count("domisen/node/comfort/uptime"));
 }
 
+// ---- cảm biến nhiệt độ, độ ẩm ----
+static const char* CLIMATE_STATE = "domisen/living/climate/state";
+
+struct ClimateRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeClimateSensor sensor;
+  ClimateDevice climate{"living/climate", sensor, 10000};
+  Hub hub{"comfort", transport, clock, 5000};
+
+  ClimateRig() {
+    sensor.next = core::ClimateReading{27.5f, 62.0f};
+    hub.add(climate);
+    hub.begin();
+  }
+};
+
+void test_khi_hau_do_ngay_khi_noi_va_gui_state_retain() {
+  ClimateRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();  // lần tick đầu đo ngay, không đợi hết chu kỳ
+  TEST_ASSERT_EQUAL(1, r.sensor.reads);
+  const auto* state = r.transport.last(CLIMATE_STATE);
+  TEST_ASSERT_NOT_NULL(state);
+  TEST_ASSERT_EQUAL_STRING("{\"temp\":27.5,\"humidity\":62}", state->payload.c_str());
+  TEST_ASSERT_TRUE(state->retain);
+}
+
+void test_khi_hau_do_moi_10_giay() {
+  ClimateRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();
+  int before = r.transport.count(CLIMATE_STATE);
+  r.clock.advance(9999);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(before, r.transport.count(CLIMATE_STATE));
+  TEST_ASSERT_EQUAL(1, r.sensor.reads);
+  r.sensor.next = core::ClimateReading{28.1f, 60.0f};
+  r.clock.advance(1);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(before + 1, r.transport.count(CLIMATE_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"temp\":28.1,\"humidity\":60}", r.transport.last(CLIMATE_STATE)->payload.c_str());
+}
+
+void test_khi_hau_doc_loi_gui_null() {
+  ClimateRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();
+  r.sensor.next = std::nullopt;
+  r.clock.advance(10000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL_STRING("{\"temp\":null,\"humidity\":null}", r.transport.last(CLIMATE_STATE)->payload.c_str());
+}
+
+void test_khi_hau_mat_ket_noi_thi_khong_do() {
+  ClimateRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateDisconnect();
+  r.clock.advance(30000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(0, r.sensor.reads);
+}
+
+void test_khi_hau_chua_do_thi_state_la_null() {
+  ClimateRig r;
+  r.transport.simulateConnect();  // chưa tick nên chưa đo được lần nào
+  TEST_ASSERT_EQUAL_STRING("{\"temp\":null,\"humidity\":null}", r.transport.last(CLIMATE_STATE)->payload.c_str());
+}
+
+void test_khi_hau_noi_lai_gui_lai_so_do_gan_nhat() {
+  ClimateRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL(3, r.transport.count(CLIMATE_STATE));  // null lúc nối, số đo, rồi gửi lại số đo
+  TEST_ASSERT_EQUAL_STRING("{\"temp\":27.5,\"humidity\":62}", r.transport.last(CLIMATE_STATE)->payload.c_str());
+}
+
+void test_khi_hau_chi_doc_khong_nhan_lenh() {
+  ClimateRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();
+  int stateCount = r.transport.count(CLIMATE_STATE);
+  r.transport.simulateMessage("domisen/living/climate/cmd", "{\"on\":true}");
+  TEST_ASSERT_NOT_NULL(r.transport.last("domisen/living/climate/error"));
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(CLIMATE_STATE));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_begin_dang_ky_topic_lenh_va_ping);
@@ -172,5 +265,12 @@ int main() {
   RUN_TEST(test_nhip_uptime);
   RUN_TEST(test_uptime_khong_bi_dat_lai_khi_dong_ho_quay_vong);
   RUN_TEST(test_mat_ket_noi_thi_khong_gui_uptime);
+  RUN_TEST(test_khi_hau_do_ngay_khi_noi_va_gui_state_retain);
+  RUN_TEST(test_khi_hau_do_moi_10_giay);
+  RUN_TEST(test_khi_hau_doc_loi_gui_null);
+  RUN_TEST(test_khi_hau_mat_ket_noi_thi_khong_do);
+  RUN_TEST(test_khi_hau_chua_do_thi_state_la_null);
+  RUN_TEST(test_khi_hau_noi_lai_gui_lai_so_do_gan_nhat);
+  RUN_TEST(test_khi_hau_chi_doc_khong_nhan_lenh);
   return UNITY_END();
 }

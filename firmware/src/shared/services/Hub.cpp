@@ -52,6 +52,9 @@ void Hub::loop() {
   uptimeMs_ += now - lastTick_;
   lastTick_ = now;
   if (!transport_.connected()) return;
+  for (Device* device : devices_) {
+    if (device->tick(now)) publishState(*device);
+  }
   if (now - lastBeat_ < heartbeatMs_) return;
   lastBeat_ = now;
   transport_.publish(protocol::nodeUptimeTopic(node_), std::to_string(uptimeMs_ / 1000), false);
