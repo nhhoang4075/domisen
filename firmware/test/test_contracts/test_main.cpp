@@ -1,6 +1,7 @@
 // Contract của từng port: hành vi mà Hub và thiết bị dựa vào. Chạy cho mọi adapter chạy được trên laptop
 // (hiện là bản giả). Adapter thật cần board nên chỉ kiểm tra được khi nạp lên thiết bị.
 #include <shared/adapters_fake/FakeClimateSensor.h>
+#include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
 #include <unity.h>
@@ -67,8 +68,18 @@ template <typename S> void climateContract() {
   TEST_ASSERT_FALSE(s.read().has_value());
 }
 
+// ---- DigitalOutput ----
+template <typename O> void digitalOutputContract() {
+  O o;
+  o.write(true);
+  TEST_ASSERT_TRUE(o.last);
+  o.write(false);
+  TEST_ASSERT_FALSE(o.last);
+}
+
 void test_fake_transport() { transportContract<adapters::fake::FakeTransport>(); }
 void test_fake_pwm() { pwmContract<adapters::fake::FakePwm>(); }
+void test_fake_digital_output() { digitalOutputContract<adapters::fake::FakeDigitalOutput>(); }
 void test_fake_climate() { climateContract<adapters::fake::FakeClimateSensor>(); }
 
 int main() {
@@ -76,5 +87,6 @@ int main() {
   RUN_TEST(test_fake_transport);
   RUN_TEST(test_fake_pwm);
   RUN_TEST(test_fake_climate);
+  RUN_TEST(test_fake_digital_output);
   return UNITY_END();
 }

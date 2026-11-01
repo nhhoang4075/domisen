@@ -2,6 +2,7 @@
 #include <shared/protocol/Climate.h>
 #include <shared/protocol/Error.h>
 #include <shared/protocol/Light.h>
+#include <shared/protocol/Switch.h>
 #include <shared/protocol/Topics.h>
 #include <unity.h>
 
@@ -61,6 +62,32 @@ void test_ma_hoa_khi_hau() {
   TEST_ASSERT_EQUAL_STRING("domisen/living/climate/state", stateTopic("living/climate").c_str());
 }
 
+void test_giai_ma_lenh_bat_tat() {
+  bool on = false; std::string err;
+  TEST_ASSERT_TRUE(decodeSwitchCommand("{\"on\":true}", on, err));
+  TEST_ASSERT_TRUE(on);
+  TEST_ASSERT_TRUE(decodeSwitchCommand("{\"on\":false}", on, err));
+  TEST_ASSERT_FALSE(on);
+}
+
+void test_lenh_bat_tat_sai_bi_tu_choi() {
+  bool on = true; std::string err;
+  TEST_ASSERT_FALSE(decodeSwitchCommand("khong phai json", on, err));
+  TEST_ASSERT_FALSE(decodeSwitchCommand("[true]", on, err));
+  TEST_ASSERT_FALSE(decodeSwitchCommand("{}", on, err));
+  TEST_ASSERT_FALSE(decodeSwitchCommand("{\"level\":50}", on, err));
+  TEST_ASSERT_FALSE(decodeSwitchCommand("{\"on\":\"yes\"}", on, err));
+  TEST_ASSERT_FALSE(decodeSwitchCommand("{\"on\":1}", on, err));
+  TEST_ASSERT_TRUE(on);  // lệnh sai không được đổi giá trị
+  TEST_ASSERT_FALSE(err.empty());
+}
+
+void test_ma_hoa_trang_thai_bat_tat() {
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", encodeSwitchState(true).c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", encodeSwitchState(false).c_str());
+  TEST_ASSERT_EQUAL_STRING("domisen/living/fan/cmd", cmdTopic("living/fan").c_str());
+}
+
 void test_ma_hoa_loi() {
   TEST_ASSERT_EQUAL_STRING("{\"error\":\"hỏng\"}", encodeError("hỏng").c_str());
 }
@@ -73,6 +100,9 @@ int main() {
   RUN_TEST(test_lenh_sai_bi_tu_choi);
   RUN_TEST(test_ma_hoa_trang_thai);
   RUN_TEST(test_ma_hoa_khi_hau);
+  RUN_TEST(test_giai_ma_lenh_bat_tat);
+  RUN_TEST(test_lenh_bat_tat_sai_bi_tu_choi);
+  RUN_TEST(test_ma_hoa_trang_thai_bat_tat);
   RUN_TEST(test_ma_hoa_loi);
   return UNITY_END();
 }

@@ -52,6 +52,21 @@ Ví dụ `{"temp":27.5,"humidity":62}`. Cảm biến đọc lỗi (dây lỏng, 
 
 Đấu dây: DHT22 loại module 3 chân. Chân S (DATA) vào GPIO14, V vào 3V3, G vào GND. Trên board mở rộng cắm đúng bộ G-V-S của GPIO14.
 
+## Thiết bị bật tắt (đã làm: #3 quạt phòng khách)
+
+Áp dụng cho `living/fan` (relay GPIO16). Sau này `kitchen/exhaust-fan` dùng cùng cách. Cả hai chỉ có `on`, không có mức.
+
+| Lệnh gửi | Kết quả |
+|---|---|
+| `{"on":true}` | Bật |
+| `{"on":false}` | Tắt |
+
+Thiếu `on`, hoặc `on` không phải `true`/`false` thì giữ nguyên trạng thái và báo lỗi ở `.../error`. Board trả lời bằng `.../state`: `{"on":true}` (retain, gửi lại mỗi lần nối lại broker). Lúc bật board, quạt luôn tắt.
+
+Tự bật quạt theo nhiệt độ là luật của **server** (đọc `living/climate/state`, gửi lệnh vào `living/fan/cmd`), không nằm trong board. Hiện chỉ điều khiển tay, ví dụ bằng MQTTX.
+
+Đấu dây: module relay 1 kênh 5V. IN vào GPIO16, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `kFanRelayActiveLow` trong `comfort/main.cpp`.
+
 ## Danh sách thiết bị (đề xuất, sửa nếu sai tên phòng)
 
 | # | Topic gốc | Board |

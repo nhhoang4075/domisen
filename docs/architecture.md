@@ -9,11 +9,11 @@ Code dùng chung nằm trong `src/shared/`, điểm vào của từng board nằ
 
 | Thư mục | Chứa | Được include |
 |---|---|---|
-| `shared/core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock`, `ClimateSensor` | Chỉ thư viện chuẩn C++ |
+| `shared/core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock`, `ClimateSensor`, `DigitalOutput` | Chỉ thư viện chuẩn C++ |
 | `shared/protocol` | Tên topic, mã hóa và giải mã JSON của lệnh, trạng thái, lỗi | ArduinoJson, thư viện chuẩn |
-| `shared/services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, `ClimateDevice`, nhận port qua constructor | `shared/core`, `shared/protocol` |
-| `shared/adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock`, `Dht22Sensor` (thư viện DHT của Adafruit) | `shared/core`, Arduino, PubSubClient |
-| `shared/adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock`, `FakeClimateSensor` | `shared/core` |
+| `shared/services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, `ClimateDevice`, `SwitchDevice`, nhận port qua constructor | `shared/core`, `shared/protocol` |
+| `shared/adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock`, `Dht22Sensor` (thư viện DHT của Adafruit), `Esp32DigitalOut` | `shared/core`, Arduino, PubSubClient |
+| `shared/adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock`, `FakeClimateSensor`, `FakeDigitalOutput` | `shared/core` |
 | `guard/`, `comfort/` | Chỉ **lắp ráp**: tạo adapter, tạo thiết bị, đưa vào `Hub` | Tất cả |
 
 ## Luật
@@ -35,6 +35,7 @@ Code dùng chung nằm trong `src/shared/`, điểm vào của từng board nằ
 | `PwmOutput` | `Esp32Pwm` (LEDC) | `FakePwm` |
 | `Clock` | `ArduinoClock` (`millis()`) | `FakeClock` (tua được) |
 | `ClimateSensor` (nhiệt độ, độ ẩm) | `Dht22Sensor` | `FakeClimateSensor` (đặt trước giá trị đọc được) |
+| `DigitalOutput` (bật tắt: relay) | `Esp32DigitalOut` (lo luôn chuyện relay chạy mức thấp) | `FakeDigitalOutput` |
 
 ## Thiết bị chỉ gửi số đo (cảm biến)
 
@@ -42,6 +43,14 @@ Cảm biến không nhận lệnh mà tự gửi trạng thái theo chu kỳ. `D
 thiết bị tự đo giờ và trả `true` khi cần gửi lại state (Hub gửi retain). Đèn không cần làm gì vì mặc định `tick` trả `false`.
 Khi cảm biến đọc lỗi, state gửi giá trị `null` thay vì giữ số cũ, để bên nhận biết cảm biến đang hỏng.
 Cảm biến nhận lệnh thì trả lỗi "chỉ đọc" như mọi lệnh sai.
+
+## Thiết bị bật tắt (relay)
+
+`SwitchDevice` dùng cho mọi thiết bị chỉ có bật và tắt (quạt phòng khách, quạt hút bếp...), chỉ khác id và `DigitalOutput`.
+Lõi chỉ biết "bật" hay "tắt" theo nghĩa logic: relay chạy mức thấp (active low) hay mức cao là việc của adapter `Esp32DigitalOut`.
+Khởi động luôn ở trạng thái tắt, và adapter đặt mức "tắt" trước khi bật chế độ đầu ra để relay không nháy lúc khởi động.
+Việc tự bật quạt theo nhiệt độ **không nằm trên board**: đó là luật tiện nghi, chạy trên server (xem `docs/plan`, nguyên tắc "việc an toàn xử lý ngay tại nhà").
+Board chỉ nhận lệnh `on` và báo state. Quạt hút khi có gas (an toàn) mới do board guard tự quyết, làm sau.
 
 ## Thêm một thiết bị
 

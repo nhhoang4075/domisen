@@ -32,6 +32,13 @@ class ClimateSensor {
   virtual std::optional<ClimateReading> read() = 0;
 };
 
+// Đầu ra bật tắt (relay). on là nghĩa logic: adapter lo chuyện relay chạy mức thấp hay mức cao.
+class DigitalOutput {
+ public:
+  virtual ~DigitalOutput() = default;
+  virtual void write(bool on) = 0;
+};
+
 // Đường truyền tin nhắn (MQTT). Adapter lo nối lại và đăng ký lại topic sau mỗi lần nối lại.
 class Transport {
  public:

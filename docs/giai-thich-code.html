@@ -165,7 +165,8 @@
   <a href="#pwm">PWM và gamma</a>
   <a href="#led">LED và điện trở</a>
   <a href="#dht22">DHT22</a>
-  <div class="soon">Thêm dần khi lắp tới: relay, servo, quang trở, PIR, đầu đọc thẻ, màn hình OLED...</div>
+  <a href="#relay">Relay và quạt</a>
+  <div class="soon">Thêm dần khi lắp tới: servo, quang trở, PIR, đầu đọc thẻ, màn hình OLED...</div>
   <div class="grp">Cách viết code</div>
   <a href="#kien-truc">Lõi và adapter</a>
   <a href="#luong-lenh">Đi theo một lệnh</a>
@@ -349,6 +350,40 @@
   </table></div>
 </section>
 
+<!-- ============ Relay và quạt ============ -->
+<section id="relay">
+  <h2><span class="no"></span>Relay và quạt</h2>
+  <p class="lead">Quạt 5V cần nhiều dòng hơn chân ESP32 chịu được, nên ESP32 chỉ bật tắt một relay, còn relay đóng ngắt điện cho quạt.</p>
+
+  <div class="part">
+    <div class="ph"><b>Module relay 1 kênh 5V</b><span class="tag t-core">đang dùng</span></div>
+    <dl>
+      <dt>Là gì</dt><dd>Relay là công tắc điều khiển bằng điện: cuộn dây bên trong hút lên thì tiếp điểm đóng lại, nghe tiếng "tách". Phần điều khiển (chân IN) và phần tải (tiếp điểm) <b>tách rời về điện</b>, nên ESP32 chỉ phát một tín hiệu nhỏ, còn quạt lấy điện riêng.</dd>
+      <dt>Trong dự án</dt><dd>Chân IN vào GPIO16, VCC vào 5V, GND chung với ESP32. Quạt đi qua tiếp điểm: dây dương nguồn 5V vào <b>COM</b>, <b>NO</b> ra dây dương của quạt, dây âm quạt về GND nguồn. Bật tắt bằng lệnh <code>{"on":true}</code> hoặc <code>{"on":false}</code> vào <code>domisen/living/fan/cmd</code>.</dd>
+      <dt>Cần biết</dt><dd>
+        <ul class="tight">
+          <li><b>NO hay NC:</b> NO (normally open) hở khi relay nghỉ và kín khi relay hút, tức quạt chỉ chạy khi có lệnh bật. Dùng NO, không dùng NC.</li>
+          <li><b>Mức thấp hay mức cao (active low):</b> nhiều module relay hút khi chân IN xuống <b>0 V</b> chứ không phải lên 3,3 V. Nếu bạn gửi bật mà quạt tắt (và ngược lại), đổi hằng số <code>kFanRelayActiveLow</code> trong <code>comfort/main.cpp</code> rồi nạp lại.</li>
+          <li><b>Không để relay nháy lúc khởi động:</b> adapter đặt mức "tắt" trước, rồi mới chuyển chân sang chế độ đầu ra.</li>
+          <li>Quạt khởi động ở trạng thái <b>tắt</b>. Mất mạng thì quạt <b>giữ nguyên</b> trạng thái đang có.</li>
+          <li>Nguồn quạt không lấy từ chân 3V3 của ESP32. Lúc thử có thể mượn 5V từ board mở rộng, khi lắp vào mô hình thì dùng adapter 5V.</li>
+          <li>Tự bật quạt theo nhiệt độ là luật của <b>server</b> (chưa làm). Board chỉ nhận lệnh bật tắt, đúng nguyên tắc: việc tiện nghi chạy trên server, việc an toàn chạy tại board.</li>
+        </ul>
+      </dd>
+    </dl>
+  </div>
+
+  <h3>Code nằm ở đâu</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>Phần</th><th>File</th><th>Việc làm</th></tr>
+    <tr><td>Port</td><td><code>core/Ports.h</code></td><td><code>DigitalOutput::write(bool on)</code>, "bật" theo nghĩa logic</td></tr>
+    <tr><td>Adapter thật</td><td><code>adapters_esp32/Esp32DigitalOut</code></td><td>Lo mức thấp/cao của relay và thứ tự lúc khởi động</td></tr>
+    <tr><td>Bản giả</td><td><code>adapters_fake/FakeDigitalOutput.h</code></td><td>Ghi lại trạng thái để test</td></tr>
+    <tr><td>Mã hóa JSON</td><td><code>protocol/Switch</code></td><td>Đọc <code>{"on":true}</code>, ghi state</td></tr>
+    <tr><td>Thiết bị</td><td><code>services/SwitchDevice</code></td><td>Dùng chung cho mọi thiết bị bật tắt (quạt phòng khách, sau này quạt hút bếp)</td></tr>
+  </table></div>
+</section>
+
 <!-- ============ MQTTX ============ -->
 <section id="mqttx">
   <h2><span class="no"></span>MQTTX</h2>
@@ -456,11 +491,11 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
   <div class="layers">
     <div class="layer L-assembly"><h4>Lắp ráp <span class="tag t-assembly">src/guard, src/comfort</span></h4><p>Mỗi board có một <code>main.cpp</code>: tạo adapter, tạo thiết bị, đưa vào Hub. Không chứa logic.</p></div>
     <div class="down">dùng ↓</div>
-    <div class="layer L-services"><h4>Dịch vụ <span class="tag t-services">shared/services</span></h4><p><code>Hub</code> (đăng ký thiết bị, chuyển lệnh, báo trạng thái), <code>DimmableLight</code>, <code>ClimateDevice</code>. Chỉ làm việc với interface, không biết phần cứng.</p></div>
+    <div class="layer L-services"><h4>Dịch vụ <span class="tag t-services">shared/services</span></h4><p><code>Hub</code> (đăng ký thiết bị, chuyển lệnh, báo trạng thái), <code>DimmableLight</code>, <code>ClimateDevice</code>, <code>SwitchDevice</code>. Chỉ làm việc với interface, không biết phần cứng.</p></div>
     <div class="down">dùng ↓</div>
     <div class="row2">
       <div class="layer L-protocol"><h4>Giao thức <span class="tag t-protocol">shared/protocol</span></h4><p>Tên topic và mã hóa JSON. <b>Một nguồn duy nhất</b> cho mọi tên topic.</p></div>
-      <div class="layer L-core"><h4>Lõi <span class="tag t-core">shared/core</span></h4><p>Luật thuần của đèn và các <b>port</b> (interface): <code>Transport</code>, <code>PwmOutput</code>, <code>Clock</code>, <code>ClimateSensor</code>.</p></div>
+      <div class="layer L-core"><h4>Lõi <span class="tag t-core">shared/core</span></h4><p>Luật thuần của đèn và các <b>port</b> (interface): <code>Transport</code>, <code>PwmOutput</code>, <code>Clock</code>, <code>ClimateSensor</code>, <code>DigitalOutput</code>.</p></div>
     </div>
     <div class="down">port được cài đặt bởi ↑</div>
     <div class="row2">
@@ -484,6 +519,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <tr><td><code>PwmOutput</code>: <code>write(duty)</code> với duty từ 0 đến 1</td><td><code>Esp32Pwm</code> (LEDC)</td><td><code>FakePwm</code></td></tr>
     <tr><td><code>Clock</code>: <code>nowMs()</code></td><td><code>ArduinoClock</code></td><td><code>FakeClock</code></td></tr>
     <tr><td><code>ClimateSensor</code>: <code>read()</code> trả nhiệt độ, độ ẩm hoặc lỗi</td><td><code>Dht22Sensor</code></td><td><code>FakeClimateSensor</code></td></tr>
+    <tr><td><code>DigitalOutput</code>: <code>write(on)</code> bật hoặc tắt (relay)</td><td><code>Esp32DigitalOut</code></td><td><code>FakeDigitalOutput</code></td></tr>
   </table></div>
 
   <h3>Luật phụ thuộc</h3>
@@ -686,7 +722,9 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
     <tr><th>Chưa làm</th><th>Ghi chú</th></tr>
     <tr><td>Server (Bun + PostgreSQL) và web dashboard</td><td>Chỉ có thư mục trống kèm README. Chúng sẽ dùng đúng quy ước topic ở <code>docs/mqtt-topics.md</code></td></tr>
     <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
-    <tr><td>Relay, servo, WS2812, quang trở, PIR</td><td>Mới có hai loại thiết bị: đèn chỉnh độ sáng (đèn trần, đèn ngủ) và cảm biến nhiệt độ, độ ẩm (DHT22). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
+    <tr><td>Servo, WS2812, quang trở, PIR</td><td>Mới có ba loại thiết bị: đèn chỉnh độ sáng, cảm biến nhiệt độ, độ ẩm (DHT22) và thiết bị bật tắt (quạt). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
+    <tr><td>Tự bật quạt theo nhiệt độ</td><td>Chưa làm, và sẽ do <b>server</b> làm (đọc <code>living/climate/state</code>, gửi lệnh vào <code>living/fan/cmd</code>, có độ trễ để quạt không bật tắt liên tục). Hiện bật tắt tay bằng MQTTX</td></tr>
+    <tr><td>Quạt trên board thật</td><td>Code và test với bản giả đã xong. Chưa lắp relay nên chưa biết module chạy mức thấp hay mức cao</td></tr>
     <tr><td>Hiệu chuẩn DHT22</td><td>Đã chạy thật trên board comfort: <code>domisen/living/climate/state</code> gửi đều 10 giây một lần, độ ẩm tăng vọt (97 %) rồi giảm dần khi hà hơi vào cảm biến. Chưa so với nhiệt kế hay ẩm kế chuẩn nên chưa biết độ lệch tuyệt đối</td></tr>
     <tr><td>Đèn trần (GPIO25) trên board thật</td><td>Đèn ngủ (GPIO26, LED đỏ) đã chạy thật với MQTTX: bật tắt, chỉnh mức, lệnh sai, ping, Last Will. Đèn trần dùng chung class nên chạy cùng cách, nhưng chưa nối LED trắng để thử</td></tr>
   </table></div>
@@ -720,10 +758,10 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
 │   └── src/
 │       ├── shared/
 │       │   ├── core/            Ports.h, Light.h
-│       │   ├── protocol/        Topics.h, Light.h/.cpp, Climate.h/.cpp, Error.h/.cpp
-│       │   ├── services/        Device.h, Hub.h/.cpp, DimmableLight, ClimateDevice
-│       │   ├── adapters_esp32/  MqttTransport, Esp32Pwm, ArduinoClock, Dht22Sensor
-│       │   └── adapters_fake/   FakeTransport, FakePwm, FakeClock, FakeClimateSensor
+│       │   ├── protocol/        Topics.h, Light, Climate, Switch (.h/.cpp), Error.h/.cpp
+│       │   ├── services/        Device.h, Hub.h/.cpp, DimmableLight, ClimateDevice, SwitchDevice
+│       │   ├── adapters_esp32/  MqttTransport, Esp32Pwm, ArduinoClock, Dht22Sensor, Esp32DigitalOut
+│       │   └── adapters_fake/   FakeTransport, FakePwm, FakeClock, FakeClimateSensor, FakeDigitalOutput
 │       ├── guard/main.cpp       lắp ráp board guard
 │       └── comfort/main.cpp     lắp ráp board comfort
 ├── server/                      (chưa làm)

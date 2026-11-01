@@ -1,21 +1,25 @@
 // Hub và DimmableLight, chạy với bản giả: không cần board, không cần mạng.
 #include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeClock.h>
+#include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
+#include <shared/services/SwitchDevice.h>
 #include <unity.h>
 
 using namespace domisen;
 using adapters::fake::FakeClimateSensor;
 using adapters::fake::FakeClock;
+using adapters::fake::FakeDigitalOutput;
 using adapters::fake::FakePwm;
 using adapters::fake::FakeTransport;
 using services::ClimateDevice;
 using services::DimmableLight;
 using services::Hub;
+using services::SwitchDevice;
 
 static const char* CEILING_CMD = "domisen/living/ceiling-light/cmd";
 static const char* CEILING_STATE = "domisen/living/ceiling-light/state";
@@ -251,6 +255,68 @@ void test_khi_hau_chi_doc_khong_nhan_lenh() {
   TEST_ASSERT_EQUAL(stateCount, r.transport.count(CLIMATE_STATE));
 }
 
+// ---- quạt bật tắt ----
+static const char* FAN_CMD = "domisen/living/fan/cmd";
+static const char* FAN_STATE = "domisen/living/fan/state";
+
+struct FanRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeDigitalOutput relay;
+  SwitchDevice fan{"living/fan", relay};
+  Hub hub{"comfort", transport, clock, 5000};
+
+  FanRig() {
+    relay.last = true;  // giả sử đầu ra đang bật, begin() phải đưa về tắt
+    hub.add(fan);
+    hub.begin();
+  }
+};
+
+void test_quat_tat_luc_khoi_dong() {
+  FanRig r;
+  TEST_ASSERT_FALSE(r.relay.last);
+  r.transport.simulateConnect();
+  const auto* state = r.transport.last(FAN_STATE);
+  TEST_ASSERT_NOT_NULL(state);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", state->payload.c_str());
+  TEST_ASSERT_TRUE(state->retain);
+}
+
+void test_quat_bat_tat_va_bao_lai_state() {
+  FanRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(FAN_CMD, "{\"on\":true}");
+  TEST_ASSERT_TRUE(r.relay.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(FAN_STATE)->payload.c_str());
+  r.transport.simulateMessage(FAN_CMD, "{\"on\":false}");
+  TEST_ASSERT_FALSE(r.relay.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(FAN_STATE)->payload.c_str());
+}
+
+void test_quat_lenh_sai_bao_loi_va_giu_nguyen() {
+  FanRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(FAN_CMD, "{\"on\":true}");
+  int stateCount = r.transport.count(FAN_STATE);
+  r.transport.simulateMessage(FAN_CMD, "{\"level\":50}");
+  const auto* err = r.transport.last("domisen/living/fan/error");
+  TEST_ASSERT_NOT_NULL(err);
+  TEST_ASSERT_FALSE(err->retain);
+  TEST_ASSERT_TRUE(r.relay.last);  // vẫn bật như cũ
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(FAN_STATE));
+}
+
+void test_quat_noi_lai_gui_lai_state() {
+  FanRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(FAN_CMD, "{\"on\":true}");
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(FAN_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.relay.last);  // mất mạng thì quạt giữ nguyên trạng thái
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_begin_dang_ky_topic_lenh_va_ping);
@@ -272,5 +338,9 @@ int main() {
   RUN_TEST(test_khi_hau_chua_do_thi_state_la_null);
   RUN_TEST(test_khi_hau_noi_lai_gui_lai_so_do_gan_nhat);
   RUN_TEST(test_khi_hau_chi_doc_khong_nhan_lenh);
+  RUN_TEST(test_quat_tat_luc_khoi_dong);
+  RUN_TEST(test_quat_bat_tat_va_bao_lai_state);
+  RUN_TEST(test_quat_lenh_sai_bao_loi_va_giu_nguyen);
+  RUN_TEST(test_quat_noi_lai_gui_lai_state);
   return UNITY_END();
 }
