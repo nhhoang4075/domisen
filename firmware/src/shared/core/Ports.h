@@ -4,6 +4,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace domisen::core {
 
@@ -37,6 +38,13 @@ class DigitalOutput {
  public:
   virtual ~DigitalOutput() = default;
   virtual void write(bool on) = 0;
+};
+
+// Màn hình ký tự. Mỗi phần tử trong danh sách là một dòng.
+class TextDisplay {
+ public:
+  virtual ~TextDisplay() = default;
+  virtual void show(const std::vector<std::string>& lines) = 0;
 };
 
 // Đường truyền tin nhắn (MQTT). Adapter lo nối lại và đăng ký lại topic sau mỗi lần nối lại.

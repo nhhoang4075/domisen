@@ -3,9 +3,11 @@
 #include <shared/adapters_fake/FakeClock.h>
 #include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakePwm.h>
+#include <shared/adapters_fake/FakeTextDisplay.h>
 #include <shared/adapters_fake/FakeTransport.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/DimmableLight.h>
+#include <shared/services/DisplayDevice.h>
 #include <shared/services/Hub.h>
 #include <shared/services/SwitchDevice.h>
 #include <unity.h>
@@ -15,9 +17,11 @@ using adapters::fake::FakeClimateSensor;
 using adapters::fake::FakeClock;
 using adapters::fake::FakeDigitalOutput;
 using adapters::fake::FakePwm;
+using adapters::fake::FakeTextDisplay;
 using adapters::fake::FakeTransport;
 using services::ClimateDevice;
 using services::DimmableLight;
+using services::DisplayDevice;
 using services::Hub;
 using services::SwitchDevice;
 
@@ -317,6 +321,80 @@ void test_quat_noi_lai_gui_lai_state() {
   TEST_ASSERT_TRUE(r.relay.last);  // mất mạng thì quạt giữ nguyên trạng thái
 }
 
+// ---- màn hình OLED ----
+static const char* DISPLAY_CMD = "domisen/entrance/display/cmd";
+static const char* DISPLAY_STATE = "domisen/entrance/display/state";
+
+struct DisplayRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeTextDisplay screen;
+  DisplayDevice display{"entrance/display", screen};
+  Hub hub{"guard", transport, clock, 5000};
+
+  DisplayRig() {
+    hub.add(display);
+    hub.begin();
+  }
+};
+
+void test_oled_khoi_dong_trong_va_gui_state_retain() {
+  DisplayRig r;
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"\"}", r.display.stateJson().c_str());
+  TEST_ASSERT_EQUAL(0, r.screen.last.size());
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"\"}", r.transport.last(DISPLAY_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(DISPLAY_STATE)->retain);
+}
+
+void test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_21_ky_tu() {
+  DisplayRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Xin chao\"}");
+  TEST_ASSERT_EQUAL(1, r.screen.last.size());
+  TEST_ASSERT_EQUAL_STRING("Xin chao", r.screen.last[0].c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"Xin chao\"}", r.transport.last(DISPLAY_STATE)->payload.c_str());
+
+  r.transport.simulateMessage(DISPLAY_CMD,
+                              "{\"text\":\"123456789012345678901\\nDong 2\\nDong 3\\nDong 4\"}");
+  TEST_ASSERT_EQUAL(4, r.screen.last.size());
+  TEST_ASSERT_EQUAL(21, r.screen.last[0].size());
+  TEST_ASSERT_EQUAL_STRING("Dong 4", r.screen.last[3].c_str());
+}
+
+void test_oled_tu_choi_lenh_sai_va_giu_nguyen_man_hinh() {
+  DisplayRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Xin chao\"}");
+  const auto oldLines = r.screen.last;
+  const std::string oldState = r.display.stateJson();
+  const size_t oldHistory = r.screen.history.size();
+
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"1\\n2\\n3\\n4\\n5\"}");
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"1234567890123456789012\"}");
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Xin chào\"}");
+  r.transport.simulateMessage(DISPLAY_CMD, "{}");
+
+  const auto* error = r.transport.last("domisen/entrance/display/error");
+  TEST_ASSERT_NOT_NULL(error);
+  TEST_ASSERT_FALSE(error->retain);
+  TEST_ASSERT_EQUAL(oldHistory, r.screen.history.size());
+  TEST_ASSERT_EQUAL_STRING(oldState.c_str(), r.display.stateJson().c_str());
+  TEST_ASSERT_EQUAL(oldLines.size(), r.screen.last.size());
+  TEST_ASSERT_EQUAL_STRING("Xin chao", r.screen.last[0].c_str());
+}
+
+void test_oled_noi_lai_gui_lai_state_hien_tai() {
+  DisplayRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Dong 1\\nDong 2\"}");
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"Dong 1\\nDong 2\"}",
+                           r.transport.last(DISPLAY_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(DISPLAY_STATE)->retain);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_begin_dang_ky_topic_lenh_va_ping);
@@ -342,5 +420,9 @@ int main() {
   RUN_TEST(test_quat_bat_tat_va_bao_lai_state);
   RUN_TEST(test_quat_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_quat_noi_lai_gui_lai_state);
+  RUN_TEST(test_oled_khoi_dong_trong_va_gui_state_retain);
+  RUN_TEST(test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_21_ky_tu);
+  RUN_TEST(test_oled_tu_choi_lenh_sai_va_giu_nguyen_man_hinh);
+  RUN_TEST(test_oled_noi_lai_gui_lai_state_hien_tai);
   return UNITY_END();
 }

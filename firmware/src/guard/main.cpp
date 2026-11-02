@@ -2,8 +2,10 @@
 // Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
+#include <shared/adapters_esp32/Ssd1306Display.h>
 #include <shared/adapters_esp32/MqttTransport.h>
 #include <shared/protocol/Topics.h>
+#include <shared/services/DisplayDevice.h>
 #include <shared/services/Hub.h>
 
 #include "domisen_config.h"
@@ -24,10 +26,14 @@ static adapters::esp32::MqttTransport transport({
     .willTopic = protocol::nodeStatusTopic(NODE),
 });
 static adapters::esp32::ArduinoClock clock_;
+static adapters::esp32::Ssd1306Display oled;
+static services::DisplayDevice display("entrance/display", oled);
 static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
   Serial.begin(115200);
+  oled.begin();
+  hub.add(display);
   hub.begin();
   transport.begin();
 }

@@ -1,5 +1,6 @@
 // Tên topic và mã hóa JSON. Giá trị mong đợi lấy từ docs/mqtt-topics.md.
 #include <shared/protocol/Climate.h>
+#include <shared/protocol/Display.h>
 #include <shared/protocol/Error.h>
 #include <shared/protocol/Light.h>
 #include <shared/protocol/Switch.h>
@@ -92,6 +93,23 @@ void test_ma_hoa_loi() {
   TEST_ASSERT_EQUAL_STRING("{\"error\":\"hỏng\"}", encodeError("hỏng").c_str());
 }
 
+void test_display_giai_ma_lenh_text() {
+  std::string text, error;
+  TEST_ASSERT_TRUE(decodeDisplayCommand("{\"text\":\"Xin chao\"}", text, error));
+  TEST_ASSERT_EQUAL_STRING("Xin chao", text.c_str());
+  TEST_ASSERT_FALSE(decodeDisplayCommand("{}", text, error));
+  TEST_ASSERT_FALSE(error.empty());
+  TEST_ASSERT_FALSE(decodeDisplayCommand("{\"text\":1}", text, error));
+  TEST_ASSERT_FALSE(error.empty());
+  TEST_ASSERT_FALSE(decodeDisplayCommand("[\"Xin chao\"]", text, error));
+  TEST_ASSERT_FALSE(error.empty());
+}
+
+void test_display_ma_hoa_state() {
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"\"}", encodeDisplayState("").c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"Dong 1\\nDong 2\"}", encodeDisplayState("Dong 1\nDong 2").c_str());
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_topics);
@@ -104,5 +122,7 @@ int main() {
   RUN_TEST(test_lenh_bat_tat_sai_bi_tu_choi);
   RUN_TEST(test_ma_hoa_trang_thai_bat_tat);
   RUN_TEST(test_ma_hoa_loi);
+  RUN_TEST(test_display_giai_ma_lenh_text);
+  RUN_TEST(test_display_ma_hoa_state);
   return UNITY_END();
 }
