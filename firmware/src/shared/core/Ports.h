@@ -39,6 +39,13 @@ class DigitalOutput {
   virtual void write(bool on) = 0;
 };
 
+// Đầu vào số. Adapter trả true khi chân ở mức HIGH.
+class DigitalInput {
+ public:
+  virtual ~DigitalInput() = default;
+  virtual bool read() = 0;
+};
+
 // Đường truyền tin nhắn (MQTT). Adapter lo nối lại và đăng ký lại topic sau mỗi lần nối lại.
 class Transport {
  public:
