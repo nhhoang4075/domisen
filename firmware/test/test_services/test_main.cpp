@@ -317,6 +317,64 @@ void test_quat_noi_lai_gui_lai_state() {
   TEST_ASSERT_TRUE(r.relay.last);  // mất mạng thì quạt giữ nguyên trạng thái
 }
 
+// ---- còi và quạt hút trên board guard ----
+static const char* ALARM_CMD = "domisen/house/alarm/cmd";
+static const char* ALARM_STATE = "domisen/house/alarm/state";
+static const char* EXHAUST_FAN_CMD = "domisen/kitchen/exhaust-fan/cmd";
+static const char* EXHAUST_FAN_STATE = "domisen/kitchen/exhaust-fan/state";
+
+struct GuardSwitchRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeDigitalOutput alarmOutput;
+  FakeDigitalOutput exhaustFanRelay;
+  SwitchDevice alarm{"house/alarm", alarmOutput};
+  SwitchDevice exhaustFan{"kitchen/exhaust-fan", exhaustFanRelay};
+  Hub hub{"guard", transport, clock, 5000};
+
+  GuardSwitchRig() {
+    alarmOutput.last = true;
+    exhaustFanRelay.last = true;
+    hub.add(alarm);
+    hub.add(exhaustFan);
+    hub.begin();
+  }
+};
+
+void test_guard_switches_dang_ky_dung_topic_khoi_dong_tat_va_gui_state() {
+  GuardSwitchRig r;
+  TEST_ASSERT_EQUAL(3, r.transport.subscriptions.size());
+  TEST_ASSERT_EQUAL_STRING("domisen/node/guard/ping", r.transport.subscriptions[0].c_str());
+  TEST_ASSERT_EQUAL_STRING(ALARM_CMD, r.transport.subscriptions[1].c_str());
+  TEST_ASSERT_EQUAL_STRING(EXHAUST_FAN_CMD, r.transport.subscriptions[2].c_str());
+  TEST_ASSERT_FALSE(r.alarmOutput.last);
+  TEST_ASSERT_FALSE(r.exhaustFanRelay.last);
+
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(ALARM_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(ALARM_STATE)->retain);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(EXHAUST_FAN_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(EXHAUST_FAN_STATE)->retain);
+}
+
+void test_guard_switches_bat_tat_va_gui_state_dung_topic() {
+  GuardSwitchRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(ALARM_CMD, "{\"on\":true}");
+  TEST_ASSERT_TRUE(r.alarmOutput.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(ALARM_STATE)->payload.c_str());
+  r.transport.simulateMessage(ALARM_CMD, "{\"on\":false}");
+  TEST_ASSERT_FALSE(r.alarmOutput.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(ALARM_STATE)->payload.c_str());
+
+  r.transport.simulateMessage(EXHAUST_FAN_CMD, "{\"on\":true}");
+  TEST_ASSERT_TRUE(r.exhaustFanRelay.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(EXHAUST_FAN_STATE)->payload.c_str());
+  r.transport.simulateMessage(EXHAUST_FAN_CMD, "{\"on\":false}");
+  TEST_ASSERT_FALSE(r.exhaustFanRelay.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(EXHAUST_FAN_STATE)->payload.c_str());
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_begin_dang_ky_topic_lenh_va_ping);
@@ -342,5 +400,7 @@ int main() {
   RUN_TEST(test_quat_bat_tat_va_bao_lai_state);
   RUN_TEST(test_quat_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_quat_noi_lai_gui_lai_state);
+  RUN_TEST(test_guard_switches_dang_ky_dung_topic_khoi_dong_tat_va_gui_state);
+  RUN_TEST(test_guard_switches_bat_tat_va_gui_state_dung_topic);
   return UNITY_END();
 }
