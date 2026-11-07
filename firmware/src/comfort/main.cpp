@@ -45,7 +45,7 @@ static services::SwitchDevice fan("living/fan", fanRelay);
 static adapters::esp32::Dht22Sensor dht(14);  // GPIO14
 static services::ClimateDevice climate("living/climate", dht);
 
-static adapters::esp32::Ws2812Strip moodStrip(32, 8);  // GPIO32, thanh 8 bóng
+static adapters::esp32::Ws2812Strip moodStrip(33, 8);  // GPIO33, thanh 8 bóng
 static services::ColorLight moodLight("living/mood-light", moodStrip);
 
 static services::Hub hub(NODE, transport, clock_);
