@@ -10,7 +10,7 @@ Bảng gốc lấy từ `docs/plan/ke-hoach.html`, đã được đổi chân ng
 | 7 | Servo cửa SG90 | GPIO4 | Dây đỏ nối 5V adapter, không lấy từ ESP32 |
 | 8 | OLED 0,96" (I2C) | GPIO21 SDA, GPIO22 SCL | |
 | 9 | Relay quạt hút | GPIO32 | Quạt lấy điện 5V từ adapter qua tiếp điểm relay |
-| 10 | Buzzer | GPIO27 | Module buzzer thụ động 5V: phát bằng xung PWM, tắt thì giữ chân mức cao (xem `docs/mqtt-topics.md`) |
+| 10 | Buzzer | GPIO27 | Module buzzer thụ động 5V: phát bằng xung PWM, tắt thì thả chân về đầu vào, không xuất mức cao vì 3,3 V chưa tắt hẳn module (xem `docs/mqtt-topics.md`) |
 | 11 | RC522 (SPI) | GPIO16 SDA (SS), 17 SCK, 5 MOSI, 18 MISO, 19 RST | **Nguồn 3,3V, không cắm 5V.** Năm chân liền nhau, đúng thứ tự trên module. SPI chạy qua GPIO matrix nên chân tùy ý, tốc độ 4 MHz |
 | 12 | Công tắc từ MC-38 | GPIO26 | Một dây vào chân, một dây vào GND, đặt `INPUT_PULLUP` trong code, không cần điện trở ngoài |
 | 13 | MQ-2 (AO) | GPIO35 | Qua cầu phân áp vì MQ-2 xuất tới 5V |
