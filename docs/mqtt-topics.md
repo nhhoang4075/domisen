@@ -110,11 +110,11 @@ Cùng một kiểu thiết bị, chỉ khác id, chân, tên trường và mức
 | 19 | `living/wall-button` (TTP223) | comfort, GPIO27 | `pressed` | HIGH là đang chạm |
 
 Ví dụ `domisen/living/motion/state`: `{"motion":true}`.
-- Giá trị chỉ đổi khi tín hiệu đã **ổn định ít nhất 50 ms** (chống nhiễu).
+- Giá trị chỉ đổi khi tín hiệu đã **ổn định** một khoảng thời gian (chống nhiễu): mặc định **50 ms** (PIR, nút cảm ứng). Riêng cảm biến mưa là **1 giây** (`kRainDebounceMs` trong `comfort/main.cpp`): chip so sánh LM393 trên module không có độ trễ nên chân DO nhấp nháy khi nhỏ nước, mà mưa là hiện tượng chậm. Chủ dự án quyết định ngày 07/11/2026, sau khi thử trên module thật.
 - Gửi ngay khi đổi, và gửi lại khi nối lại broker. Lần đọc đầu tiên sau khi khởi động được nhận ngay (không chờ 50 ms) và gửi đi. Trước lần đọc đầu tiên, state là `{"motion":null}` (cùng cách với DHT22 khi chưa đo được).
-- GPIO35 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo).
+- GPIO35 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo). Chân chưa nối module sẽ nhấp nháy khi có tay lại gần, đó không phải lỗi.
 - Mức tín hiệu (HIGH hay LOW là "bật") là hằng số của từng thiết bị trong `main.cpp`; chủ dự án kiểm tra trên module thật.
-- PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware.
+- PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware. Jumper của HC-SR501 để ở **H** (kích lặp lại: còn chuyển động thì OUT giữ mức cao); ở L (kích một lần) OUT tự hạ sau thời gian giữ dù vẫn còn chuyển động.
 
 ## Còi và quạt hút (chưa làm: #10 còi, #9 quạt hút bếp)
 

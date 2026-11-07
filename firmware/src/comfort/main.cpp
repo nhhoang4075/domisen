@@ -56,13 +56,16 @@ static services::ClimateDevice climate("living/climate", dht);
 static const bool kMotionSensorActiveLow = false;  // PIR: HIGH là có chuyển động
 static const bool kRainSensorActiveLow = true;     // mưa (chân DO): LOW là đang mưa, module kéo DO xuống khi ướt
 static const bool kWallButtonActiveLow = false;    // TTP223: HIGH là đang chạm
+// Cảm biến mưa dùng chống nhiễu dài hơn (mặc định của PIR và nút là 50 ms): chip so sánh LM393 trên module không có
+// độ trễ nên DO nhấp nháy khi nhỏ nước, và mưa là hiện tượng chậm. Chủ dự án quyết định 07/11/2026.
+static const uint32_t kRainDebounceMs = 1000;
 static adapters::esp32::Esp32DigitalIn motionInput(39);      // GPIO39
 static adapters::esp32::Esp32DigitalIn rainInput(35);        // GPIO35
 static adapters::esp32::Esp32DigitalIn wallButtonInput(27);  // GPIO27
 static services::BinarySensorDevice motion("living/motion", "motion", motionInput,
                                            kMotionSensorActiveLow);
 static services::BinarySensorDevice rain("balcony/rain", "raining", rainInput,
-                                         kRainSensorActiveLow);
+                                         kRainSensorActiveLow, kRainDebounceMs);
 static services::BinarySensorDevice wallButton("living/wall-button", "pressed", wallButtonInput,
                                                kWallButtonActiveLow);
 

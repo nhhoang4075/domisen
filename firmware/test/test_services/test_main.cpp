@@ -531,6 +531,26 @@ void test_cam_bien_nhi_phan_active_low_dao_muc() {
   TEST_ASSERT_EQUAL_STRING("{\"raining\":true}", rain.stateJson().c_str());
 }
 
+// Cảm biến mưa dùng chống nhiễu 1 giây (docs/mqtt-topics.md): DO nhấp nháy khi nhỏ nước thì không báo.
+void test_cam_bien_nhi_phan_chong_nhieu_1_giay_cho_cam_bien_mua() {
+  FakeDigitalInput input;
+  input.value = true;  // HIGH: khô (activeLow nên là chưa mưa)
+  BinarySensorDevice rain("balcony/rain", "raining", input, true, 1000);
+  TEST_ASSERT_TRUE(rain.tick(0));  // lần đọc đầu nhận ngay
+  TEST_ASSERT_EQUAL_STRING("{\"raining\":false}", rain.stateJson().c_str());
+
+  input.value = false;  // LOW: ướt
+  TEST_ASSERT_FALSE(rain.tick(10));   // bắt đầu khoảng ổn định
+  input.value = true;                 // nhấp nháy trở lại khô trước khi đủ 1 giây
+  TEST_ASSERT_FALSE(rain.tick(500));
+  input.value = false;
+  TEST_ASSERT_FALSE(rain.tick(600));  // đếm lại từ 600
+  TEST_ASSERT_FALSE(rain.tick(1599));
+  TEST_ASSERT_EQUAL_STRING("{\"raining\":false}", rain.stateJson().c_str());
+  TEST_ASSERT_TRUE(rain.tick(1600));  // đủ 1000 ms
+  TEST_ASSERT_EQUAL_STRING("{\"raining\":true}", rain.stateJson().c_str());
+}
+
 void test_cam_bien_nhi_phan_chi_doc_va_khong_doi_state_khi_nhan_lenh() {
   BinarySensorRig r;
   r.transport.simulateConnect();
@@ -1045,6 +1065,7 @@ int main() {
   RUN_TEST(test_cam_bien_nhi_phan_chong_nhieu_va_nhan_gia_tri_on_dinh_sau_50ms);
   RUN_TEST(test_cam_bien_nhi_phan_bo_qua_nhieu_ngan_hon_50ms);
   RUN_TEST(test_cam_bien_nhi_phan_active_low_dao_muc);
+  RUN_TEST(test_cam_bien_nhi_phan_chong_nhieu_1_giay_cho_cam_bien_mua);
   RUN_TEST(test_cam_bien_nhi_phan_chi_doc_va_khong_doi_state_khi_nhan_lenh);
   RUN_TEST(test_cam_bien_nhi_phan_noi_lai_gui_lai_state_hien_tai);
   RUN_TEST(test_den_mau_tat_luc_khoi_dong);
