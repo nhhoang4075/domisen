@@ -46,7 +46,7 @@ static services::ClimateDevice climate("living/climate", dht);
 
 // Servo SG90, mỗi servo một kênh LEDC riêng (0 và 1 đã dùng cho đèn). Góc là hằng số, chỉnh khi lắp cơ khí.
 static adapters::esp32::Esp32Pwm curtainPwm(13, 2, 50, 16);     // GPIO13, kênh LEDC 2
-static adapters::esp32::Esp32Pwm clotheslinePwm(33, 3, 50, 16);  // GPIO33, kênh LEDC 3
+static adapters::esp32::Esp32Pwm clotheslinePwm(32, 3, 50, 16);  // GPIO32, kênh LEDC 3
 static const float kCurtainOpenDeg = 0.0f;
 static const float kCurtainClosedDeg = 90.0f;
 static const float kClotheslineInDeg = 0.0f;

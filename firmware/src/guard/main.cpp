@@ -26,8 +26,8 @@ static adapters::esp32::MqttTransport transport({
 });
 static adapters::esp32::ArduinoClock clock_;
 
-// Servo cửa SG90 (GPIO13, kênh LEDC 2). Góc là hằng số, chỉnh khi lắp cơ khí.
-static adapters::esp32::Esp32Pwm doorPwm(13, 2, 50, 16);
+// Servo cửa SG90 (GPIO4, kênh LEDC 2). Góc là hằng số, chỉnh khi lắp cơ khí.
+static adapters::esp32::Esp32Pwm doorPwm(4, 2, 50, 16);
 static const float kDoorClosedDeg = 0.0f;
 static const float kDoorOpenDeg = 90.0f;
 static services::PositionDevice door("entrance/door", doorPwm, {{"closed", kDoorClosedDeg}, {"open", kDoorOpenDeg}});
