@@ -17,6 +17,10 @@ class Device {
   // Trả false và điền error nếu không hiểu lệnh. Khi đó trạng thái không đổi.
   virtual bool onCommand(const std::string& payload, std::string& error) = 0;
   virtual std::string stateJson() const = 0;
+  // Hub gửi state với cờ retain này. Mặc định true; thiết bị báo sự kiện (quẹt thẻ) trả false để người nối sau không thấy sự kiện cũ.
+  virtual bool retainState() const { return true; }
+  // Hub có gửi state của thiết bị này lúc nối (lại) broker không. Mặc định true; sự kiện thì không gửi lại.
+  virtual bool publishOnConnect() const { return true; }
 };
 
 }  // namespace domisen::services

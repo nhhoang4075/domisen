@@ -74,13 +74,13 @@ Cùng một kiểu thiết bị, chỉ khác id, chân, tên trường và mức
 | # | Id | Board, chân | Trường | Mức tín hiệu |
 |---|---|---|---|---|
 | 6 | `living/motion` (PIR HC-SR501) | comfort, GPIO39 | `motion` | HIGH là có chuyển động |
-| 16 | `balcony/rain` (cảm biến mưa, chân DO) | comfort, GPIO34 | `raining` | LOW là đang mưa (module kéo DO xuống khi ướt) |
+| 16 | `balcony/rain` (cảm biến mưa, chân DO) | comfort, GPIO35 | `raining` | LOW là đang mưa (module kéo DO xuống khi ướt) |
 | 19 | `living/wall-button` (TTP223) | comfort, GPIO27 | `pressed` | HIGH là đang chạm |
 
 Ví dụ `domisen/living/motion/state`: `{"motion":true}`.
 - Giá trị chỉ đổi khi tín hiệu đã **ổn định ít nhất 50 ms** (chống nhiễu).
 - Gửi ngay khi đổi, và gửi lại khi nối lại broker. Lần đọc đầu tiên sau khi khởi động được nhận ngay (không chờ 50 ms) và gửi đi. Trước lần đọc đầu tiên, state là `{"motion":null}` (cùng cách với DHT22 khi chưa đo được).
-- GPIO34 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo).
+- GPIO35 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo).
 - Mức tín hiệu (HIGH hay LOW là "bật") là hằng số của từng thiết bị trong `main.cpp`; chủ dự án kiểm tra trên module thật.
 - PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware.
 
@@ -91,7 +91,7 @@ Dùng lại thiết bị bật tắt của quạt phòng khách: lệnh `{"on":t
 | # | Id | Board, chân | Phần cứng |
 |---|---|---|---|
 | 10 | `house/alarm` | guard, GPIO27 | Module buzzer 5V, chân VCC vào 5V |
-| 9 | `kitchen/exhaust-fan` | guard, GPIO16 | Relay như quạt phòng khách |
+| 9 | `kitchen/exhaust-fan` | guard, GPIO32 | Relay như quạt phòng khách |
 
 Module buzzer và relay có thể chạy mức cao hoặc mức thấp: là hằng số `ActiveLow` trong `guard/main.cpp`, chủ dự án chỉnh khi thử trên board. Việc tự bật còi và quạt hút khi có gas (an toàn, chạy ngay trên board) làm sau khi có cảm biến MQ-2.
 
@@ -101,9 +101,9 @@ Servo SG90 góc 0 đến 180 độ. Mỗi thiết bị có **hai vị trí có t
 
 | # | Id | Board, chân | Vị trí (tên: góc ban đầu) |
 |---|---|---|---|
-| 7 | `entrance/door` | guard, GPIO13 | `closed`: 0, `open`: 90 |
+| 7 | `entrance/door` | guard, GPIO4 | `closed`: 0, `open`: 90 |
 | 14 | `living/curtain` | comfort, GPIO13 | `open`: 0, `closed`: 90 |
-| 17 | `balcony/clothesline` | comfort, GPIO33 | `in`: 0, `out`: 90 |
+| 17 | `balcony/clothesline` | comfort, GPIO32 | `in`: 0, `out`: 90 |
 
 Lệnh `{"position":"open"}`, state `{"position":"open"}` (retain). Tên vị trí không có trong bảng thì báo lỗi và giữ nguyên. Khởi động ở vị trí **đầu tiên** của hàng (`closed`, `open`, `in`).
 Góc là hằng số trong `main.cpp`, chủ dự án chỉnh khi lắp cơ khí. Servo cần 5V từ adapter, không lấy từ ESP32 (xem `docs/gpio.md`).
@@ -111,7 +111,7 @@ Góc là hằng số trong `main.cpp`, chủ dự án chỉnh khi lắp cơ khí
 
 ## Đèn màu WS2812 (chưa làm: #15 đèn tâm trạng)
 
-`living/mood-light`, comfort GPIO32, thanh 8 bóng. Cả thanh luôn cùng một màu.
+`living/mood-light`, comfort GPIO33, thanh 8 bóng. Cả thanh luôn cùng một màu.
 
 | Lệnh gửi | Kết quả |
 |---|---|
@@ -134,7 +134,7 @@ State `{"on":true,"color":"#FF0000","level":40}` (retain). `color` là chuỗi `
 
 ## Đầu đọc thẻ RC522 (chưa làm: #11)
 
-`entrance/card-reader`, guard, SPI: GPIO5 SDA (SS), GPIO18 SCK, GPIO23 MOSI, GPIO19 MISO, GPIO4 RST. **Nguồn 3,3V, không cắm 5V.** Thư viện `MFRC522`.
+`entrance/card-reader`, guard, SPI: GPIO16 SDA (SS), GPIO17 SCK, GPIO5 MOSI, GPIO18 MISO, GPIO19 RST (SPI chạy qua GPIO matrix, xem `docs/gpio.md`). **Nguồn 3,3V, không cắm 5V.** Thư viện `MFRC522`.
 Khi quẹt thẻ: gửi `domisen/entrance/card-reader/state` là `{"uid":"A3F2197C"}` (UID hex **chữ hoa**, không dấu cách), **không retain**.
 - Đây là **sự kiện**, không phải trạng thái: không gửi lại khi nối lại broker (nếu không cửa sẽ tự mở lại khi mất rồi có mạng).
 - Cùng một thẻ giữ trên đầu đọc không gửi lặp: chỉ gửi lại sau khi thẻ rời đi, hoặc sau 2 giây.

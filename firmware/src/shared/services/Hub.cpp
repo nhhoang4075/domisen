@@ -21,12 +21,14 @@ void Hub::begin() {
 
 void Hub::handleConnect() {
   transport_.publish(protocol::nodeStatusTopic(node_), "online", true);
-  for (Device* device : devices_) publishState(*device);
+  for (Device* device : devices_) {
+    if (device->publishOnConnect()) publishState(*device);
+  }
   lastBeat_ = clock_.nowMs();
 }
 
 void Hub::publishState(Device& device) {
-  transport_.publish(protocol::stateTopic(device.id()), device.stateJson(), true);
+  transport_.publish(protocol::stateTopic(device.id()), device.stateJson(), device.retainState());
 }
 
 void Hub::handleMessage(const std::string& topic, const std::string& payload) {
