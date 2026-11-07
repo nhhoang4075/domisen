@@ -5,8 +5,10 @@
 #include <shared/adapters_esp32/Esp32DigitalOut.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
+#include <shared/adapters_esp32/Ws2812Strip.h>
 #include <shared/protocol/Topics.h>
 #include <shared/services/ClimateDevice.h>
+#include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
@@ -44,6 +46,9 @@ static services::SwitchDevice fan("living/fan", fanRelay);
 static adapters::esp32::Dht22Sensor dht(14);  // GPIO14
 static services::ClimateDevice climate("living/climate", dht);
 
+static adapters::esp32::Ws2812Strip moodStrip(33, 8);  // GPIO33, thanh 8 bóng
+static services::ColorLight moodLight("living/mood-light", moodStrip);
+
 // Servo SG90, mỗi servo một kênh LEDC riêng (0 và 1 đã dùng cho đèn). Góc là hằng số, chỉnh khi lắp cơ khí.
 static adapters::esp32::Esp32Pwm curtainPwm(13, 2, 50, 16);     // GPIO13, kênh LEDC 2
 static adapters::esp32::Esp32Pwm clotheslinePwm(32, 3, 50, 16);  // GPIO32, kênh LEDC 3
@@ -66,10 +71,12 @@ void setup() {
   clotheslinePwm.begin();
   fanRelay.begin();
   dht.begin();
+  moodStrip.begin();
   hub.add(ceilingLight);
   hub.add(nightLight);
   hub.add(fan);
   hub.add(climate);
+  hub.add(moodLight);
   hub.add(curtain);
   hub.add(clothesline);
   hub.begin();

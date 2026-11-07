@@ -3,10 +3,12 @@
 #include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeClock.h>
 #include <shared/adapters_fake/FakeDigitalOutput.h>
+#include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/ClimateDevice.h>
+#include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
@@ -18,10 +20,12 @@ using adapters::fake::FakeCardReader;
 using adapters::fake::FakeClimateSensor;
 using adapters::fake::FakeClock;
 using adapters::fake::FakeDigitalOutput;
+using adapters::fake::FakePixelStrip;
 using adapters::fake::FakePwm;
 using adapters::fake::FakeTransport;
 using services::CardReaderDevice;
 using services::ClimateDevice;
+using services::ColorLight;
 using services::DimmableLight;
 using services::Hub;
 using services::PositionDevice;
@@ -323,6 +327,123 @@ void test_quat_noi_lai_gui_lai_state() {
   TEST_ASSERT_TRUE(r.relay.last);  // mất mạng thì quạt giữ nguyên trạng thái
 }
 
+// ---- đèn màu WS2812 ----
+static const char* MOOD_CMD = "domisen/living/mood-light/cmd";
+static const char* MOOD_STATE = "domisen/living/mood-light/state";
+
+struct MoodRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakePixelStrip strip;
+  ColorLight mood{"living/mood-light", strip};
+  Hub hub{"comfort", transport, clock, 5000};
+
+  MoodRig() {
+    strip.setColor(9, 9, 9);  // giả sử thanh đang sáng, begin() phải đưa về tắt
+    hub.add(mood);
+    hub.begin();
+  }
+
+  void expectStrip(uint8_t r, uint8_t g, uint8_t b) {
+    TEST_ASSERT_EQUAL_UINT8(r, strip.last.r);
+    TEST_ASSERT_EQUAL_UINT8(g, strip.last.g);
+    TEST_ASSERT_EQUAL_UINT8(b, strip.last.b);
+  }
+
+  void expectState(const char* json) {
+    const auto* state = transport.last(MOOD_STATE);
+    TEST_ASSERT_NOT_NULL(state);
+    TEST_ASSERT_EQUAL_STRING(json, state->payload.c_str());
+  }
+};
+
+void test_den_mau_tat_luc_khoi_dong() {
+  MoodRig r;
+  r.expectStrip(0, 0, 0);
+  r.transport.simulateConnect();
+  r.expectState("{\"on\":false,\"color\":\"#FFB46B\",\"level\":100}");
+  TEST_ASSERT_TRUE(r.transport.last(MOOD_STATE)->retain);
+  TEST_ASSERT_EQUAL_STRING("domisen/living/mood-light/cmd", r.transport.subscriptions[1].c_str());
+}
+
+// Dòng 1 của bảng lệnh: {"on":true} bật, dùng màu và mức đã nhớ (mặc định #FFB46B, mức 100)
+void test_den_mau_bang_lenh_on_true() {
+  MoodRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(MOOD_CMD, "{\"on\":true}");
+  r.expectStrip(255, 180, 107);
+  r.expectState("{\"on\":true,\"color\":\"#FFB46B\",\"level\":100}");
+}
+
+// Dòng 2: {"on":false} tắt, nhớ màu và mức cũ
+void test_den_mau_bang_lenh_on_false_nho_mau_va_muc() {
+  MoodRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(MOOD_CMD, "{\"color\":\"#FF0000\",\"level\":40}");
+  r.transport.simulateMessage(MOOD_CMD, "{\"on\":false}");
+  r.expectStrip(0, 0, 0);
+  r.expectState("{\"on\":false,\"color\":\"#FF0000\",\"level\":40}");
+  r.transport.simulateMessage(MOOD_CMD, "{\"on\":true}");  // bật lại: đúng màu và mức đã nhớ
+  r.expectStrip(102, 0, 0);
+  r.expectState("{\"on\":true,\"color\":\"#FF0000\",\"level\":40}");
+}
+
+// Dòng 3: {"color":"#FF0000"} đổi màu và bật nếu lệnh không kèm on
+void test_den_mau_bang_lenh_color() {
+  MoodRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(MOOD_CMD, "{\"color\":\"#FF0000\"}");
+  r.expectStrip(255, 0, 0);
+  r.expectState("{\"on\":true,\"color\":\"#FF0000\",\"level\":100}");
+  // kèm on:false thì chỉ đổi màu, vẫn tắt
+  r.transport.simulateMessage(MOOD_CMD, "{\"on\":false,\"color\":\"#00ff00\"}");
+  r.expectStrip(0, 0, 0);
+  r.expectState("{\"on\":false,\"color\":\"#00FF00\",\"level\":100}");  // trả về chữ hoa
+}
+
+// Dòng 4: {"level":40} đổi độ sáng và bật nếu lệnh không kèm on; level 0 tắt, giữ mức cũ
+void test_den_mau_bang_lenh_level() {
+  MoodRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(MOOD_CMD, "{\"level\":40}");
+  r.expectStrip(102, 72, 43);  // #FFB46B ở mức 40
+  r.expectState("{\"on\":true,\"color\":\"#FFB46B\",\"level\":40}");
+  r.transport.simulateMessage(MOOD_CMD, "{\"level\":0}");
+  r.expectStrip(0, 0, 0);
+  r.expectState("{\"on\":false,\"color\":\"#FFB46B\",\"level\":40}");
+}
+
+void test_den_mau_lenh_sai_bao_loi_va_giu_nguyen() {
+  MoodRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(MOOD_CMD, "{\"color\":\"#FF0000\",\"level\":40}");
+  int stateCount = r.transport.count(MOOD_STATE);
+  size_t writes = r.strip.history.size();
+  const char* bad[] = {"rac", "{}", "{\"color\":\"đỏ\"}", "{\"color\":\"#GGG\"}", "{\"on\":true,\"color\":\"#FFF\"}",
+                       "{\"level\":\"cao\"}"};
+  for (const char* payload : bad) {
+    r.transport.simulateMessage(MOOD_CMD, payload);
+    const auto* err = r.transport.last("domisen/living/mood-light/error");
+    TEST_ASSERT_NOT_NULL(err);
+    TEST_ASSERT_FALSE(err->retain);
+  }
+  r.expectStrip(102, 0, 0);  // vẫn như cũ
+  TEST_ASSERT_EQUAL(writes, r.strip.history.size());  // không ghi gì ra thanh LED
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(MOOD_STATE));
+  TEST_ASSERT_EQUAL(6, r.transport.count("domisen/living/mood-light/error"));
+}
+
+void test_den_mau_noi_lai_gui_lai_state() {
+  MoodRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(MOOD_CMD, "{\"color\":\"#FF0000\",\"level\":40}");
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  r.expectState("{\"on\":true,\"color\":\"#FF0000\",\"level\":40}");
+  TEST_ASSERT_TRUE(r.transport.last(MOOD_STATE)->retain);
+  r.expectStrip(102, 0, 0);  // mất mạng thì đèn giữ nguyên
+}
+
 // ---- servo hai vị trí: cửa chính (guard, GPIO4), closed 0 độ, open 90 độ ----
 static const char* DOOR_CMD = "domisen/entrance/door/cmd";
 static const char* DOOR_STATE = "domisen/entrance/door/state";
@@ -620,6 +741,13 @@ int main() {
   RUN_TEST(test_quat_bat_tat_va_bao_lai_state);
   RUN_TEST(test_quat_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_quat_noi_lai_gui_lai_state);
+  RUN_TEST(test_den_mau_tat_luc_khoi_dong);
+  RUN_TEST(test_den_mau_bang_lenh_on_true);
+  RUN_TEST(test_den_mau_bang_lenh_on_false_nho_mau_va_muc);
+  RUN_TEST(test_den_mau_bang_lenh_color);
+  RUN_TEST(test_den_mau_bang_lenh_level);
+  RUN_TEST(test_den_mau_lenh_sai_bao_loi_va_giu_nguyen);
+  RUN_TEST(test_den_mau_noi_lai_gui_lai_state);
   RUN_TEST(test_the_su_kien_dau_gui_khong_retain);
   RUN_TEST(test_the_noi_broker_khong_gui_state_the);
   RUN_TEST(test_the_noi_lai_khong_gui_lai_uid_cu);
