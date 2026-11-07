@@ -7,9 +7,9 @@
 #include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
+#include <shared/services/BinarySensorDevice.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/ClimateDevice.h>
-#include <shared/services/BinarySensorDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
@@ -27,9 +27,9 @@ using adapters::fake::FakeDigitalOutput;
 using adapters::fake::FakePixelStrip;
 using adapters::fake::FakePwm;
 using adapters::fake::FakeTransport;
+using services::BinarySensorDevice;
 using services::CardReaderDevice;
 using services::ClimateDevice;
-using services::BinarySensorDevice;
 using services::ColorLight;
 using services::DimmableLight;
 using services::Hub;

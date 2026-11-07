@@ -3,7 +3,8 @@
 #include <shared/core/Ports.h>
 #include <shared/services/Device.h>
 
-#include <optional>
+#include <cstdint>
+#include <string>
 
 namespace domisen::services {
 

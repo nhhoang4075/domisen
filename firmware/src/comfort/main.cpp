@@ -8,8 +8,8 @@
 #include <shared/adapters_esp32/Ws2812Strip.h>
 #include <shared/core/Fan.h>
 #include <shared/protocol/Topics.h>
-#include <shared/services/ClimateDevice.h>
 #include <shared/services/BinarySensorDevice.h>
+#include <shared/services/ClimateDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
@@ -52,11 +52,12 @@ static services::SpeedFan fan("living/fan", fanPwm, clock_, kFanMinDuty, kFanKic
 static adapters::esp32::Dht22Sensor dht(14);  // GPIO14
 static services::ClimateDevice climate("living/climate", dht);
 
-static const bool kMotionSensorActiveLow = false;
-static const bool kRainSensorActiveLow = true;
-static const bool kWallButtonActiveLow = false;
-static adapters::esp32::Esp32DigitalIn motionInput(39);    // GPIO39
-static adapters::esp32::Esp32DigitalIn rainInput(35);      // GPIO35
+// Mức tín hiệu "bật" của từng cảm biến (chủ dự án chỉnh khi thử trên module thật):
+static const bool kMotionSensorActiveLow = false;  // PIR: HIGH là có chuyển động
+static const bool kRainSensorActiveLow = true;     // mưa (chân DO): LOW là đang mưa, module kéo DO xuống khi ướt
+static const bool kWallButtonActiveLow = false;    // TTP223: HIGH là đang chạm
+static adapters::esp32::Esp32DigitalIn motionInput(39);      // GPIO39
+static adapters::esp32::Esp32DigitalIn rainInput(35);        // GPIO35
 static adapters::esp32::Esp32DigitalIn wallButtonInput(27);  // GPIO27
 static services::BinarySensorDevice motion("living/motion", "motion", motionInput,
                                            kMotionSensorActiveLow);

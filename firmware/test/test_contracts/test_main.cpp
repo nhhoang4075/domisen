@@ -2,8 +2,8 @@
 // (hiện là bản giả). Adapter thật cần board nên chỉ kiểm tra được khi nạp lên thiết bị.
 #include <shared/adapters_fake/FakeCardReader.h>
 #include <shared/adapters_fake/FakeClimateSensor.h>
-#include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakeDigitalInput.h>
+#include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>

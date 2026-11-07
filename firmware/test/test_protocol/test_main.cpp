@@ -1,7 +1,7 @@
 // Tên topic và mã hóa JSON. Giá trị mong đợi lấy từ docs/mqtt-topics.md.
+#include <shared/protocol/BinarySensor.h>
 #include <shared/protocol/CardReader.h>
 #include <shared/protocol/Climate.h>
-#include <shared/protocol/BinarySensor.h>
 #include <shared/protocol/ColorLight.h>
 #include <shared/protocol/Error.h>
 #include <shared/protocol/Light.h>
