@@ -23,7 +23,7 @@ void SpeedFan::apply() {
     kicking_ = false;
     write(0.0f);
   } else if (kicking_) {
-    write(1.0f);  // đang đá: lệnh mới chỉ đổi mức đích, hết thời gian đá mới hạ xuống
+    write(1.0f);  // đang kick: lệnh mới chỉ đổi mức đích, hết thời gian kick mới hạ xuống
   } else if (core::fanNeedsKick(written_, target)) {
     kicking_ = true;
     kickEnd_ = clock_.nowMs() + kickMs_;
@@ -39,7 +39,7 @@ bool SpeedFan::tick(uint32_t nowMs) {
     kicking_ = false;
     write(core::fanDuty(state_, minDuty_));
   }
-  return false;  // đá khởi động không đổi state, không cần gửi lại
+  return false;  // kick-start không đổi state, không cần gửi lại
 }
 
 bool SpeedFan::onCommand(const std::string& payload, std::string& error) {

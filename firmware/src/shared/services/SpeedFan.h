@@ -1,5 +1,5 @@
 // Quạt chỉnh tốc độ bằng PWM: lệnh on và level 0..100 như đèn (xem docs/mqtt-topics.md).
-// Khác đèn ở hai điểm: duty đi tuyến tính từ minDuty (fanDuty), và có "đá khởi động" (fanNeedsKick):
+// Khác đèn ở hai điểm: duty đi tuyến tính từ minDuty (fanDuty), và có "kick-start" (fanNeedsKick):
 // quạt đứng yên cần duty cao hơn lúc đã quay, nên khi đi từ đứng yên lên duty thấp thì chạy hết ga kickMs trước.
 #pragma once
 #include <shared/core/Fan.h>
