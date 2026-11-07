@@ -41,7 +41,7 @@ static services::DimmableLight nightLight("bedroom/night-light", nightPwm);
 // Quạt phòng khách chỉnh tốc độ: module MOSFET LR7843 có opto EL817 (chậm, nên không dùng 25 kHz), PWM vào GPIO16.
 // Kênh LEDC 4 (cặp 4 và 5) tách khỏi đèn (0, 1) và servo (2, 3). Hai hằng số chỉnh khi thử trên quạt thật.
 static const int kFanPwmHz = 5000;        // quạt rít thì thử tần số khác
-static const float kFanMinDuty = 0.3f;    // duty thấp nhất mà quạt vẫn tự quay (ứng với level 1)
+static const float kFanMinDuty = 0.35f;    // duty thấp nhất mà quạt vẫn tự quay (ứng với level 1)
 static adapters::esp32::Esp32Pwm fanPwm(16, 4, kFanPwmHz);  // GPIO16, kênh LEDC 4
 static services::DimmableLight fan("living/fan", fanPwm,
                                    [](const core::LightState& s) { return core::fanDuty(s, kFanMinDuty); });
