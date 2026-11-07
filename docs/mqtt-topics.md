@@ -74,7 +74,14 @@ Khác đèn ở cách đổi `level` ra duty PWM (luật nằm ở `core/Fan.h`)
 
 Phần cứng: module MOSFET **LR7843** (IRLR7843, logic-level nên 3,3 V mở đủ) có opto **EL817** cách ly giữa phía tín hiệu và phía tải. PWM do LEDC kênh 4 (cặp 4 và 5, tách khỏi đèn kênh 0, 1 và servo kênh 2, 3), 10 bit, tần số là hằng số `kFanPwmHz` (mặc định 5000 Hz). EL817 chậm (mỗi cạnh vài micro giây đến hơn chục micro giây) nên **không dùng tần số 25 kHz** thường gặp ở quạt máy tính; nếu quạt rít thì thử các tần số khác trên module thật rồi chốt.
 
-Tín hiệu: chân `PWM` của module vào GPIO16, chân `GND` về GND của ESP32. Đấu phía tải xem lại sau khi xác nhận nhãn cọc vít trên module.
+Đấu dây (nhãn đọc ở mặt dưới module; đặt module mặt có chip hướng lên, phía tín hiệu bên trái, chữ `GND` ở trên chữ `PWM`):
+
+- Phía tín hiệu (hai lỗ bên trái, hàn hàng chân đực 2 chân): `PWM` vào GPIO16, `GND` vào GND của ESP32.
+- Phía tải (ba lỗ bên phải, hàn cọc vít xanh dương 3 chân). Nhìn từ mặt có chip, từ trên xuống: `-`, `LOAD`, `+`. Nhãn ở mặt dưới đọc ngược lại vì lật bo.
+  - `+`: nguồn 5V từ adapter, và dây dương của quạt (hai dây chung một cọc).
+  - `LOAD`: dây âm của quạt. Đây là đầu được đóng ngắt.
+  - `-`: GND của adapter.
+- Phía tín hiệu cách ly với phía tải bằng opto, nên không bắt buộc nối GND của ESP32 với GND của adapter.
 
 Tự bật quạt theo nhiệt độ là luật của **server** (đọc `living/climate/state`, gửi lệnh vào `living/fan/cmd`), không nằm trong board. Hiện chỉ điều khiển tay, ví dụ bằng MQTTX.
 
