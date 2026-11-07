@@ -12,6 +12,7 @@
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
+#include <shared/services/SpeedFan.h>
 
 #include "domisen_config.h"
 
@@ -42,9 +43,9 @@ static services::DimmableLight nightLight("bedroom/night-light", nightPwm);
 // Kênh LEDC 4 (cặp 4 và 5) tách khỏi đèn (0, 1) và servo (2, 3). Hai hằng số chỉnh khi thử trên quạt thật.
 static const int kFanPwmHz = 5000;        // quạt rít thì thử tần số khác
 static const float kFanMinDuty = 0.35f;    // duty thấp nhất mà quạt vẫn tự quay (ứng với level 1)
+static const uint32_t kFanKickMs = 300;   // đá khởi động: chạy hết ga bấy nhiêu ms khi đi từ đứng yên lên duty thấp
 static adapters::esp32::Esp32Pwm fanPwm(16, 4, kFanPwmHz);  // GPIO16, kênh LEDC 4
-static services::DimmableLight fan("living/fan", fanPwm,
-                                   [](const core::LightState& s) { return core::fanDuty(s, kFanMinDuty); });
+static services::SpeedFan fan("living/fan", fanPwm, clock_, kFanMinDuty, kFanKickMs);
 
 static adapters::esp32::Dht22Sensor dht(14);  // GPIO14
 static services::ClimateDevice climate("living/climate", dht);

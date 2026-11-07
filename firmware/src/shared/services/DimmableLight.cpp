@@ -3,16 +3,15 @@
 
 namespace domisen::services {
 
-DimmableLight::DimmableLight(std::string id, core::PwmOutput& pwm, DutyFn duty)
-    : id_(std::move(id)), pwm_(pwm), duty_(std::move(duty)) {}
+DimmableLight::DimmableLight(std::string id, core::PwmOutput& pwm) : id_(std::move(id)), pwm_(pwm) {}
 
-void DimmableLight::begin() { pwm_.write(duty_(state_)); }
+void DimmableLight::begin() { pwm_.write(core::lightDuty(state_)); }
 
 bool DimmableLight::onCommand(const std::string& payload, std::string& error) {
   protocol::LightCommand cmd;
   if (!protocol::decodeLightCommand(payload, cmd, error)) return false;
   state_ = core::applyLightCommand(state_, cmd.on, cmd.level);
-  pwm_.write(duty_(state_));
+  pwm_.write(core::lightDuty(state_));
   return true;
 }
 

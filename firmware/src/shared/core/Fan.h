@@ -11,4 +11,10 @@ inline float fanDuty(const LightState& state, float minDuty) {
   return minDuty + (1.0f - minDuty) * static_cast<float>(state.level) / kMaxLightLevel;
 }
 
+// Đá khởi động: quạt đứng yên cần duty cao hơn lúc đã quay (ma sát tĩnh lớn hơn ma sát động). Khi đi từ đứng yên
+// (duty đang ra là 0) lên một duty thấp hơn 1,0 thì phải chạy hết ga một lúc trước, rồi mới hạ về duty đã đặt.
+inline bool fanNeedsKick(float currentDuty, float targetDuty) {
+  return currentDuty <= 0.0f && targetDuty > 0.0f && targetDuty < 1.0f;
+}
+
 }  // namespace domisen::core

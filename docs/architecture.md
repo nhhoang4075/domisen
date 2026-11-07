@@ -54,7 +54,7 @@ Board chỉ nhận lệnh `on` và báo state. Quạt hút khi có gas (an toàn
 
 ## Quạt phòng khách chỉnh tốc độ
 
-Quạt phòng khách dùng lại `DimmableLight` (cùng lệnh `on`/`level`, cùng trạng thái `LightState`). Chỉ khác luật đổi `level` ra duty: `DimmableLight` nhận thêm một hàm đổi trạng thái ra duty, mặc định là `lightDuty` (có bù gamma, cho đèn), quạt truyền `fanDuty` (`core/Fan.h`, tuyến tính từ duty tối thiểu). Adapter vẫn là `Esp32Pwm`, bản giả `FakePwm`.
+Quạt phòng khách dùng lớp dịch vụ `SpeedFan`: cùng lệnh `on`/`level` và trạng thái `LightState` với đèn, nhưng luật khác. `core/Fan.h` có `fanDuty` (tuyến tính từ duty tối thiểu, không bù gamma) và `fanNeedsKick` (đá khởi động: từ đứng yên lên duty thấp thì chạy hết ga một lúc). `SpeedFan` nhận `Clock` để đo thời gian đá và hết đá ở `tick` của Hub. Adapter vẫn là `Esp32Pwm`, bản giả `FakePwm`.
 
 ## Thiết bị sẽ thêm (đã duyệt, chưa làm)
 

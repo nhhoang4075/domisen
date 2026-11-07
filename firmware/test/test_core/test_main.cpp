@@ -170,6 +170,13 @@ void test_quat_duty_tuyen_tinh_tu_min_den_1() {
   TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.5f, fanDuty(applyLightCommand({}, true, 50), 0.0f));             // min 0: đúng tỉ lệ
 }
 
+void test_quat_da_khoi_dong_chi_khi_dung_yen_len_duty_thap() {
+  TEST_ASSERT_TRUE(fanNeedsKick(0.0f, 0.307f));   // đứng yên lên mức thấp
+  TEST_ASSERT_FALSE(fanNeedsKick(0.5f, 0.307f));  // đang quay hạ xuống: không đá
+  TEST_ASSERT_FALSE(fanNeedsKick(0.0f, 1.0f));    // đã hết ga rồi
+  TEST_ASSERT_FALSE(fanNeedsKick(0.0f, 0.0f));    // vẫn tắt
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_mac_dinh_tat_muc_100);
@@ -191,6 +198,7 @@ int main() {
   RUN_TEST(test_den_mau_mau_ra_thanh_led_tat_va_muc_day);
   RUN_TEST(test_quat_duty_tat_la_0);
   RUN_TEST(test_quat_duty_tuyen_tinh_tu_min_den_1);
+  RUN_TEST(test_quat_da_khoi_dong_chi_khi_dung_yen_len_duty_thap);
   RUN_TEST(test_servo_duty_ba_goc);
   RUN_TEST(test_servo_goc_ngoai_khoang_bi_cat);
   return UNITY_END();
