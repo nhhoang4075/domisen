@@ -90,10 +90,12 @@ Dùng lại thiết bị bật tắt của quạt phòng khách: lệnh `{"on":t
 
 | # | Id | Board, chân | Phần cứng |
 |---|---|---|---|
-| 10 | `house/alarm` | guard, GPIO27 | Module buzzer 5V, chân VCC vào 5V |
+| 10 | `house/alarm` | guard, GPIO27 | Module buzzer **thụ động** 5V, chân VCC vào 5V. Chân I/O kéo lên VCC, kích ở mức thấp |
 | 9 | `kitchen/exhaust-fan` | guard, GPIO32 | Relay như quạt phòng khách |
 
-Module buzzer và relay có thể chạy mức cao hoặc mức thấp: là hằng số `ActiveLow` trong `guard/main.cpp`, chủ dự án chỉnh khi thử trên board. Việc tự bật còi và quạt hút khi có gas (an toàn, chạy ngay trên board) làm sau khi có cảm biến MQ-2.
+Relay quạt hút có thể chạy mức cao hoặc mức thấp: là hằng số `kExhaustFanActiveLow` trong `guard/main.cpp` (mặc định `false`: hút khi chân lên mức cao), chủ dự án chỉnh khi thử trên board.
+Còi là module **thụ động**: cấp mức cao hoặc thấp liên tục chỉ nghe tiếng tách lúc chuyển mức, nên khi bật phải đưa **xung 50 %** ra chân (mặc định 2700 Hz, hằng số `kAlarmToneHz`), khi tắt giữ chân ở **mức cao** (module kích ở mức thấp, giữ mức thấp sẽ có dòng chạy liên tục qua còi). Làm bằng adapter `Esp32ToneOutput` cài đặt `DigitalOutput`, nên thiết bị vẫn là `SwitchDevice` với lệnh `{"on":true}` như cũ. Kênh LEDC của còi phải khác cặp với servo (mỗi cặp kênh dùng chung một bộ định thời, tức chung tần số).
+Việc tự bật còi và quạt hút khi có gas (an toàn, chạy ngay trên board) làm sau khi có cảm biến MQ-2.
 
 ## Servo: cửa, rèm, giàn phơi (chưa làm)
 
