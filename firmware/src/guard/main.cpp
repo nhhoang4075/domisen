@@ -1,9 +1,11 @@
-// Board guard: cửa, bếp, an ninh. Chưa có thiết bị nào, mới chỉ nối broker và báo trạng thái.
+// Board guard: cửa, bếp, an ninh. Hiện có đầu đọc thẻ RC522; các thiết bị khác làm sau.
 // Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
 #include <shared/adapters_esp32/MqttTransport.h>
+#include <shared/adapters_esp32/Rc522Reader.h>
 #include <shared/protocol/Topics.h>
+#include <shared/services/CardReaderDevice.h>
 #include <shared/services/Hub.h>
 
 #include "domisen_config.h"
@@ -24,10 +26,15 @@ static adapters::esp32::MqttTransport transport({
     .willTopic = protocol::nodeStatusTopic(NODE),
 });
 static adapters::esp32::ArduinoClock clock_;
+static adapters::esp32::Rc522Reader rc522(16, 19, 17, 18, 5);  // SS GPIO16, RST GPIO19, SCK GPIO17, MISO GPIO18, MOSI GPIO5 (SPI qua GPIO matrix)
+static services::CardReaderDevice cardReader("entrance/card-reader", rc522);
+
 static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
   Serial.begin(115200);
+  rc522.begin();
+  hub.add(cardReader);
   hub.begin();
   transport.begin();
 }
