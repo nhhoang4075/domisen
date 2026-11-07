@@ -26,7 +26,7 @@ static adapters::esp32::MqttTransport transport({
     .willTopic = protocol::nodeStatusTopic(NODE),
 });
 static adapters::esp32::ArduinoClock clock_;
-static adapters::esp32::Rc522Reader rc522(5, 4, 18, 19, 23);  // SS GPIO5, RST GPIO4, SCK GPIO18, MISO GPIO19, MOSI GPIO23
+static adapters::esp32::Rc522Reader rc522(16, 19, 17, 18, 5);  // SS GPIO16, RST GPIO19, SCK GPIO17, MISO GPIO18, MOSI GPIO5 (SPI qua GPIO matrix)
 static services::CardReaderDevice cardReader("entrance/card-reader", rc522);
 
 static services::Hub hub(NODE, transport, clock_);
