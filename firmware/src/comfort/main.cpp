@@ -3,15 +3,18 @@
 #include <shared/adapters_esp32/ArduinoClock.h>
 #include <shared/adapters_esp32/Dht22Sensor.h>
 #include <shared/adapters_esp32/Esp32DigitalIn.h>
-#include <shared/adapters_esp32/Esp32DigitalOut.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
+#include <shared/adapters_esp32/Ws2812Strip.h>
+#include <shared/core/Fan.h>
 #include <shared/protocol/Topics.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/BinarySensorDevice.h>
+#include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
-#include <shared/services/SwitchDevice.h>
+#include <shared/services/PositionDevice.h>
+#include <shared/services/SpeedFan.h>
 
 #include "domisen_config.h"
 
@@ -38,9 +41,13 @@ static adapters::esp32::Esp32Pwm nightPwm(26, 1);    // GPIO26, kênh LEDC 1
 static services::DimmableLight ceilingLight("living/ceiling-light", ceilingPwm);
 static services::DimmableLight nightLight("bedroom/night-light", nightPwm);
 
-static const bool kFanRelayActiveLow = false;  // relay của bạn hút khi IN lên 5V (mức cao); module khác có thể hút ở mức thấp
-static adapters::esp32::Esp32DigitalOut fanRelay(16, kFanRelayActiveLow);  // GPIO16
-static services::SwitchDevice fan("living/fan", fanRelay);
+// Quạt phòng khách chỉnh tốc độ: module MOSFET LR7843 có opto EL817 (chậm, nên không dùng 25 kHz), PWM vào GPIO16.
+// Kênh LEDC 4 (cặp 4 và 5) tách khỏi đèn (0, 1) và servo (2, 3). Hai hằng số chỉnh khi thử trên quạt thật.
+static const int kFanPwmHz = 5000;        // quạt rít thì thử tần số khác
+static const float kFanMinDuty = 0.3f;     // duty thấp nhất mà quạt đang quay vẫn giữ được vòng quay (ứng với level 1); khởi động đã có kick-start
+static const uint32_t kFanKickMs = 500;   // kick-start (chạy hết ga lúc khởi động): chạy hết ga bấy nhiêu ms khi đi từ đứng yên lên duty thấp
+static adapters::esp32::Esp32Pwm fanPwm(16, 4, kFanPwmHz);  // GPIO16, kênh LEDC 4
+static services::SpeedFan fan("living/fan", fanPwm, clock_, kFanMinDuty, kFanKickMs);
 
 static adapters::esp32::Dht22Sensor dht(14);  // GPIO14
 static services::ClimateDevice climate("living/climate", dht);
@@ -49,7 +56,7 @@ static const bool kMotionSensorActiveLow = false;
 static const bool kRainSensorActiveLow = true;
 static const bool kWallButtonActiveLow = false;
 static adapters::esp32::Esp32DigitalIn motionInput(39);    // GPIO39
-static adapters::esp32::Esp32DigitalIn rainInput(34);      // GPIO34
+static adapters::esp32::Esp32DigitalIn rainInput(35);      // GPIO35
 static adapters::esp32::Esp32DigitalIn wallButtonInput(27);  // GPIO27
 static services::BinarySensorDevice motion("living/motion", "motion", motionInput,
                                            kMotionSensorActiveLow);
@@ -58,17 +65,35 @@ static services::BinarySensorDevice rain("balcony/rain", "raining", rainInput,
 static services::BinarySensorDevice wallButton("living/wall-button", "pressed", wallButtonInput,
                                                kWallButtonActiveLow);
 
+static adapters::esp32::Ws2812Strip moodStrip(33, 8);  // GPIO33, thanh 8 bóng
+static services::ColorLight moodLight("living/mood-light", moodStrip);
+
+// Servo SG90, mỗi servo một kênh LEDC riêng (0 và 1 đã dùng cho đèn). Góc là hằng số, chỉnh khi lắp cơ khí.
+static adapters::esp32::Esp32Pwm curtainPwm(13, 2, 50, 16);     // GPIO13, kênh LEDC 2
+static adapters::esp32::Esp32Pwm clotheslinePwm(32, 3, 50, 16);  // GPIO32, kênh LEDC 3
+static const float kCurtainOpenDeg = 0.0f;
+static const float kCurtainClosedDeg = 90.0f;
+static const float kClotheslineInDeg = 0.0f;
+static const float kClotheslineOutDeg = 90.0f;
+static services::PositionDevice curtain("living/curtain", curtainPwm,
+                                        {{"open", kCurtainOpenDeg}, {"closed", kCurtainClosedDeg}});
+static services::PositionDevice clothesline("balcony/clothesline", clotheslinePwm,
+                                            {{"in", kClotheslineInDeg}, {"out", kClotheslineOutDeg}});
+
 static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
   Serial.begin(115200);
   ceilingPwm.begin();
   nightPwm.begin();
-  fanRelay.begin();
+  curtainPwm.begin();
+  clotheslinePwm.begin();
+  fanPwm.begin();
   dht.begin();
   motionInput.begin();
   rainInput.begin();
   wallButtonInput.begin();
+  moodStrip.begin();
   hub.add(ceilingLight);
   hub.add(nightLight);
   hub.add(fan);
@@ -76,6 +101,9 @@ void setup() {
   hub.add(motion);
   hub.add(rain);
   hub.add(wallButton);
+  hub.add(moodLight);
+  hub.add(curtain);
+  hub.add(clothesline);
   hub.begin();
   transport.begin();
 }

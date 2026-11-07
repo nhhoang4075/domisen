@@ -52,20 +52,52 @@ Ví dụ `{"temp":27.5,"humidity":62}`. Cảm biến đọc lỗi (dây lỏng, 
 
 Đấu dây: DHT22 loại module 3 chân. Chân S (DATA) vào GPIO14, V vào 3V3, G vào GND. Trên board mở rộng cắm đúng bộ G-V-S của GPIO14.
 
-## Thiết bị bật tắt (đã làm: #3 quạt phòng khách)
+## Quạt phòng khách chỉnh tốc độ (#3, đổi từ relay sang MOSFET ngày 07/11/2026)
 
-Áp dụng cho `living/fan` (relay GPIO16). Sau này `kitchen/exhaust-fan` dùng cùng cách. Cả hai chỉ có `on`, không có mức.
+Chủ dự án quyết định: quạt phòng khách (`living/fan`) chỉnh được tốc độ bằng PWM qua module MOSFET, thay cho relay bật tắt. Relay cũ bỏ. Vẫn dùng GPIO16.
+
+Lệnh và state **giống đèn chỉnh độ sáng** (xem mục trên): `on` và `level` từ 0 đến 100.
+
+| Lệnh gửi | Kết quả |
+|---|---|
+| `{"on":true}` | Bật, dùng tốc độ đã nhớ (mặc định 100) |
+| `{"on":false}` | Tắt, nhớ tốc độ cũ |
+| `{"level":40}` | Đặt tốc độ 40 và bật (nếu không kèm `on`) |
+| `{"level":0}` | Tắt, giữ tốc độ cũ |
+
+State `{"on":true,"level":40}` (retain, gửi lại mỗi lần nối lại broker). Lệnh cũ `{"on":true}` và `{"on":false}` vẫn chạy. Lúc bật board quạt luôn tắt.
+
+Khác đèn ở cách đổi `level` ra duty PWM (luật nằm ở `core/Fan.h`):
+
+- Không bù gamma, và quạt nhỏ không quay khi duty thấp, nên level 1 đến 100 đi tuyến tính từ duty tối thiểu đến 1,0: `duty = kFanMinDuty + (1 - kFanMinDuty) * level / 100`. Tắt là duty 0.
+- `kFanMinDuty` (`comfort/main.cpp`) mặc định 0,3, chỉnh khi thử trên quạt thật (QGDC4010HSL). Đã đo: không có kick-start thì từ đứng yên phải duty 0,314 trở lên quạt mới quay (0,307 thì không). Có kick-start 300 ms thì phải từ level 8 (duty 0,31 khi min 0,25) quạt mới chạy tốt. Tăng kick-start lên 500 ms thì hạ được min xuống 0,3, level 1 (duty 0,307) khởi động từ đứng yên và chạy tốt: quạt cần thời gian đạt vòng quay trước khi hạ ga. Thay quạt khác thì đo lại.
+- **Kick-start (chạy hết ga lúc khởi động):** quạt đứng yên cần duty cao hơn lúc đã quay (đã thấy khi thử: đang quay thì level 1 vẫn quay, đứng yên rồi đặt level 1 thì không tự quay). Nên khi quạt đi từ đứng yên (duty đang ra là 0) lên một duty thấp hơn 1,0, board cho chạy **hết ga** `kFanKickMs` (mặc định 500 ms, `comfort/main.cpp`) rồi mới hạ về duty đã đặt. Đang quay mà đổi mức thì không kick. Đổi mức trong lúc đang kick chỉ đổi mức đích, không kéo dài thời gian kick. Tắt trong lúc kick thì dừng ngay. Luật `fanNeedsKick` nằm ở `core/Fan.h`; thời gian do dịch vụ `SpeedFan` quản lý (qua `tick` của Hub, nên chỉ chạy khi board đang nối broker).
+
+Phần cứng: module MOSFET **LR7843** (IRLR7843, logic-level nên 3,3 V mở đủ) có opto **EL817** cách ly giữa phía tín hiệu và phía tải. PWM do LEDC kênh 4 (cặp 4 và 5, tách khỏi đèn kênh 0, 1 và servo kênh 2, 3), 10 bit, tần số là hằng số `kFanPwmHz` (mặc định 5000 Hz). EL817 chậm (mỗi cạnh vài micro giây đến hơn chục micro giây) nên **không dùng tần số 25 kHz** thường gặp ở quạt máy tính; nếu quạt rít thì thử các tần số khác trên module thật rồi chốt.
+
+Đấu dây (nhãn đọc ở mặt dưới module; đặt module mặt có chip hướng lên, phía tín hiệu bên trái, chữ `GND` ở trên chữ `PWM`):
+
+- Phía tín hiệu (hai lỗ bên trái, hàn hàng chân đực 2 chân): `PWM` vào GPIO16, `GND` vào GND của ESP32.
+- Phía tải (ba lỗ bên phải, hàn cọc vít xanh dương 3 chân). Nhìn từ mặt có chip, từ trên xuống: `-`, `LOAD`, `+`. Nhãn ở mặt dưới đọc ngược lại vì lật bo.
+  - `+`: nguồn 5V từ adapter, và dây dương của quạt (hai dây chung một cọc).
+  - `LOAD`: dây âm của quạt. Đây là đầu được đóng ngắt.
+  - `-`: GND của adapter.
+- Phía tín hiệu cách ly với phía tải bằng opto, nên không bắt buộc nối GND của ESP32 với GND của adapter.
+
+Tự bật quạt theo nhiệt độ là luật của **server** (đọc `living/climate/state`, gửi lệnh vào `living/fan/cmd`), không nằm trong board. Hiện chỉ điều khiển tay, ví dụ bằng MQTTX.
+
+## Thiết bị bật tắt (relay, đã làm: #9 quạt hút bếp)
+
+Áp dụng cho `kitchen/exhaust-fan` (relay GPIO32). Chỉ có `on`, không có mức.
 
 | Lệnh gửi | Kết quả |
 |---|---|
 | `{"on":true}` | Bật |
 | `{"on":false}` | Tắt |
 
-Thiếu `on`, hoặc `on` không phải `true`/`false` thì giữ nguyên trạng thái và báo lỗi ở `.../error`. Board trả lời bằng `.../state`: `{"on":true}` (retain, gửi lại mỗi lần nối lại broker). Lúc bật board, quạt luôn tắt.
+Thiếu `on`, hoặc `on` không phải `true`/`false` thì giữ nguyên trạng thái và báo lỗi ở `.../error`. Board trả lời bằng `.../state`: `{"on":true}` (retain, gửi lại mỗi lần nối lại broker). Lúc bật board, thiết bị luôn tắt.
 
-Tự bật quạt theo nhiệt độ là luật của **server** (đọc `living/climate/state`, gửi lệnh vào `living/fan/cmd`), không nằm trong board. Hiện chỉ điều khiển tay, ví dụ bằng MQTTX.
-
-Đấu dây: module relay 1 kênh 5V. IN vào GPIO16, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `kFanRelayActiveLow` trong `comfort/main.cpp`. Module đang dùng chạy mức cao (hút khi IN lên 5 V) nên hằng số này là `false`.
+Đấu dây: module relay 1 kênh 5V. IN vào chân điều khiển, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `ActiveLow` trong `main.cpp`. Module đang dùng chạy mức cao (hút khi IN lên 5 V) nên hằng số này là `false`.
 
 ## Cảm biến hai trạng thái (chưa làm: PIR, cảm biến mưa, nút cảm ứng)
 
@@ -74,13 +106,13 @@ Cùng một kiểu thiết bị, chỉ khác id, chân, tên trường và mức
 | # | Id | Board, chân | Trường | Mức tín hiệu |
 |---|---|---|---|---|
 | 6 | `living/motion` (PIR HC-SR501) | comfort, GPIO39 | `motion` | HIGH là có chuyển động |
-| 16 | `balcony/rain` (cảm biến mưa, chân DO) | comfort, GPIO34 | `raining` | LOW là đang mưa (module kéo DO xuống khi ướt) |
+| 16 | `balcony/rain` (cảm biến mưa, chân DO) | comfort, GPIO35 | `raining` | LOW là đang mưa (module kéo DO xuống khi ướt) |
 | 19 | `living/wall-button` (TTP223) | comfort, GPIO27 | `pressed` | HIGH là đang chạm |
 
 Ví dụ `domisen/living/motion/state`: `{"motion":true}`.
 - Giá trị chỉ đổi khi tín hiệu đã **ổn định ít nhất 50 ms** (chống nhiễu).
 - Gửi ngay khi đổi, và gửi lại khi nối lại broker. Lần đọc đầu tiên sau khi khởi động được nhận ngay (không chờ 50 ms) và gửi đi. Trước lần đọc đầu tiên, state là `{"motion":null}` (cùng cách với DHT22 khi chưa đo được).
-- GPIO34 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo).
+- GPIO35 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo).
 - Mức tín hiệu (HIGH hay LOW là "bật") là hằng số của từng thiết bị trong `main.cpp`; chủ dự án kiểm tra trên module thật.
 - PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware.
 
@@ -90,10 +122,12 @@ Dùng lại thiết bị bật tắt của quạt phòng khách: lệnh `{"on":t
 
 | # | Id | Board, chân | Phần cứng |
 |---|---|---|---|
-| 10 | `house/alarm` | guard, GPIO27 | Module buzzer 5V, chân VCC vào 5V |
-| 9 | `kitchen/exhaust-fan` | guard, GPIO16 | Relay như quạt phòng khách |
+| 10 | `house/alarm` | guard, GPIO27 | Module buzzer **thụ động** 5V, chân VCC vào 5V. Chân I/O kéo lên VCC, kích ở mức thấp |
+| 9 | `kitchen/exhaust-fan` | guard, GPIO32 | Relay như quạt phòng khách |
 
-Module buzzer và relay có thể chạy mức cao hoặc mức thấp: là hằng số `ActiveLow` trong `guard/main.cpp`, chủ dự án chỉnh khi thử trên board. Việc tự bật còi và quạt hút khi có gas (an toàn, chạy ngay trên board) làm sau khi có cảm biến MQ-2.
+Relay quạt hút có thể chạy mức cao hoặc mức thấp: là hằng số `kExhaustFanActiveLow` trong `guard/main.cpp` (mặc định `false`: hút khi chân lên mức cao), chủ dự án chỉnh khi thử trên board.
+Còi là module **thụ động**: cấp mức cao hoặc thấp liên tục chỉ nghe tiếng tách lúc chuyển mức, nên khi bật phải đưa **xung 50 %** ra chân (3000 Hz, hằng số `kAlarmToneHz`, đã thử quét 1000 đến 5000 Hz trên module thật và chọn 3000 Hz), khi tắt **thả chân về đầu vào** (trở kháng cao). Module có điện trở kéo I/O lên 5 V và kích ở mức thấp: giữ mức thấp thì có dòng chạy liên tục qua còi, còn xuất mức cao từ ESP32 chỉ có 3,3 V nên transistor vẫn hé bật và còi nóng (đã thấy khi thử trên board). Thả chân thì điện trở kéo lên đưa I/O lên đủ 5 V, transistor tắt hẳn. Làm bằng adapter `Esp32ToneOutput` cài đặt `DigitalOutput`, nên thiết bị vẫn là `SwitchDevice` với lệnh `{"on":true}` như cũ. Kênh LEDC của còi phải khác cặp với servo (mỗi cặp kênh dùng chung một bộ định thời, tức chung tần số).
+Việc tự bật còi và quạt hút khi có gas (an toàn, chạy ngay trên board) làm sau khi có cảm biến MQ-2.
 
 ## Servo: cửa, rèm, giàn phơi (chưa làm)
 
@@ -101,9 +135,9 @@ Servo SG90 góc 0 đến 180 độ. Mỗi thiết bị có **hai vị trí có t
 
 | # | Id | Board, chân | Vị trí (tên: góc ban đầu) |
 |---|---|---|---|
-| 7 | `entrance/door` | guard, GPIO13 | `closed`: 0, `open`: 90 |
+| 7 | `entrance/door` | guard, GPIO4 | `closed`: 0, `open`: 90 |
 | 14 | `living/curtain` | comfort, GPIO13 | `open`: 0, `closed`: 90 |
-| 17 | `balcony/clothesline` | comfort, GPIO33 | `in`: 0, `out`: 90 |
+| 17 | `balcony/clothesline` | comfort, GPIO32 | `in`: 0, `out`: 90 |
 
 Lệnh `{"position":"open"}`, state `{"position":"open"}` (retain). Tên vị trí không có trong bảng thì báo lỗi và giữ nguyên. Khởi động ở vị trí **đầu tiên** của hàng (`closed`, `open`, `in`).
 Góc là hằng số trong `main.cpp`, chủ dự án chỉnh khi lắp cơ khí. Servo cần 5V từ adapter, không lấy từ ESP32 (xem `docs/gpio.md`).
@@ -111,7 +145,7 @@ Góc là hằng số trong `main.cpp`, chủ dự án chỉnh khi lắp cơ khí
 
 ## Đèn màu WS2812 (chưa làm: #15 đèn tâm trạng)
 
-`living/mood-light`, comfort GPIO32, thanh 8 bóng. Cả thanh luôn cùng một màu.
+`living/mood-light`, comfort GPIO33, thanh 8 bóng. Cả thanh luôn cùng một màu.
 
 | Lệnh gửi | Kết quả |
 |---|---|
@@ -134,7 +168,7 @@ State `{"on":true,"color":"#FF0000","level":40}` (retain). `color` là chuỗi `
 
 ## Đầu đọc thẻ RC522 (chưa làm: #11)
 
-`entrance/card-reader`, guard, SPI: GPIO5 SDA (SS), GPIO18 SCK, GPIO23 MOSI, GPIO19 MISO, GPIO4 RST. **Nguồn 3,3V, không cắm 5V.** Thư viện `MFRC522`.
+`entrance/card-reader`, guard, SPI: GPIO16 SDA (SS), GPIO17 SCK, GPIO5 MOSI, GPIO18 MISO, GPIO19 RST (SPI chạy qua GPIO matrix, xem `docs/gpio.md`). **Nguồn 3,3V, không cắm 5V.** Thư viện `MFRC522`.
 Khi quẹt thẻ: gửi `domisen/entrance/card-reader/state` là `{"uid":"A3F2197C"}` (UID hex **chữ hoa**, không dấu cách), **không retain**.
 - Đây là **sự kiện**, không phải trạng thái: không gửi lại khi nối lại broker (nếu không cửa sẽ tự mở lại khi mất rồi có mạng).
 - Cùng một thẻ giữ trên đầu đọc không gửi lặp: chỉ gửi lại sau khi thẻ rời đi, hoặc sau 2 giây.
