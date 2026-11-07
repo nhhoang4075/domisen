@@ -246,7 +246,7 @@ const BOARDS = {
         note:'Cắm vào cổng I2C trái dưới. Module phổ biến in GND VCC SCL SDA, còn cổng là GND VCC SDA SCL, nên hai dây giữa bị chéo (không tránh được, cổng I2C cố định). Nếu module của bạn in SDA trước SCL thì cắm thẳng.'},
       {id:'rfid',name:'Đầu đọc thẻ RC522',short:'RC522',room:'Cửa vào',color:'#9c36b5',
         old:{gpio:'D5 D18 D23 D19 D4',pins:rc522({ss:5,sck:6,mosi:12,miso:7,rst:2,g:7,v:7})},
-        new:{gpio:'D16 D17 D5 D18 D19',pins:rc522({ss:3,sck:4,mosi:5,miso:6,rst:7,g:6,v:7})},
+        new:{gpio:'D16 D17 D5 D18 D19',pins:rc522({ss:3,sck:4,mosi:5,miso:6,rst:7,g:7,v:7})},
         why:'Năm chân SPI nằm liền nhau, đúng thứ tự trên module (SDA, SCK, MOSI, MISO, ..., RST). Cũ: D23 ở tận cuối hàng và D4 lệch sang đầu kia.',
         note:'Chỉ chịu 3,3 V. Đo hàng V trước khi cắm. IRQ để trống. Các chân SPI dùng GPIO matrix nên gán chân tùy ý được (<code>SPI.begin(sck, miso, mosi, ss)</code>), tốc độ 4 MHz là dư.'},
       {id:'buzzer',name:'Còi (buzzer 5 V)',short:'Còi',room:'An ninh',color:'#c2255c',
