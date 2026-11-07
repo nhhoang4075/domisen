@@ -1,4 +1,5 @@
 // Tên topic và mã hóa JSON. Giá trị mong đợi lấy từ docs/mqtt-topics.md.
+#include <shared/protocol/CardReader.h>
 #include <shared/protocol/Climate.h>
 #include <shared/protocol/Error.h>
 #include <shared/protocol/Light.h>
@@ -63,6 +64,12 @@ void test_ma_hoa_khi_hau() {
   TEST_ASSERT_EQUAL_STRING("{\"temp\":-3.2,\"humidity\":100}", encodeClimateState(-3.24f, 100.0f).c_str());
   TEST_ASSERT_EQUAL_STRING("{\"temp\":null,\"humidity\":null}", encodeClimateUnavailable().c_str());
   TEST_ASSERT_EQUAL_STRING("domisen/living/climate/state", stateTopic("living/climate").c_str());
+}
+
+void test_ma_hoa_dau_doc_the() {
+  TEST_ASSERT_EQUAL_STRING("{\"uid\":\"A3F2197C\"}", encodeCardReaderState("A3F2197C").c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"uid\":null}", encodeCardReaderEmpty().c_str());
+  TEST_ASSERT_EQUAL_STRING("domisen/entrance/card-reader/state", stateTopic("entrance/card-reader").c_str());
 }
 
 void test_giai_ma_lenh_bat_tat() {
@@ -133,6 +140,7 @@ int main() {
   RUN_TEST(test_lenh_sai_bi_tu_choi);
   RUN_TEST(test_ma_hoa_trang_thai);
   RUN_TEST(test_ma_hoa_khi_hau);
+  RUN_TEST(test_ma_hoa_dau_doc_the);
   RUN_TEST(test_giai_ma_lenh_bat_tat);
   RUN_TEST(test_lenh_bat_tat_sai_bi_tu_choi);
   RUN_TEST(test_ma_hoa_trang_thai_bat_tat);
