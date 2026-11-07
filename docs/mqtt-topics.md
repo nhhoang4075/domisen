@@ -71,6 +71,7 @@ Khác đèn ở cách đổi `level` ra duty PWM (luật nằm ở `core/Fan.h`)
 
 - Không bù gamma, và quạt nhỏ không quay khi duty thấp, nên level 1 đến 100 đi tuyến tính từ duty tối thiểu đến 1,0: `duty = kFanMinDuty + (1 - kFanMinDuty) * level / 100`. Tắt là duty 0.
 - `kFanMinDuty` (`comfort/main.cpp`) mặc định 0,35: thử trên quạt thật thấy level 1 ứng với duty 0,307 không quay, level 2 (0,314) mới quay, nên ngưỡng khởi động khoảng 0,31 và 0,35 để có biên an toàn. Thay quạt khác thì chỉnh lại: đặt `level` nhỏ nhất mà quạt vẫn tự quay được.
+- Giới hạn đã biết: quạt đang quay giảm xuống level 1 thì vẫn quay, nhưng đứng yên rồi đặt level 1 thì có thể không tự khởi động (cần lực lớn hơn lúc đã quay). Chưa xử lý vì ít gặp; nếu cần thì làm "đá khởi động" (chạy hết ga khoảng 0,3 giây khi đi từ tắt sang mức thấp).
 
 Phần cứng: module MOSFET **LR7843** (IRLR7843, logic-level nên 3,3 V mở đủ) có opto **EL817** cách ly giữa phía tín hiệu và phía tải. PWM do LEDC kênh 4 (cặp 4 và 5, tách khỏi đèn kênh 0, 1 và servo kênh 2, 3), 10 bit, tần số là hằng số `kFanPwmHz` (mặc định 5000 Hz). EL817 chậm (mỗi cạnh vài micro giây đến hơn chục micro giây) nên **không dùng tần số 25 kHz** thường gặp ở quạt máy tính; nếu quạt rít thì thử các tần số khác trên module thật rồi chốt.
 
