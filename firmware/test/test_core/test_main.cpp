@@ -1,6 +1,7 @@
-// Luật thuần của đèn: không cần phần cứng, không cần JSON.
+// Luật thuần của đèn, đèn màu và servo: không cần phần cứng, không cần JSON.
 #include <shared/core/ColorLight.h>
 #include <shared/core/Light.h>
+#include <shared/core/Servo.h>
 #include <unity.h>
 
 using namespace domisen::core;
@@ -141,6 +142,18 @@ void test_den_mau_mau_ra_thanh_led_tat_va_muc_day() {
   assertColor(128, 90, 54, colorLightOutput(applyColorLightCommand({}, true, std::nullopt, 50)));  // 127,5 ; 90 ; 53,5
 }
 
+// Giá trị mong đợi lấy từ docs/mqtt-topics.md: xung 0,5 ms đến 2,4 ms trong chu kỳ 20 ms.
+void test_servo_duty_ba_goc() {
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, servoDuty(0.0f));    // 0,5 / 20
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.0725f, servoDuty(90.0f));  // 1,45 / 20
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.12f, servoDuty(180.0f));   // 2,4 / 20
+}
+
+void test_servo_goc_ngoai_khoang_bi_cat() {
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, servoDuty(-30.0f));
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.12f, servoDuty(200.0f));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_mac_dinh_tat_muc_100);
@@ -160,5 +173,7 @@ int main() {
   RUN_TEST(test_den_mau_level_ngoai_khoang_bi_cat);
   RUN_TEST(test_den_mau_mau_ra_thanh_led_muc_40);
   RUN_TEST(test_den_mau_mau_ra_thanh_led_tat_va_muc_day);
+  RUN_TEST(test_servo_duty_ba_goc);
+  RUN_TEST(test_servo_goc_ngoai_khoang_bi_cat);
   return UNITY_END();
 }

@@ -1,10 +1,14 @@
-// Board guard: cửa, bếp, an ninh. Chưa có thiết bị nào, mới chỉ nối broker và báo trạng thái.
+// Board guard: cửa, bếp, an ninh. Hiện có servo cửa chính và đầu đọc thẻ RC522; các thiết bị khác làm sau.
 // Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
+#include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
+#include <shared/adapters_esp32/Rc522Reader.h>
 #include <shared/protocol/Topics.h>
+#include <shared/services/CardReaderDevice.h>
 #include <shared/services/Hub.h>
+#include <shared/services/PositionDevice.h>
 
 #include "domisen_config.h"
 
@@ -24,10 +28,23 @@ static adapters::esp32::MqttTransport transport({
     .willTopic = protocol::nodeStatusTopic(NODE),
 });
 static adapters::esp32::ArduinoClock clock_;
+
+// Servo cửa SG90 (GPIO4, kênh LEDC 2). Góc là hằng số, chỉnh khi lắp cơ khí.
+static adapters::esp32::Esp32Pwm doorPwm(4, 2, 50, 16);
+static const float kDoorClosedDeg = 0.0f;
+static const float kDoorOpenDeg = 90.0f;
+static services::PositionDevice door("entrance/door", doorPwm, {{"closed", kDoorClosedDeg}, {"open", kDoorOpenDeg}});
+static adapters::esp32::Rc522Reader rc522(16, 19, 17, 18, 5);  // SS GPIO16, RST GPIO19, SCK GPIO17, MISO GPIO18, MOSI GPIO5 (SPI qua GPIO matrix)
+static services::CardReaderDevice cardReader("entrance/card-reader", rc522);
+
 static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
   Serial.begin(115200);
+  doorPwm.begin();
+  hub.add(door);
+  rc522.begin();
+  hub.add(cardReader);
   hub.begin();
   transport.begin();
 }

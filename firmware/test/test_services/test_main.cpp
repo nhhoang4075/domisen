@@ -1,28 +1,34 @@
-// Hub và DimmableLight, chạy với bản giả: không cần board, không cần mạng.
+// Hub, đèn, cảm biến, quạt, servo và đầu đọc thẻ, chạy với bản giả: không cần board, không cần mạng.
+#include <shared/adapters_fake/FakeCardReader.h>
 #include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeClock.h>
 #include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
+#include <shared/services/CardReaderDevice.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
+#include <shared/services/PositionDevice.h>
 #include <shared/services/SwitchDevice.h>
 #include <unity.h>
 
 using namespace domisen;
+using adapters::fake::FakeCardReader;
 using adapters::fake::FakeClimateSensor;
 using adapters::fake::FakeClock;
 using adapters::fake::FakeDigitalOutput;
 using adapters::fake::FakePixelStrip;
 using adapters::fake::FakePwm;
 using adapters::fake::FakeTransport;
+using services::CardReaderDevice;
 using services::ClimateDevice;
 using services::ColorLight;
 using services::DimmableLight;
 using services::Hub;
+using services::PositionDevice;
 using services::SwitchDevice;
 
 static const char* CEILING_CMD = "domisen/living/ceiling-light/cmd";
@@ -438,8 +444,280 @@ void test_den_mau_noi_lai_gui_lai_state() {
   r.expectStrip(102, 0, 0);  // mất mạng thì đèn giữ nguyên
 }
 
+// ---- servo hai vị trí: cửa chính (guard, GPIO4), closed 0 độ, open 90 độ ----
+static const char* DOOR_CMD = "domisen/entrance/door/cmd";
+static const char* DOOR_STATE = "domisen/entrance/door/state";
+static const char* DOOR_ERROR = "domisen/entrance/door/error";
+static const char* DOOR_ERROR_TEXT = "{\"error\":\"position phải là một trong: closed, open\"}";
+
+struct DoorRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakePwm pwm;
+  PositionDevice door{"entrance/door", pwm, {{"closed", 0.0f}, {"open", 90.0f}}};
+  Hub hub{"guard", transport, clock, 5000};
+
+  DoorRig() {
+    hub.add(door);
+    hub.begin();
+  }
+};
+
+void test_servo_danh_sach_rong_khong_lam_gi_va_bao_loi() {
+  FakeTransport transport;
+  FakeClock clock;
+  FakePwm pwm;
+  PositionDevice empty{"entrance/door", pwm, {}};
+  Hub hub{"guard", transport, clock, 5000};
+  hub.add(empty);
+  hub.begin();
+  transport.simulateConnect();
+  transport.simulateMessage("domisen/entrance/door/cmd", "{\"position\":\"open\"}");
+  TEST_ASSERT_NOT_NULL(transport.last(DOOR_ERROR));
+  TEST_ASSERT_EQUAL_STRING("{}", transport.last(DOOR_STATE)->payload.c_str());
+}
+
+void test_cua_khoi_dong_o_vi_tri_dau_tien() {
+  DoorRig r;
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, r.pwm.last);  // closed = 0 độ
+  r.transport.simulateConnect();
+  const auto* state = r.transport.last(DOOR_STATE);
+  TEST_ASSERT_NOT_NULL(state);
+  TEST_ASSERT_EQUAL_STRING("{\"position\":\"closed\"}", state->payload.c_str());
+  TEST_ASSERT_TRUE(state->retain);
+}
+
+void test_cua_lenh_hop_le_chuyen_va_bao_state() {
+  DoorRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DOOR_CMD, "{\"position\":\"open\"}");
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.0725f, r.pwm.last);  // open = 90 độ
+  TEST_ASSERT_EQUAL_STRING("{\"position\":\"open\"}", r.transport.last(DOOR_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(DOOR_STATE)->retain);
+  r.transport.simulateMessage(DOOR_CMD, "{\"position\":\"closed\"}");
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, r.pwm.last);
+  TEST_ASSERT_EQUAL_STRING("{\"position\":\"closed\"}", r.transport.last(DOOR_STATE)->payload.c_str());
+}
+
+void test_cua_lenh_sai_bao_loi_va_giu_nguyen() {
+  DoorRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DOOR_CMD, "{\"position\":\"open\"}");
+  int stateCount = r.transport.count(DOOR_STATE);
+  size_t moves = r.pwm.history.size();
+  r.transport.simulateMessage(DOOR_CMD, "{\"position\":\"middle\"}");  // tên không có trong danh sách
+  const auto* err = r.transport.last(DOOR_ERROR);
+  TEST_ASSERT_NOT_NULL(err);
+  TEST_ASSERT_FALSE(err->retain);
+  TEST_ASSERT_EQUAL_STRING(DOOR_ERROR_TEXT, err->payload.c_str());
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.0725f, r.pwm.last);  // vẫn ở open
+  TEST_ASSERT_EQUAL(moves, r.pwm.history.size());           // servo không động
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(DOOR_STATE));
+}
+
+void test_cua_noi_lai_gui_lai_state() {
+  DoorRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DOOR_CMD, "{\"position\":\"open\"}");
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"position\":\"open\"}", r.transport.last(DOOR_STATE)->payload.c_str());
+}
+
+// Cửa và rèm dùng chung một lớp, chỉ khác id, PwmOutput và danh sách vị trí.
+void test_cua_va_rem_chung_mot_lop() {
+  FakeTransport transport;
+  FakeClock clock;
+  FakePwm doorPwm, curtainPwm;
+  PositionDevice door("entrance/door", doorPwm, {{"closed", 0.0f}, {"open", 90.0f}});
+  PositionDevice curtain("living/curtain", curtainPwm, {{"open", 0.0f}, {"closed", 90.0f}});
+  Hub hub{"comfort", transport, clock, 5000};
+  hub.add(door);
+  hub.add(curtain);
+  hub.begin();
+  transport.simulateConnect();
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, doorPwm.last);     // cửa: closed = 0 độ
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, curtainPwm.last);  // rèm: open = 0 độ, khởi động ở open
+  transport.simulateMessage("domisen/entrance/door/cmd", "{\"position\":\"open\"}");
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.0725f, doorPwm.last);
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.025f, curtainPwm.last);  // rèm không đổi
+  transport.simulateMessage("domisen/living/curtain/cmd", "{\"position\":\"closed\"}");
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.0725f, curtainPwm.last);  // rèm: closed = 90 độ
+  TEST_ASSERT_EQUAL_STRING("{\"position\":\"closed\"}", transport.last("domisen/living/curtain/state")->payload.c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"position\":\"open\"}", transport.last(DOOR_STATE)->payload.c_str());
+}
+
+// ---- đầu đọc thẻ (sự kiện, không phải trạng thái) ----
+static const char* CARD_CMD = "domisen/entrance/card-reader/cmd";
+static const char* CARD_STATE = "domisen/entrance/card-reader/state";
+static const char* CARD_ERROR = "domisen/entrance/card-reader/error";
+
+struct CardRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeCardReader reader;
+  CardReaderDevice card{"entrance/card-reader", reader};
+  Hub hub{"guard", transport, clock, 5000};
+
+  CardRig() {
+    hub.add(card);
+    hub.begin();
+    transport.simulateConnect();
+  }
+};
+
+void test_the_su_kien_dau_gui_khong_retain() {
+  CardRig r;
+  r.reader.push("A3F2197C");
+  r.hub.loop();
+  const auto* state = r.transport.last(CARD_STATE);
+  TEST_ASSERT_NOT_NULL(state);
+  TEST_ASSERT_EQUAL_STRING("{\"uid\":\"A3F2197C\"}", state->payload.c_str());
+  TEST_ASSERT_FALSE(state->retain);
+}
+
+void test_the_noi_broker_khong_gui_state_the() {
+  CardRig r;  // vừa nối broker: không có tin card-reader/state nào
+  TEST_ASSERT_EQUAL(0, r.transport.count(CARD_STATE));
+  r.reader.push("A3F2197C");
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(1, r.transport.count(CARD_STATE));
+}
+
+void test_the_noi_lai_khong_gui_lai_uid_cu() {
+  CardRig r;
+  r.reader.push("A3F2197C");
+  r.hub.loop();
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL(1, r.transport.count(CARD_STATE));  // chỉ lần quẹt, không gửi lại lúc nối lại
+}
+
+void test_the_giu_tren_dau_doc_khong_lap_trong_2_giay() {
+  CardRig r;
+  r.reader.push("A3F2197C");
+  r.hub.loop();  // t = 0: gửi
+  for (int i = 0; i < 3; i++) {
+    r.clock.advance(500);
+    r.reader.push("A3F2197C");  // đầu đọc vẫn báo cùng thẻ
+    r.hub.loop();               // t = 500, 1000, 1500
+  }
+  r.clock.advance(499);
+  r.reader.push("A3F2197C");
+  r.hub.loop();  // t = 1999
+  TEST_ASSERT_EQUAL(1, r.transport.count(CARD_STATE));
+}
+
+void test_the_giu_tren_dau_doc_gui_lai_sau_dung_2_giay() {
+  CardRig r;
+  r.reader.push("A3F2197C");
+  r.hub.loop();  // t = 0
+  r.clock.advance(1999);
+  r.reader.push("A3F2197C");
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(1, r.transport.count(CARD_STATE));
+  r.clock.advance(1);
+  r.reader.push("A3F2197C");
+  r.hub.loop();  // t = 2000
+  TEST_ASSERT_EQUAL(2, r.transport.count(CARD_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"uid\":\"A3F2197C\"}", r.transport.last(CARD_STATE)->payload.c_str());
+}
+
+void test_the_khac_gui_ngay() {
+  CardRig r;
+  r.reader.push("A3F2197C");
+  r.hub.loop();
+  r.clock.advance(10);
+  r.reader.push("04B1C2D3E4F5A6");
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(2, r.transport.count(CARD_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"uid\":\"04B1C2D3E4F5A6\"}", r.transport.last(CARD_STATE)->payload.c_str());
+}
+
+void test_the_roi_di_roi_quet_lai_gui_ngay() {
+  CardRig r;
+  r.reader.push("A3F2197C");
+  r.hub.loop();
+  r.clock.advance(100);
+  r.reader.pushEmpty();  // thẻ rời đi
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(1, r.transport.count(CARD_STATE));
+  r.clock.advance(100);
+  r.reader.push("A3F2197C");  // quẹt lại, mới 200 ms
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(2, r.transport.count(CARD_STATE));
+}
+
+void test_the_khong_co_the_thi_khong_gui() {
+  CardRig r;
+  r.reader.pushEmpty();
+  r.hub.loop();
+  r.clock.advance(5000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(0, r.transport.count(CARD_STATE));
+}
+
+void test_the_mat_ket_noi_thi_khong_doc() {
+  CardRig r;
+  r.transport.simulateDisconnect();
+  r.reader.push("A3F2197C");
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(0, r.reader.polls);
+}
+
+void test_the_chi_doc_khong_nhan_lenh() {
+  CardRig r;
+  r.transport.simulateMessage(CARD_CMD, "{\"on\":true}");
+  const auto* err = r.transport.last(CARD_ERROR);
+  TEST_ASSERT_NOT_NULL(err);
+  TEST_ASSERT_FALSE(err->retain);
+  TEST_ASSERT_EQUAL_STRING("{\"error\":\"đầu đọc thẻ chỉ đọc, không nhận lệnh\"}", err->payload.c_str());
+  TEST_ASSERT_EQUAL(0, r.transport.count(CARD_STATE));
+}
+
+// Thêm đầu đọc thẻ vào Hub không đổi hành vi của đèn, quạt, DHT22: vẫn retain và vẫn gửi lại lúc nối lại.
+void test_the_khong_doi_hanh_vi_cua_thiet_bi_khac() {
+  FakeTransport transport;
+  FakeClock clock;
+  FakePwm pwm;
+  FakeDigitalOutput relay;
+  FakeClimateSensor sensor;
+  FakeCardReader reader;
+  sensor.next = core::ClimateReading{27.5f, 62.0f};
+  DimmableLight light{"living/ceiling-light", pwm};
+  SwitchDevice fan{"living/fan", relay};
+  ClimateDevice climate{"living/climate", sensor, 10000};
+  CardReaderDevice card{"entrance/card-reader", reader};
+  Hub hub{"guard", transport, clock, 5000};
+  hub.add(light);
+  hub.add(fan);
+  hub.add(climate);
+  hub.add(card);
+  hub.begin();
+  transport.simulateConnect();
+  hub.loop();
+  transport.simulateMessage(FAN_CMD, "{\"on\":true}");
+  transport.published.clear();
+  transport.simulateDisconnect();
+  transport.simulateConnect();
+  TEST_ASSERT_EQUAL(1, transport.count(CEILING_STATE));
+  TEST_ASSERT_TRUE(transport.last(CEILING_STATE)->retain);
+  TEST_ASSERT_EQUAL(1, transport.count(FAN_STATE));
+  TEST_ASSERT_TRUE(transport.last(FAN_STATE)->retain);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", transport.last(FAN_STATE)->payload.c_str());
+  TEST_ASSERT_EQUAL(1, transport.count(CLIMATE_STATE));
+  TEST_ASSERT_TRUE(transport.last(CLIMATE_STATE)->retain);
+  TEST_ASSERT_EQUAL(0, transport.count(CARD_STATE));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_cua_khoi_dong_o_vi_tri_dau_tien);
+  RUN_TEST(test_servo_danh_sach_rong_khong_lam_gi_va_bao_loi);
+  RUN_TEST(test_cua_lenh_hop_le_chuyen_va_bao_state);
+  RUN_TEST(test_cua_lenh_sai_bao_loi_va_giu_nguyen);
+  RUN_TEST(test_cua_noi_lai_gui_lai_state);
+  RUN_TEST(test_cua_va_rem_chung_mot_lop);
   RUN_TEST(test_begin_dang_ky_topic_lenh_va_ping);
   RUN_TEST(test_den_tat_luc_khoi_dong);
   RUN_TEST(test_noi_broker_bao_online_va_trang_thai_retain);
@@ -470,5 +748,16 @@ int main() {
   RUN_TEST(test_den_mau_bang_lenh_level);
   RUN_TEST(test_den_mau_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_den_mau_noi_lai_gui_lai_state);
+  RUN_TEST(test_the_su_kien_dau_gui_khong_retain);
+  RUN_TEST(test_the_noi_broker_khong_gui_state_the);
+  RUN_TEST(test_the_noi_lai_khong_gui_lai_uid_cu);
+  RUN_TEST(test_the_giu_tren_dau_doc_khong_lap_trong_2_giay);
+  RUN_TEST(test_the_giu_tren_dau_doc_gui_lai_sau_dung_2_giay);
+  RUN_TEST(test_the_khac_gui_ngay);
+  RUN_TEST(test_the_roi_di_roi_quet_lai_gui_ngay);
+  RUN_TEST(test_the_khong_co_the_thi_khong_gui);
+  RUN_TEST(test_the_mat_ket_noi_thi_khong_doc);
+  RUN_TEST(test_the_chi_doc_khong_nhan_lenh);
+  RUN_TEST(test_the_khong_doi_hanh_vi_cua_thiet_bi_khac);
   return UNITY_END();
 }
