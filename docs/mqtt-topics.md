@@ -52,20 +52,52 @@ Ví dụ `{"temp":27.5,"humidity":62}`. Cảm biến đọc lỗi (dây lỏng, 
 
 Đấu dây: DHT22 loại module 3 chân. Chân S (DATA) vào GPIO14, V vào 3V3, G vào GND. Trên board mở rộng cắm đúng bộ G-V-S của GPIO14.
 
-## Thiết bị bật tắt (đã làm: #3 quạt phòng khách)
+## Quạt phòng khách chỉnh tốc độ (#3, đổi từ relay sang MOSFET ngày 07/11/2026)
 
-Áp dụng cho `living/fan` (relay GPIO16). Sau này `kitchen/exhaust-fan` dùng cùng cách. Cả hai chỉ có `on`, không có mức.
+Chủ dự án quyết định: quạt phòng khách (`living/fan`) chỉnh được tốc độ bằng PWM qua module MOSFET, thay cho relay bật tắt. Relay cũ bỏ. Vẫn dùng GPIO16.
+
+Lệnh và state **giống đèn chỉnh độ sáng** (xem mục trên): `on` và `level` từ 0 đến 100.
+
+| Lệnh gửi | Kết quả |
+|---|---|
+| `{"on":true}` | Bật, dùng tốc độ đã nhớ (mặc định 100) |
+| `{"on":false}` | Tắt, nhớ tốc độ cũ |
+| `{"level":40}` | Đặt tốc độ 40 và bật (nếu không kèm `on`) |
+| `{"level":0}` | Tắt, giữ tốc độ cũ |
+
+State `{"on":true,"level":40}` (retain, gửi lại mỗi lần nối lại broker). Lệnh cũ `{"on":true}` và `{"on":false}` vẫn chạy. Lúc bật board quạt luôn tắt.
+
+Khác đèn ở cách đổi `level` ra duty PWM (luật nằm ở `core/Fan.h`):
+
+- Không bù gamma, và quạt nhỏ không quay khi duty thấp, nên level 1 đến 100 đi tuyến tính từ duty tối thiểu đến 1,0: `duty = kFanMinDuty + (1 - kFanMinDuty) * level / 100`. Tắt là duty 0.
+- `kFanMinDuty` (`comfort/main.cpp`) mặc định 0,3, chỉnh khi thử trên quạt thật (QGDC4010HSL). Đã đo: không có kick-start thì từ đứng yên phải duty 0,314 trở lên quạt mới quay (0,307 thì không). Có kick-start 300 ms thì phải từ level 8 (duty 0,31 khi min 0,25) quạt mới chạy tốt. Tăng kick-start lên 500 ms thì hạ được min xuống 0,3, level 1 (duty 0,307) khởi động từ đứng yên và chạy tốt: quạt cần thời gian đạt vòng quay trước khi hạ ga. Thay quạt khác thì đo lại.
+- **Kick-start (chạy hết ga lúc khởi động):** quạt đứng yên cần duty cao hơn lúc đã quay (đã thấy khi thử: đang quay thì level 1 vẫn quay, đứng yên rồi đặt level 1 thì không tự quay). Nên khi quạt đi từ đứng yên (duty đang ra là 0) lên một duty thấp hơn 1,0, board cho chạy **hết ga** `kFanKickMs` (mặc định 500 ms, `comfort/main.cpp`) rồi mới hạ về duty đã đặt. Đang quay mà đổi mức thì không kick. Đổi mức trong lúc đang kick chỉ đổi mức đích, không kéo dài thời gian kick. Tắt trong lúc kick thì dừng ngay. Luật `fanNeedsKick` nằm ở `core/Fan.h`; thời gian do dịch vụ `SpeedFan` quản lý (qua `tick` của Hub, nên chỉ chạy khi board đang nối broker).
+
+Phần cứng: module MOSFET **LR7843** (IRLR7843, logic-level nên 3,3 V mở đủ) có opto **EL817** cách ly giữa phía tín hiệu và phía tải. PWM do LEDC kênh 4 (cặp 4 và 5, tách khỏi đèn kênh 0, 1 và servo kênh 2, 3), 10 bit, tần số là hằng số `kFanPwmHz` (mặc định 5000 Hz). EL817 chậm (mỗi cạnh vài micro giây đến hơn chục micro giây) nên **không dùng tần số 25 kHz** thường gặp ở quạt máy tính; nếu quạt rít thì thử các tần số khác trên module thật rồi chốt.
+
+Đấu dây (nhãn đọc ở mặt dưới module; đặt module mặt có chip hướng lên, phía tín hiệu bên trái, chữ `GND` ở trên chữ `PWM`):
+
+- Phía tín hiệu (hai lỗ bên trái, hàn hàng chân đực 2 chân): `PWM` vào GPIO16, `GND` vào GND của ESP32.
+- Phía tải (ba lỗ bên phải, hàn cọc vít xanh dương 3 chân). Nhìn từ mặt có chip, từ trên xuống: `-`, `LOAD`, `+`. Nhãn ở mặt dưới đọc ngược lại vì lật bo.
+  - `+`: nguồn 5V từ adapter, và dây dương của quạt (hai dây chung một cọc).
+  - `LOAD`: dây âm của quạt. Đây là đầu được đóng ngắt.
+  - `-`: GND của adapter.
+- Phía tín hiệu cách ly với phía tải bằng opto, nên không bắt buộc nối GND của ESP32 với GND của adapter.
+
+Tự bật quạt theo nhiệt độ là luật của **server** (đọc `living/climate/state`, gửi lệnh vào `living/fan/cmd`), không nằm trong board. Hiện chỉ điều khiển tay, ví dụ bằng MQTTX.
+
+## Thiết bị bật tắt (relay, đã làm: #9 quạt hút bếp)
+
+Áp dụng cho `kitchen/exhaust-fan` (relay GPIO32). Chỉ có `on`, không có mức.
 
 | Lệnh gửi | Kết quả |
 |---|---|
 | `{"on":true}` | Bật |
 | `{"on":false}` | Tắt |
 
-Thiếu `on`, hoặc `on` không phải `true`/`false` thì giữ nguyên trạng thái và báo lỗi ở `.../error`. Board trả lời bằng `.../state`: `{"on":true}` (retain, gửi lại mỗi lần nối lại broker). Lúc bật board, quạt luôn tắt.
+Thiếu `on`, hoặc `on` không phải `true`/`false` thì giữ nguyên trạng thái và báo lỗi ở `.../error`. Board trả lời bằng `.../state`: `{"on":true}` (retain, gửi lại mỗi lần nối lại broker). Lúc bật board, thiết bị luôn tắt.
 
-Tự bật quạt theo nhiệt độ là luật của **server** (đọc `living/climate/state`, gửi lệnh vào `living/fan/cmd`), không nằm trong board. Hiện chỉ điều khiển tay, ví dụ bằng MQTTX.
-
-Đấu dây: module relay 1 kênh 5V. IN vào GPIO16, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `kFanRelayActiveLow` trong `comfort/main.cpp`. Module đang dùng chạy mức cao (hút khi IN lên 5 V) nên hằng số này là `false`.
+Đấu dây: module relay 1 kênh 5V. IN vào chân điều khiển, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `ActiveLow` trong `main.cpp`. Module đang dùng chạy mức cao (hút khi IN lên 5 V) nên hằng số này là `false`.
 
 ## Cảm biến hai trạng thái (chưa làm: PIR, cảm biến mưa, nút cảm ứng)
 

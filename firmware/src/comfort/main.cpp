@@ -2,17 +2,17 @@
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
 #include <shared/adapters_esp32/Dht22Sensor.h>
-#include <shared/adapters_esp32/Esp32DigitalOut.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
 #include <shared/adapters_esp32/Ws2812Strip.h>
+#include <shared/core/Fan.h>
 #include <shared/protocol/Topics.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
-#include <shared/services/SwitchDevice.h>
+#include <shared/services/SpeedFan.h>
 
 #include "domisen_config.h"
 
@@ -39,9 +39,13 @@ static adapters::esp32::Esp32Pwm nightPwm(26, 1);    // GPIO26, kênh LEDC 1
 static services::DimmableLight ceilingLight("living/ceiling-light", ceilingPwm);
 static services::DimmableLight nightLight("bedroom/night-light", nightPwm);
 
-static const bool kFanRelayActiveLow = false;  // relay của bạn hút khi IN lên 5V (mức cao); module khác có thể hút ở mức thấp
-static adapters::esp32::Esp32DigitalOut fanRelay(16, kFanRelayActiveLow);  // GPIO16
-static services::SwitchDevice fan("living/fan", fanRelay);
+// Quạt phòng khách chỉnh tốc độ: module MOSFET LR7843 có opto EL817 (chậm, nên không dùng 25 kHz), PWM vào GPIO16.
+// Kênh LEDC 4 (cặp 4 và 5) tách khỏi đèn (0, 1) và servo (2, 3). Hai hằng số chỉnh khi thử trên quạt thật.
+static const int kFanPwmHz = 5000;        // quạt rít thì thử tần số khác
+static const float kFanMinDuty = 0.3f;     // duty thấp nhất mà quạt đang quay vẫn giữ được vòng quay (ứng với level 1); khởi động đã có kick-start
+static const uint32_t kFanKickMs = 500;   // kick-start (chạy hết ga lúc khởi động): chạy hết ga bấy nhiêu ms khi đi từ đứng yên lên duty thấp
+static adapters::esp32::Esp32Pwm fanPwm(16, 4, kFanPwmHz);  // GPIO16, kênh LEDC 4
+static services::SpeedFan fan("living/fan", fanPwm, clock_, kFanMinDuty, kFanKickMs);
 
 static adapters::esp32::Dht22Sensor dht(14);  // GPIO14
 static services::ClimateDevice climate("living/climate", dht);
@@ -69,7 +73,7 @@ void setup() {
   nightPwm.begin();
   curtainPwm.begin();
   clotheslinePwm.begin();
-  fanRelay.begin();
+  fanPwm.begin();
   dht.begin();
   moodStrip.begin();
   hub.add(ceilingLight);

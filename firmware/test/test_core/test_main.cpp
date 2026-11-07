@@ -1,5 +1,6 @@
 // Luật thuần của đèn, đèn màu và servo: không cần phần cứng, không cần JSON.
 #include <shared/core/ColorLight.h>
+#include <shared/core/Fan.h>
 #include <shared/core/Light.h>
 #include <shared/core/Servo.h>
 #include <unity.h>
@@ -154,6 +155,28 @@ void test_servo_goc_ngoai_khoang_bi_cat() {
   TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.12f, servoDuty(200.0f));
 }
 
+// Giá trị mong đợi tính tay theo docs/mqtt-topics.md: duty = min + (1 - min) * level / 100, min = 0,3.
+void test_quat_duty_tat_la_0() {
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, fanDuty({}, 0.3f));
+  LightState s = applyLightCommand({}, true, 40);
+  s = applyLightCommand(s, false, std::nullopt);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, fanDuty(s, 0.3f));  // tắt thì 0, dù đang nhớ mức 40
+}
+
+void test_quat_duty_tuyen_tinh_tu_min_den_1() {
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 1.0f, fanDuty(applyLightCommand({}, true, std::nullopt), 0.3f));   // mức 100
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.65f, fanDuty(applyLightCommand({}, true, 50), 0.3f));            // 0,3 + 0,7 * 0,5
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.307f, fanDuty(applyLightCommand({}, true, 1), 0.3f));            // 0,3 + 0,7 * 0,01
+  TEST_ASSERT_FLOAT_WITHIN(0.00001f, 0.5f, fanDuty(applyLightCommand({}, true, 50), 0.0f));             // min 0: đúng tỉ lệ
+}
+
+void test_quat_kick_start_chi_khi_dung_yen_len_duty_thap() {
+  TEST_ASSERT_TRUE(fanNeedsKick(0.0f, 0.307f));   // đứng yên lên mức thấp
+  TEST_ASSERT_FALSE(fanNeedsKick(0.5f, 0.307f));  // đang quay hạ xuống: không kick
+  TEST_ASSERT_FALSE(fanNeedsKick(0.0f, 1.0f));    // đã hết ga rồi
+  TEST_ASSERT_FALSE(fanNeedsKick(0.0f, 0.0f));    // vẫn tắt
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_mac_dinh_tat_muc_100);
@@ -173,6 +196,9 @@ int main() {
   RUN_TEST(test_den_mau_level_ngoai_khoang_bi_cat);
   RUN_TEST(test_den_mau_mau_ra_thanh_led_muc_40);
   RUN_TEST(test_den_mau_mau_ra_thanh_led_tat_va_muc_day);
+  RUN_TEST(test_quat_duty_tat_la_0);
+  RUN_TEST(test_quat_duty_tuyen_tinh_tu_min_den_1);
+  RUN_TEST(test_quat_kick_start_chi_khi_dung_yen_len_duty_thap);
   RUN_TEST(test_servo_duty_ba_goc);
   RUN_TEST(test_servo_goc_ngoai_khoang_bi_cat);
   return UNITY_END();

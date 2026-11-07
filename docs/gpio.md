@@ -21,7 +21,7 @@ Bảng gốc lấy từ `docs/plan/ke-hoach.html`, đã được đổi chân ng
 |---|---|---|---|
 | 1 | Đèn trần (LED trắng) | GPIO25 | Qua 220 Ω, PWM chỉnh độ sáng |
 | 2 | Đèn ngủ (LED vàng) | GPIO26 | Qua 220 Ω, PWM |
-| 3 | Relay quạt phòng khách | GPIO16 | Quạt lấy điện 5V từ adapter qua relay. Module relay đang dùng chạy mức cao, xem `kFanRelayActiveLow` (đang là `false`) trong `comfort/main.cpp` |
+| 3 | Quạt phòng khách (MOSFET, PWM) | GPIO16 | Module MOSFET LR7843 cách ly opto EL817. Chân PWM của module vào GPIO16, quạt lấy điện 5V từ adapter qua module. Tần số và duty tối thiểu: `kFanPwmHz`, `kFanMinDuty` trong `comfort/main.cpp` (xem `docs/mqtt-topics.md`) |
 | 4 | DHT22 (module 3 chân) | GPIO14 | Nguồn 3,3V. Đọc chậm nhất 2 giây một lần, firmware đọc 10 giây một lần |
 | 5 | Quang trở (AO) | GPIO34 | ADC1, đọc được khi WiFi bật |
 | 6 | PIR HC-SR501 | GPIO39 | Chân chỉ đọc |

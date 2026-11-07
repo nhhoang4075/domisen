@@ -46,11 +46,15 @@ Cảm biến nhận lệnh thì trả lỗi "chỉ đọc" như mọi lệnh sai
 
 ## Thiết bị bật tắt (relay)
 
-`SwitchDevice` dùng cho mọi thiết bị chỉ có bật và tắt (quạt phòng khách, quạt hút bếp...), chỉ khác id và `DigitalOutput`.
+`SwitchDevice` dùng cho mọi thiết bị chỉ có bật và tắt (quạt hút bếp...), chỉ khác id và `DigitalOutput`.
 Lõi chỉ biết "bật" hay "tắt" theo nghĩa logic: relay chạy mức thấp (active low) hay mức cao là việc của adapter `Esp32DigitalOut`.
 Khởi động luôn ở trạng thái tắt, và adapter đặt mức "tắt" trước khi bật chế độ đầu ra để relay không nháy lúc khởi động.
 Việc tự bật quạt theo nhiệt độ **không nằm trên board**: đó là luật tiện nghi, chạy trên server (xem `docs/plan`, nguyên tắc "việc an toàn xử lý ngay tại nhà").
 Board chỉ nhận lệnh `on` và báo state. Quạt hút khi có gas (an toàn) mới do board guard tự quyết, làm sau.
+
+## Quạt phòng khách chỉnh tốc độ
+
+Quạt phòng khách dùng lớp dịch vụ `SpeedFan`: cùng lệnh `on`/`level` và trạng thái `LightState` với đèn, nhưng luật khác. `core/Fan.h` có `fanDuty` (tuyến tính từ duty tối thiểu, không bù gamma) và `fanNeedsKick` (kick-start (chạy hết ga lúc khởi động): từ đứng yên lên duty thấp thì chạy hết ga một lúc). `SpeedFan` nhận `Clock` để đo thời gian kick và hết kick ở `tick` của Hub. Adapter vẫn là `Esp32Pwm`, bản giả `FakePwm`.
 
 ## Thiết bị sẽ thêm (đã duyệt, chưa làm)
 
