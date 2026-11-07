@@ -9,6 +9,7 @@
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/ColorLight.h>
+#include <shared/core/Fan.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
@@ -90,6 +91,68 @@ void test_lenh_dieu_khien_pwm_va_bao_lai_trang_thai() {
   TEST_ASSERT_EQUAL_FLOAT(0.0f, r.ceilingPwm.last);
   r.transport.simulateMessage(CEILING_CMD, "{\"on\":true}");  // bật lại đúng mức 50
   TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.2176f, r.ceilingPwm.last);
+}
+
+// ---- quạt phòng khách chỉnh tốc độ (DimmableLight + fanDuty, duty tối thiểu 0,3) ----
+static const char* LIVING_FAN_CMD = "domisen/living/fan/cmd";
+static const char* LIVING_FAN_STATE = "domisen/living/fan/state";
+
+struct SpeedFanRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakePwm pwm;
+  DimmableLight fan{"living/fan", pwm, [](const core::LightState& s) { return core::fanDuty(s, 0.3f); }};
+  Hub hub{"comfort", transport, clock, 5000};
+
+  SpeedFanRig() {
+    pwm.last = 0.9f;  // giả sử đầu ra đang chạy, begin() phải đưa về tắt
+    hub.add(fan);
+    hub.begin();
+  }
+};
+
+void test_quat_toc_do_tat_luc_khoi_dong() {
+  SpeedFanRig r;
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.pwm.last);
+  r.transport.simulateConnect();
+  const auto* state = r.transport.last(LIVING_FAN_STATE);
+  TEST_ASSERT_NOT_NULL(state);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false,\"level\":100}", state->payload.c_str());
+  TEST_ASSERT_TRUE(state->retain);
+}
+
+void test_quat_toc_do_lenh_cu_on_van_chay() {
+  SpeedFanRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(LIVING_FAN_CMD, "{\"on\":true}");
+  TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.0f, r.pwm.last);  // mặc định mức 100
+  r.transport.simulateMessage(LIVING_FAN_CMD, "{\"on\":false}");
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.pwm.last);
+}
+
+void test_quat_toc_do_level_ra_duty_tuyen_tinh_tu_min() {
+  SpeedFanRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(LIVING_FAN_CMD, "{\"level\":50}");  // đặt mức và tự bật
+  TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.65f, r.pwm.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true,\"level\":50}", r.transport.last(LIVING_FAN_STATE)->payload.c_str());
+  r.transport.simulateMessage(LIVING_FAN_CMD, "{\"level\":1}");
+  TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.307f, r.pwm.last);
+  r.transport.simulateMessage(LIVING_FAN_CMD, "{\"level\":0}");  // tắt, giữ mức cũ
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.pwm.last);
+  r.transport.simulateMessage(LIVING_FAN_CMD, "{\"on\":true}");  // bật lại đúng mức 1
+  TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.307f, r.pwm.last);
+}
+
+void test_quat_toc_do_lenh_sai_bao_loi_va_giu_nguyen() {
+  SpeedFanRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(LIVING_FAN_CMD, "{\"level\":50}");
+  int stateCount = r.transport.count(LIVING_FAN_STATE);
+  r.transport.simulateMessage(LIVING_FAN_CMD, "{\"level\":\"nhanh\"}");
+  TEST_ASSERT_NOT_NULL(r.transport.last("domisen/living/fan/error"));
+  TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.65f, r.pwm.last);  // vẫn chạy như cũ
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(LIVING_FAN_STATE));
 }
 
 void test_hai_den_doc_lap() {
@@ -780,6 +843,10 @@ int main() {
   RUN_TEST(test_den_tat_luc_khoi_dong);
   RUN_TEST(test_noi_broker_bao_online_va_trang_thai_retain);
   RUN_TEST(test_lenh_dieu_khien_pwm_va_bao_lai_trang_thai);
+  RUN_TEST(test_quat_toc_do_tat_luc_khoi_dong);
+  RUN_TEST(test_quat_toc_do_lenh_cu_on_van_chay);
+  RUN_TEST(test_quat_toc_do_level_ra_duty_tuyen_tinh_tu_min);
+  RUN_TEST(test_quat_toc_do_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_hai_den_doc_lap);
   RUN_TEST(test_lenh_sai_bao_loi_va_khong_doi_trang_thai);
   RUN_TEST(test_noi_lai_gui_lai_trang_thai_hien_tai);
