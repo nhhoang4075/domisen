@@ -43,7 +43,7 @@ static services::CardReaderDevice cardReader("entrance/card-reader", rc522);
 // Còi là module buzzer thụ động 5V: chỉ kêu khi nhận xung, nên dùng Esp32ToneOutput (xung 50 % ở kAlarmToneHz).
 // Chân I/O kéo lên VCC (5 V), kích ở mức thấp: lúc tắt thả chân về đầu vào để module tự kéo lên 5 V (xuất 3,3 V chưa đủ tắt hẳn, còi nóng).
 // Kênh LEDC 4 khác cặp với servo (kênh 2): mỗi cặp kênh chung bộ định thời nên chung tần số.
-static const int kAlarmToneHz = 2700;
+static const int kAlarmToneHz = 3000;
 static adapters::esp32::Esp32ToneOutput alarmOutput(27, 4, kAlarmToneHz);  // GPIO27, kênh LEDC 4
 
 // Relay quạt hút. false: hút khi chân lên mức cao (như relay quạt phòng khách); module chạy mức thấp thì đổi thành true.
