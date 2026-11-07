@@ -2,10 +2,12 @@
 #include <shared/adapters_fake/FakeCardReader.h>
 #include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeClock.h>
+#include <shared/adapters_fake/FakeDigitalInput.h>
 #include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
+#include <shared/services/BinarySensorDevice.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/ColorLight.h>
@@ -20,10 +22,12 @@ using namespace domisen;
 using adapters::fake::FakeCardReader;
 using adapters::fake::FakeClimateSensor;
 using adapters::fake::FakeClock;
+using adapters::fake::FakeDigitalInput;
 using adapters::fake::FakeDigitalOutput;
 using adapters::fake::FakePixelStrip;
 using adapters::fake::FakePwm;
 using adapters::fake::FakeTransport;
+using services::BinarySensorDevice;
 using services::CardReaderDevice;
 using services::ClimateDevice;
 using services::ColorLight;
@@ -454,6 +458,126 @@ void test_quat_noi_lai_gui_lai_state() {
   r.transport.simulateConnect();
   TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(FAN_STATE)->payload.c_str());
   TEST_ASSERT_TRUE(r.relay.last);  // mất mạng thì quạt giữ nguyên trạng thái
+}
+
+// ---- cảm biến nhị phân ----
+static const char* MOTION_CMD = "domisen/living/motion/cmd";
+static const char* MOTION_STATE = "domisen/living/motion/state";
+
+struct BinarySensorRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeDigitalInput input;
+  BinarySensorDevice motion{"living/motion", "motion", input, false};
+  Hub hub{"comfort", transport, clock, 5000};
+
+  BinarySensorRig() {
+    hub.add(motion);
+    hub.begin();
+  }
+};
+
+void test_cam_bien_nhi_phan_chua_doc_gui_null_va_lan_dau_nhan_ngay() {
+  BinarySensorRig r;
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":null}", r.transport.last(MOTION_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(MOTION_STATE)->retain);
+
+  r.hub.loop();  // lần đọc đầu được nhận ngay
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":false}", r.transport.last(MOTION_STATE)->payload.c_str());
+  TEST_ASSERT_EQUAL(2, r.transport.count(MOTION_STATE));
+}
+
+void test_cam_bien_nhi_phan_chong_nhieu_va_nhan_gia_tri_on_dinh_sau_50ms() {
+  BinarySensorRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();  // baseline false
+  int before = r.transport.count(MOTION_STATE);
+
+  r.input.value = true;
+  r.hub.loop();  // bắt đầu khoảng ổn định
+  r.clock.advance(49);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(before, r.transport.count(MOTION_STATE));
+
+  r.clock.advance(1);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(before + 1, r.transport.count(MOTION_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":true}", r.transport.last(MOTION_STATE)->payload.c_str());
+}
+
+void test_cam_bien_nhi_phan_bo_qua_nhieu_ngan_hon_50ms() {
+  BinarySensorRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();  // baseline false
+  int before = r.transport.count(MOTION_STATE);
+
+  r.input.value = true;
+  r.hub.loop();
+  r.clock.advance(20);
+  r.input.value = false;
+  r.hub.loop();
+  r.clock.advance(50);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(before, r.transport.count(MOTION_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":false}", r.transport.last(MOTION_STATE)->payload.c_str());
+}
+
+void test_cam_bien_nhi_phan_active_low_dao_muc() {
+  FakeDigitalInput input;
+  input.value = false;  // LOW nghĩa là có mưa theo tài liệu
+  BinarySensorDevice rain("balcony/rain", "raining", input, true);
+  TEST_ASSERT_TRUE(rain.tick(0));
+  TEST_ASSERT_EQUAL_STRING("{\"raining\":true}", rain.stateJson().c_str());
+}
+
+// Cảm biến mưa dùng chống nhiễu 1 giây (docs/mqtt-topics.md): DO nhấp nháy khi nhỏ nước thì không báo.
+void test_cam_bien_nhi_phan_chong_nhieu_1_giay_cho_cam_bien_mua() {
+  FakeDigitalInput input;
+  input.value = true;  // HIGH: khô (activeLow nên là chưa mưa)
+  BinarySensorDevice rain("balcony/rain", "raining", input, true, 1000);
+  TEST_ASSERT_TRUE(rain.tick(0));  // lần đọc đầu nhận ngay
+  TEST_ASSERT_EQUAL_STRING("{\"raining\":false}", rain.stateJson().c_str());
+
+  input.value = false;  // LOW: ướt
+  TEST_ASSERT_FALSE(rain.tick(10));   // bắt đầu khoảng ổn định
+  input.value = true;                 // nhấp nháy trở lại khô trước khi đủ 1 giây
+  TEST_ASSERT_FALSE(rain.tick(500));
+  input.value = false;
+  TEST_ASSERT_FALSE(rain.tick(600));  // đếm lại từ 600
+  TEST_ASSERT_FALSE(rain.tick(1599));
+  TEST_ASSERT_EQUAL_STRING("{\"raining\":false}", rain.stateJson().c_str());
+  TEST_ASSERT_TRUE(rain.tick(1600));  // đủ 1000 ms
+  TEST_ASSERT_EQUAL_STRING("{\"raining\":true}", rain.stateJson().c_str());
+}
+
+void test_cam_bien_nhi_phan_chi_doc_va_khong_doi_state_khi_nhan_lenh() {
+  BinarySensorRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();
+  int before = r.transport.count(MOTION_STATE);
+
+  r.transport.simulateMessage(MOTION_CMD, "{\"on\":true}");
+  const auto* error = r.transport.last("domisen/living/motion/error");
+  TEST_ASSERT_NOT_NULL(error);
+  TEST_ASSERT_EQUAL_STRING("{\"error\":\"cảm biến chỉ đọc, không nhận lệnh\"}", error->payload.c_str());
+  TEST_ASSERT_FALSE(error->retain);
+  TEST_ASSERT_EQUAL(before, r.transport.count(MOTION_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":false}", r.motion.stateJson().c_str());
+}
+
+void test_cam_bien_nhi_phan_noi_lai_gui_lai_state_hien_tai() {
+  BinarySensorRig r;
+  r.transport.simulateConnect();
+  r.hub.loop();
+  r.input.value = true;
+  r.hub.loop();
+  r.clock.advance(50);
+  r.hub.loop();
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":true}", r.transport.last(MOTION_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(MOTION_STATE)->retain);
 }
 
 // ---- đèn màu WS2812 ----
@@ -937,6 +1061,13 @@ int main() {
   RUN_TEST(test_quat_bat_tat_va_bao_lai_state);
   RUN_TEST(test_quat_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_quat_noi_lai_gui_lai_state);
+  RUN_TEST(test_cam_bien_nhi_phan_chua_doc_gui_null_va_lan_dau_nhan_ngay);
+  RUN_TEST(test_cam_bien_nhi_phan_chong_nhieu_va_nhan_gia_tri_on_dinh_sau_50ms);
+  RUN_TEST(test_cam_bien_nhi_phan_bo_qua_nhieu_ngan_hon_50ms);
+  RUN_TEST(test_cam_bien_nhi_phan_active_low_dao_muc);
+  RUN_TEST(test_cam_bien_nhi_phan_chong_nhieu_1_giay_cho_cam_bien_mua);
+  RUN_TEST(test_cam_bien_nhi_phan_chi_doc_va_khong_doi_state_khi_nhan_lenh);
+  RUN_TEST(test_cam_bien_nhi_phan_noi_lai_gui_lai_state_hien_tai);
   RUN_TEST(test_den_mau_tat_luc_khoi_dong);
   RUN_TEST(test_den_mau_bang_lenh_on_true);
   RUN_TEST(test_den_mau_bang_lenh_on_false_nho_mau_va_muc);

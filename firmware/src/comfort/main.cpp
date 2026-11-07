@@ -2,11 +2,13 @@
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
 #include <shared/adapters_esp32/Dht22Sensor.h>
+#include <shared/adapters_esp32/Esp32DigitalIn.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
 #include <shared/adapters_esp32/Ws2812Strip.h>
 #include <shared/core/Fan.h>
 #include <shared/protocol/Topics.h>
+#include <shared/services/BinarySensorDevice.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
@@ -50,6 +52,23 @@ static services::SpeedFan fan("living/fan", fanPwm, clock_, kFanMinDuty, kFanKic
 static adapters::esp32::Dht22Sensor dht(14);  // GPIO14
 static services::ClimateDevice climate("living/climate", dht);
 
+// Mức tín hiệu "bật" của từng cảm biến (chủ dự án chỉnh khi thử trên module thật):
+static const bool kMotionSensorActiveLow = false;  // PIR: HIGH là có chuyển động
+static const bool kRainSensorActiveLow = true;     // mưa (chân DO): LOW là đang mưa, module kéo DO xuống khi ướt
+static const bool kWallButtonActiveLow = false;    // TTP223: HIGH là đang chạm
+// Cảm biến mưa dùng chống nhiễu dài hơn (mặc định của PIR và nút là 50 ms): chip so sánh LM393 trên module không có
+// độ trễ nên DO nhấp nháy khi nhỏ nước, và mưa là hiện tượng chậm. Chủ dự án quyết định 07/11/2026.
+static const uint32_t kRainDebounceMs = 1000;
+static adapters::esp32::Esp32DigitalIn motionInput(39);      // GPIO39
+static adapters::esp32::Esp32DigitalIn rainInput(35);        // GPIO35
+static adapters::esp32::Esp32DigitalIn wallButtonInput(27);  // GPIO27
+static services::BinarySensorDevice motion("living/motion", "motion", motionInput,
+                                           kMotionSensorActiveLow);
+static services::BinarySensorDevice rain("balcony/rain", "raining", rainInput,
+                                         kRainSensorActiveLow, kRainDebounceMs);
+static services::BinarySensorDevice wallButton("living/wall-button", "pressed", wallButtonInput,
+                                               kWallButtonActiveLow);
+
 static adapters::esp32::Ws2812Strip moodStrip(33, 8);  // GPIO33, thanh 8 bóng
 static services::ColorLight moodLight("living/mood-light", moodStrip);
 
@@ -75,11 +94,17 @@ void setup() {
   clotheslinePwm.begin();
   fanPwm.begin();
   dht.begin();
+  motionInput.begin();
+  rainInput.begin();
+  wallButtonInput.begin();
   moodStrip.begin();
   hub.add(ceilingLight);
   hub.add(nightLight);
   hub.add(fan);
   hub.add(climate);
+  hub.add(motion);
+  hub.add(rain);
+  hub.add(wallButton);
   hub.add(moodLight);
   hub.add(curtain);
   hub.add(clothesline);

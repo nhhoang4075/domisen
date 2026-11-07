@@ -1,4 +1,5 @@
 // Tên topic và mã hóa JSON. Giá trị mong đợi lấy từ docs/mqtt-topics.md.
+#include <shared/protocol/BinarySensor.h>
 #include <shared/protocol/CardReader.h>
 #include <shared/protocol/Climate.h>
 #include <shared/protocol/ColorLight.h>
@@ -65,6 +66,12 @@ void test_ma_hoa_khi_hau() {
   TEST_ASSERT_EQUAL_STRING("{\"temp\":-3.2,\"humidity\":100}", encodeClimateState(-3.24f, 100.0f).c_str());
   TEST_ASSERT_EQUAL_STRING("{\"temp\":null,\"humidity\":null}", encodeClimateUnavailable().c_str());
   TEST_ASSERT_EQUAL_STRING("domisen/living/climate/state", stateTopic("living/climate").c_str());
+}
+
+void test_ma_hoa_cam_bien_hai_trang_thai() {
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":true}", encodeBinarySensorState("motion", true).c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":false}", encodeBinarySensorState("motion", false).c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"motion\":null}", encodeBinarySensorUnknown("motion").c_str());
 }
 
 void test_ma_hoa_dau_doc_the() {
@@ -222,6 +229,7 @@ int main() {
   RUN_TEST(test_lenh_sai_bi_tu_choi);
   RUN_TEST(test_ma_hoa_trang_thai);
   RUN_TEST(test_ma_hoa_khi_hau);
+  RUN_TEST(test_ma_hoa_cam_bien_hai_trang_thai);
   RUN_TEST(test_ma_hoa_dau_doc_the);
   RUN_TEST(test_giai_ma_lenh_bat_tat);
   RUN_TEST(test_lenh_bat_tat_sai_bi_tu_choi);

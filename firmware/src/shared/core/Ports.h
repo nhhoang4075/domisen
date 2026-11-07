@@ -39,6 +39,13 @@ class DigitalOutput {
   virtual void write(bool on) = 0;
 };
 
+// Đầu vào số. Adapter trả true khi chân ở mức HIGH.
+class DigitalInput {
+ public:
+  virtual ~DigitalInput() = default;
+  virtual bool read() = 0;
+};
+
 // Thanh đèn nhiều bóng nhận cùng một màu (WS2812). Mỗi kênh 0..255 là màu thực tế đã nhân độ sáng:
 // lõi tính hết, adapter chỉ đẩy ra phần cứng.
 class PixelStrip {

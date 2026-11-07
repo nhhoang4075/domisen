@@ -2,6 +2,7 @@
 // (hiện là bản giả). Adapter thật cần board nên chỉ kiểm tra được khi nạp lên thiết bị.
 #include <shared/adapters_fake/FakeCardReader.h>
 #include <shared/adapters_fake/FakeClimateSensor.h>
+#include <shared/adapters_fake/FakeDigitalInput.h>
 #include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
@@ -79,6 +80,15 @@ template <typename O> void digitalOutputContract() {
   TEST_ASSERT_FALSE(o.last);
 }
 
+// ---- DigitalInput ----
+template <typename I> void digitalInputContract() {
+  I input;
+  input.value = true;
+  TEST_ASSERT_TRUE(input.read());
+  input.value = false;
+  TEST_ASSERT_FALSE(input.read());
+}
+
 // ---- PixelStrip ----
 template <typename S> void pixelStripContract() {
   S s;
@@ -111,6 +121,7 @@ template <typename R> void cardReaderContract(R& r) {
 void test_fake_transport() { transportContract<adapters::fake::FakeTransport>(); }
 void test_fake_pwm() { pwmContract<adapters::fake::FakePwm>(); }
 void test_fake_digital_output() { digitalOutputContract<adapters::fake::FakeDigitalOutput>(); }
+void test_fake_digital_input() { digitalInputContract<adapters::fake::FakeDigitalInput>(); }
 void test_fake_climate() { climateContract<adapters::fake::FakeClimateSensor>(); }
 void test_fake_pixel_strip() { pixelStripContract<adapters::fake::FakePixelStrip>(); }
 void test_fake_card_reader() {
@@ -124,6 +135,7 @@ int main() {
   RUN_TEST(test_fake_pwm);
   RUN_TEST(test_fake_climate);
   RUN_TEST(test_fake_digital_output);
+  RUN_TEST(test_fake_digital_input);
   RUN_TEST(test_fake_pixel_strip);
   RUN_TEST(test_fake_card_reader);
   return UNITY_END();
