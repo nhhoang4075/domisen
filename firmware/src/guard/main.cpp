@@ -1,7 +1,9 @@
-// Board guard: cửa, bếp, an ninh. Hiện có servo cửa chính và đầu đọc thẻ RC522; các thiết bị khác làm sau.
+// Board guard: cửa, bếp, an ninh. Hiện có servo cửa chính, đầu đọc thẻ RC522, còi và quạt hút bếp; các thiết bị khác làm sau.
 // Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
+#include <shared/adapters_esp32/Esp32DigitalOut.h>
+#include <shared/adapters_esp32/Esp32ToneOutput.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
 #include <shared/adapters_esp32/Rc522Reader.h>
@@ -9,6 +11,7 @@
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
+#include <shared/services/SwitchDevice.h>
 
 #include "domisen_config.h"
 
@@ -37,6 +40,18 @@ static services::PositionDevice door("entrance/door", doorPwm, {{"closed", kDoor
 static adapters::esp32::Rc522Reader rc522(16, 19, 17, 18, 5);  // SS GPIO16, RST GPIO19, SCK GPIO17, MISO GPIO18, MOSI GPIO5 (SPI qua GPIO matrix)
 static services::CardReaderDevice cardReader("entrance/card-reader", rc522);
 
+// Còi là module buzzer thụ động 5V: chỉ kêu khi nhận xung, nên dùng Esp32ToneOutput (xung 50 % ở kAlarmToneHz).
+// Chân I/O kéo lên VCC (5 V), kích ở mức thấp: lúc tắt thả chân về đầu vào để module tự kéo lên 5 V (xuất 3,3 V chưa đủ tắt hẳn, còi nóng).
+// Kênh LEDC 4 khác cặp với servo (kênh 2): mỗi cặp kênh chung bộ định thời nên chung tần số.
+static const int kAlarmToneHz = 3000;
+static adapters::esp32::Esp32ToneOutput alarmOutput(27, 4, kAlarmToneHz);  // GPIO27, kênh LEDC 4
+
+// Relay quạt hút. false: hút khi chân lên mức cao (như relay quạt phòng khách); module chạy mức thấp thì đổi thành true.
+static const bool kExhaustFanActiveLow = false;
+static adapters::esp32::Esp32DigitalOut exhaustFanRelay(32, kExhaustFanActiveLow);  // GPIO32
+static services::SwitchDevice alarmDevice("house/alarm", alarmOutput);
+static services::SwitchDevice exhaustFan("kitchen/exhaust-fan", exhaustFanRelay);
+
 static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
@@ -45,6 +60,10 @@ void setup() {
   hub.add(door);
   rc522.begin();
   hub.add(cardReader);
+  alarmOutput.begin();
+  exhaustFanRelay.begin();
+  hub.add(alarmDevice);
+  hub.add(exhaustFan);
   hub.begin();
   transport.begin();
 }
