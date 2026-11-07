@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sơ đồ nối chân Domisen</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f5f6f3; --card:#ffffff; --ink:#1c2420; --muted:#59665f; --line:#d8ded8;
+  --pcb:#e4eee7; --pcb-line:#a9bdb0; --accent:#1f6f54; --accent-soft:#dff2ea;
+  --warn:#b4540a; --bad:#c92a2a; --good:#2b8a3e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#f5f6f3;color:#1c2420;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+body{padding:20px 16px 56px}
+.wrap{max-width:1280px;margin:0 auto}
+h1{font-size:24px;margin:0 0 4px}
+h2{font-size:17px;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 16px;max-width:820px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.seg button{border:0;background:#fff;padding:8px 14px;font:inherit;cursor:pointer;color:var(--ink)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13.5px}
+.chip b{font-weight:650}
+.chip.good{border-color:#9fd3b0;background:#ecf8f0}
+.chip.bad{border-color:#f0b4b4;background:#fdf0f0}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tools button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+.tools button:hover{background:#f0f4f1}
+.room{margin:12px 0 4px;font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center}
+.room button{border:0;background:none;color:var(--accent);cursor:pointer;font:inherit;font-size:12.5px;padding:0}
+.item{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:9px;border:1px solid transparent;cursor:pointer}
+.item:hover{background:#f3f6f4}
+.item.sel{border-color:var(--accent);background:var(--accent-soft)}
+.item.off .nm{color:#8b968f}
+.dot{width:12px;height:12px;border-radius:4px;flex:none}
+.nm{flex:1;min-width:0;line-height:1.25}
+.nm small{display:block;color:var(--muted);font-size:12px}
+.gp{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:#f0f3f1;border-radius:6px;padding:1px 6px;white-space:nowrap}
+.gp.chg{background:#fff1d6;color:#8a4b00}
+.sw{position:relative;display:inline-block;width:38px;height:22px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;background:#c9d0cb;border-radius:999px;transition:.15s}
+.sw span::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw input:checked+span{background:var(--accent)}
+.sw input:checked+span::after{left:18px}
+.sw input:focus-visible+span{outline:2px solid #1971c2;outline-offset:2px}
+.diagram{overflow-x:auto;padding:0}
+.diagram svg{display:block;width:100%;min-width:980px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);padding:10px 14px;border-top:1px solid var(--line)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid rgba(0,0,0,.18)}
+.legend .ring{background:#ffe3e3;border:2px solid #e03131;border-radius:50%}
+.detail h3{margin:0 0 2px;font-size:16px}
+.detail .meta{color:var(--muted);font-size:13.5px;margin-bottom:8px}
+.detail table,.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.detail th,.detail td,.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tbl th,.detail th{font-weight:600;color:var(--muted);font-size:12.5px;background:#f8faf8}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12.5px;margin-right:6px}
+.tag.ok{background:#e3f6e8;color:#1f6b33}
+.tag.no{background:#fff1d6;color:#8a4b00}
+.hint{color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.notes li{margin:6px 0}
+code{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef2ef;border-radius:5px;padding:1px 5px}
+svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.part{cursor:pointer}
+.part .wire{transition:stroke-width .1s,opacity .15s}
+.part:hover .wire{stroke-width:3.6}
+.dimmed{opacity:.16}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Sơ đồ nối chân board mở rộng</h1>
+  <p class="sub">Bảng chân mới (chủ dự án duyệt 07/11/2026, đã ghi vào <code>docs/gpio.md</code>) gán lại chân GPIO để các dây của cùng một thiết bị nằm sát nhau, đúng thứ tự chân trên module và ít bắt chéo nhất. Bật hoặc tắt từng thiết bị ở cột trái để chỉ nhìn phần đang đấu. Bấm vào thiết bị để xem chi tiết. </p>
+
+  <div class="bar">
+    <div class="seg" id="segBoard" role="group" aria-label="Chọn board">
+      <button data-v="guard">guard (ESP32 A)</button>
+      <button data-v="comfort">comfort (ESP32 B)</button>
+    </div>
+    <div class="seg" id="segDesign" role="group" aria-label="Chọn bảng chân">
+      <button data-v="new">Bảng mới</button>
+      <button data-v="old">Bảng cũ (gpio.md)</button>
+    </div>
+    <div class="chips" id="stats"></div>
+  </div>
+
+  <div class="grid">
+    <aside class="card">
+      <div class="tools">
+        <button id="bAll">Bật hết</button>
+        <button id="bNone">Tắt hết</button>
+        <button id="bInv">Đảo</button>
+        <button id="bOnly">Chỉ cái đang chọn</button>
+      </div>
+      <div id="list"></div>
+    </aside>
+    <main>
+      <div class="card diagram">
+        <svg id="svg" viewBox="0 0 1100 600" role="img" aria-label="Sơ đồ board mở rộng và đường dây"></svg>
+        <div class="legend">
+          <span><i style="background:#fff"></i>Hàng S (tín hiệu)</span>
+          <span><i style="background:#fde1e1"></i>Hàng V (theo jumper, đặt 3,3 V)</span>
+          <span><i style="background:#dfe3e0"></i>Hàng G (GND)</span>
+          <span><i class="ring"></i>Nguồn 5 V lấy từ adapter, không từ board</span>
+          <span><i style="background:#d0ebff"></i>Chỉ đọc</span>
+          <span><i style="background:#ffe0b8"></i>Chân khởi động, tránh</span>
+          <span><i style="background:#dee2e6"></i>Serial USB</span>
+          <span><i style="background:#c9f0cf"></i>I2C</span>
+        </div>
+      </div>
+
+      <div class="card detail" id="detail" style="margin-top:16px"></div>
+    </main>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2>Bảng chân đang bật</h2>
+      <table class="tbl" id="tblPins"></table>
+    </div>
+    <div class="card">
+      <h2>Thay đổi so với <code>gpio.md</code></h2>
+      <table class="tbl" id="tblChg"></table>
+      <p class="hint" id="chgNote" style="margin:10px 0 0"></p>
+    </div>
+  </div>
+
+  <div class="card notes" style="margin-top:16px">
+    <h2>Giả định cần kiểm tra trên board thật</h2>
+    <ul>
+      <li><b>Hàng S nằm phía ngoài</b> ở cả hai cụm (xa ESP32 nhất), V ở giữa, G sát ESP32. Mô tả của bạn ghi nhãn hàng ở cụm dưới hơi khác, nếu thực tế S nằm sát ESP32 thì đổi <code>CFG.bottomRows</code> ở đầu phần script, sơ đồ tự vẽ lại.</li>
+      <li><b>Jumper 3.3 V / 5 V đặt ở 3,3 V</b> để hàng V là 3,3 V (đúng với ghi chú DHT22 trong <code>mqtt-topics.md</code>). Đo hàng V bằng đồng hồ vạn năng trước khi cắm RC522: 5 V làm hỏng RC522. Nếu jumper đang ở 5 V thì lấy 3,3 V của RC522 từ cụm chân <code>3.3V</code> cạnh đầu USB.</li>
+      <li>Thiết bị cần 5 V (servo, relay, còi, WS2812, PIR, MQ-2) lấy <b>5 V từ adapter</b> theo <code>gpio.md</code>, chung GND với board. Với đầu cắm 3 chân của servo và relay, rút dây V ra khỏi đầu cắm rồi nối riêng, nếu không V nhận 3,3 V từ hàng V.</li>
+      <li>Thứ tự chân module là loại <b>thường gặp</b>. Nhìn chữ in trên module thật, nếu khác thì sửa mảng <code>pins</code> của thiết bị đó trong file này, sơ đồ tự chọn chiều cắm tốt nhất.</li>
+      <li>Số "dây bắt chéo" tính từ hình vẽ: hai dây cắt nhau khi thứ tự chân trên module ngược thứ tự cột trên board. Dây nguồn 5 V adapter và cầu phân áp không tính.</li>
+    </ul>
+    <h2 style="margin-top:14px">Việc kéo theo khi đổi chân</h2>
+    <ul>
+      <li>Đã sửa <code>docs/gpio.md</code> và các dòng chân trong <code>docs/mqtt-topics.md</code> trước, code sửa sau trong từng PR.</li>
+      <li>Code đổi: PR #8 (servo cửa 13 → 4, giàn phơi 33 → 32), PR #9 (WS2812 32 → 33), PR #10 (RC522 <code>rc522(5, 4, 18, 19, 23)</code> → <code>rc522(16, 19, 17, 18, 5)</code>, SPI chạy qua GPIO matrix, 4 MHz là dư), PR #11 của Biên (relay quạt hút 16 → 32), PR #12 của Biên (cảm biến mưa 34 → 35).</li>
+      <li>RC522 và servo đã thử đúng ở chân cũ, sau khi đổi chân phải thử lại một lượt trên board.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== Cấu hình hình học (sửa ở đây nếu board thật khác) ===== */
+const CFG = {
+  topRows:    ['S','V','G'],   // từ ngoài vào trong, hàng cụm trên
+  bottomRows: ['G','V','S'],   // hàng cụm dưới, từ sát ESP32 ra ngoài (S ở ngoài cùng)
+  gap: 26,                      // khoảng cách chân trên module
+};
+const TOP    = ['D13','D12','D14','D27','D26','D25','D33','D32','D35','D34','VN','VP','EN'];
+const BOTTOM = ['D15','D2','D4','D16','D17','D5','D18','D19','D21','RX0','TX0','D22','D23'];
+const I2C    = ['GND','VCC','SDA','SCL'];
+const colX  = c => 330 + c*56;
+const leftX = k => 88 + k*50;
+const BASE  = {top:216, bottom:384};
+const rowY  = (side,row) => BASE[side] + (side==='top'?CFG.topRows:CFG.bottomRows).indexOf(row)*18;
+const MOD_Y = {top:122, bottom:500};   // vị trí hàng chân của module
+
+/* ===== Ghi chú từng chân GPIO ===== */
+const PIN_INFO = {
+  D13:['ok','GPIO13. Dùng tốt. ADC2: không đọc analog khi bật WiFi.'],
+  D12:['warn','GPIO12 (MTDI). Chân khởi động: mức cao lúc bật nguồn làm ESP32 không chạy. Tránh.'],
+  D14:['ok','GPIO14. Phát xung PWM ngắn lúc khởi động. Dùng cho cảm biến thì ổn. ADC2.'],
+  D27:['ok','GPIO27. Dùng tốt. ADC2.'],
+  D26:['ok','GPIO26. Dùng tốt, có pull-up nội. ADC2.'],
+  D25:['ok','GPIO25. Dùng tốt. ADC2.'],
+  D33:['ok','GPIO33. ADC1: đọc analog được khi bật WiFi.'],
+  D32:['ok','GPIO32. ADC1: đọc analog được khi bật WiFi.'],
+  D35:['in','GPIO35. Chỉ đọc, không có pull-up/pull-down nội. ADC1.'],
+  D34:['in','GPIO34. Chỉ đọc, không có pull-up/pull-down nội. ADC1.'],
+  VN:['in','GPIO39 (VN). Chỉ đọc, không có pull-up/pull-down nội. ADC1.'],
+  VP:['in','GPIO36 (VP). Chỉ đọc, không có pull-up/pull-down nội. ADC1.'],
+  EN:['en','EN: chân reset. Không dùng.'],
+  D15:['warn','GPIO15. Chân khởi động, in log lúc bật. Tránh cho thiết bị chấp hành.'],
+  D2:['warn','GPIO2. Chân khởi động, nối LED trên board. Tránh.'],
+  D4:['ok','GPIO4. Dùng tốt. ADC2.'],
+  D16:['ok','GPIO16 (RX2). UART2 không dùng. Chỉ an toàn trên ESP32-WROOM, bản WROVER dùng cho PSRAM.'],
+  D17:['ok','GPIO17 (TX2). UART2 không dùng. Chỉ an toàn trên ESP32-WROOM, bản WROVER dùng cho PSRAM.'],
+  D5:['ok','GPIO5. Chân khởi động nhẹ (mức cao lúc bật là bình thường). Dùng được.'],
+  D18:['ok','GPIO18. SCK mặc định của SPI.'],
+  D19:['ok','GPIO19. MISO mặc định của SPI.'],
+  D21:['i2c','GPIO21. SDA mặc định của I2C, nối chung với cổng I2C bên trái.'],
+  RX0:['ser','GPIO3 (RX0). Serial USB. Không dùng.'],
+  TX0:['ser','GPIO1 (TX0). Serial USB. Không dùng.'],
+  D22:['i2c','GPIO22. SCL mặc định của I2C, nối chung với cổng I2C bên trái.'],
+  D23:['ok','GPIO23. MOSI mặc định của SPI.'],
+};
+const CLS_FILL = {ok:'#ffffff', in:'#d0ebff', warn:'#ffe0b8', ser:'#dee2e6', i2c:'#c9f0cf', en:'#ffd6d6'};
+
+/* ===== Mô tả đầu nối ===== */
+const C   = (side,c,row)=>({t:'col',side,c,row});
+const I   = (port,pin)=>({t:'i2c',port,pin});
+const ADP = {t:'adapter'};
+const NC  = {t:'nc'};
+const P   = (n,to)=>({n,to});
+
+const servo   = (side,c)=>[P('GND',C(side,c,'G')),P('5V',ADP),P('SIG',C(side,c,'S'))];
+const relay   = (side,c)=>[P('IN',C(side,c,'S')),P('VCC',ADP),P('GND',C(side,c,'G'))];
+const buzzer  = (side,c)=>[P('I/O',C(side,c,'S')),P('VCC',ADP),P('GND',C(side,c,'G'))];
+const led     = (side,c)=>[P('A+R',C(side,c,'S')),P('K',C(side,c,'G'))];
+const sensor3 = (side,c)=>[P('DATA',C(side,c,'S')),P('3V3',C(side,c,'V')),P('GND',C(side,c,'G'))];
+const touch   = (side,c)=>[P('I/O',C(side,c,'S')),P('3V3',C(side,c,'V')),P('GND',C(side,c,'G'))];
+const sens4   = (side,c,o)=>[
+  P('VCC',o.adapter?ADP:C(side,c,'V')),P('GND',C(side,c,'G')),
+  P('DO',o.doS?C(side,c,'S'):NC),P('AO',o.aoS?C(side,c,'S'):NC)];
+const pir     = (side,c)=>[P('VCC',ADP),P('OUT',C(side,c,'S')),P('GND',C(side,c,'G'))];
+const ws2812  = (side,c)=>[P('GND',C(side,c,'G')),P('IN',C(side,c,'S')),P('5V',ADP),P('GND',NC)];
+const reed    = (side,c)=>[P('A',C(side,c,'S')),P('B',C(side,c,'G'))];
+const oled    = ()=>[P('GND',I(0,'GND')),P('VCC',I(0,'VCC')),P('SCL',I(0,'SCL')),P('SDA',I(0,'SDA'))];
+const rc522   = o=>[
+  P('SDA',C('bottom',o.ss,'S')),P('SCK',C('bottom',o.sck,'S')),P('MOSI',C('bottom',o.mosi,'S')),
+  P('MISO',C('bottom',o.miso,'S')),P('IRQ',NC),P('GND',C('bottom',o.g,'G')),
+  P('RST',C('bottom',o.rst,'S')),P('3V3',C('bottom',o.v,'V'))];
+
+const SERVO_NOTE = 'Servo SG90: rút dây đỏ (V) khỏi đầu cắm 3 chân, nối riêng vào 5 V adapter. Dây nâu (GND) và cam (SIG) cắm vào cột GPIO. Cắm thẳng cả bộ thì V chỉ có 3,3 V, servo yếu và rung.';
+const LED_NOTE   = 'LED nối tiếp điện trở 220 Ω, điều khiển độ sáng bằng PWM. Chân dài (anode) qua điện trở vào S, chân ngắn (cathode) vào G.';
+
+/* ===== Dữ liệu thiết bị: new = đề xuất, old = gpio.md hiện tại ===== */
+const BOARDS = {
+  guard:{
+    title:'guard (ESP32 A: cửa, bếp, an ninh)',
+    rooms:['Cửa vào','An ninh','Bếp'],
+    parts:[
+      {id:'door',name:'Servo cửa SG90',short:'Servo cửa',room:'Cửa vào',color:'#d9480f',
+        old:{gpio:'D13',pins:servo('top',0)}, new:{gpio:'D4',pins:servo('bottom',2)},
+        why:'Gom cụm cửa vào (OLED, RC522, servo) ở góc dưới trái, không còn dây vắt lên hàng trên.',
+        note:SERVO_NOTE},
+      {id:'oled',name:'OLED 0,96" I2C',short:'OLED',room:'Cửa vào',color:'#1971c2',
+        old:{gpio:'D21 D22',pins:oled()}, new:{gpio:'D21 D22',pins:oled()},
+        note:'Cắm vào cổng I2C trái dưới. Module phổ biến in GND VCC SCL SDA, còn cổng là GND VCC SDA SCL, nên hai dây giữa bị chéo (không tránh được, cổng I2C cố định). Nếu module của bạn in SDA trước SCL thì cắm thẳng.'},
+      {id:'rfid',name:'Đầu đọc thẻ RC522',short:'RC522',room:'Cửa vào',color:'#9c36b5',
+        old:{gpio:'D5 D18 D23 D19 D4',pins:rc522({ss:5,sck:6,mosi:12,miso:7,rst:2,g:7,v:7})},
+        new:{gpio:'D16 D17 D5 D18 D19',pins:rc522({ss:3,sck:4,mosi:5,miso:6,rst:7,g:7,v:7})},
+        why:'Năm chân SPI nằm liền nhau, đúng thứ tự trên module (SDA, SCK, MOSI, MISO, ..., RST). Cũ: D23 ở tận cuối hàng và D4 lệch sang đầu kia.',
+        note:'Chỉ chịu 3,3 V. Đo hàng V trước khi cắm. IRQ để trống. Các chân SPI dùng GPIO matrix nên gán chân tùy ý được (<code>SPI.begin(sck, miso, mosi, ss)</code>), tốc độ 4 MHz là dư.'},
+      {id:'buzzer',name:'Còi (buzzer 5 V)',short:'Còi',room:'An ninh',color:'#c2255c',
+        old:{gpio:'D27',pins:buzzer('top',3)}, new:{gpio:'D27',pins:buzzer('top',3)},
+        note:'Module buzzer 5 V: VCC vào 5 V adapter. Rút dây V khỏi đầu cắm rồi nối riêng.'},
+      {id:'window',name:'Công tắc từ MC-38',short:'MC-38',room:'An ninh',color:'#5f3dc4',
+        old:{gpio:'D34',pins:reed('top',9)}, new:{gpio:'D26',pins:reed('top',4)},
+        why:'D34 không có pull-up nội nên cũ phải thêm điện trở 10 kΩ lên 3,3 V. D26 dùng INPUT_PULLUP, bỏ điện trở. Nằm cạnh còi (cụm an ninh).',
+        note:'MC-38 không phân cực: một dây vào S, một dây vào G, đặt chân ở chế độ INPUT_PULLUP trong code. Không cần điện trở ngoài.'},
+      {id:'fan',name:'Relay quạt hút',short:'Relay hút',room:'Bếp',color:'#e67700',
+        old:{gpio:'D16',pins:relay('bottom',3)}, new:{gpio:'D32',pins:relay('top',7)},
+        why:'Nằm cạnh MQ-2 (cụm bếp) và nhả D16 cho RC522.',
+        note:'Quạt lấy 5 V adapter qua tiếp điểm relay. VCC module relay cũng lấy 5 V adapter, IN nhận được mức 3,3 V. Rút dây V khỏi đầu cắm rồi nối riêng.'},
+      {id:'gas',name:'Cảm biến khí MQ-2',short:'MQ-2',room:'Bếp',color:'#0c8599',
+        old:{gpio:'VP',pins:sens4('top',11,{adapter:true,aoS:true})}, new:{gpio:'D35',pins:sens4('top',8,{adapter:true,aoS:true})},
+        why:'Nằm cạnh relay quạt hút (cụm bếp). D35 cũng là ADC1 chỉ đọc như VP.',
+        note:'VCC cần 5 V (sấy nóng) từ adapter. AO ra tới 5 V nên phải qua cầu phân áp trước khi vào ESP32 (chỉ chịu 3,3 V). DO không dùng.'},
+    ]
+  },
+  comfort:{
+    title:'comfort (ESP32 B: phòng khách, phòng ngủ, ban công)',
+    rooms:['Phòng khách','Phòng ngủ','Ban công'],
+    parts:[
+      {id:'curtain',name:'Servo rèm SG90',short:'Servo rèm',room:'Phòng khách',color:'#d9480f',
+        old:{gpio:'D13',pins:servo('top',0)}, new:{gpio:'D13',pins:servo('top',0)}, note:SERVO_NOTE},
+      {id:'climate',name:'DHT22 (module 3 chân)',short:'DHT22',room:'Phòng khách',color:'#0c8599',
+        old:{gpio:'D14',pins:sensor3('top',2)}, new:{gpio:'D14',pins:sensor3('top',2)},
+        note:'Module 3 chân, 3,3 V. Thứ tự DATA, VCC, GND cắm thẳng được vào bộ S-V-G của D14 (đúng ghi chú trong mqtt-topics.md).'},
+      {id:'touch',name:'Nút cảm ứng TTP223',short:'Nút cảm ứng',room:'Phòng khách',color:'#66a80f',
+        old:{gpio:'D27',pins:touch('top',3)}, new:{gpio:'D27',pins:touch('top',3)},
+        note:'3,3 V. Board tự xử lý chạm, mất mạng vẫn dùng được.'},
+      {id:'night',name:'Đèn ngủ (LED vàng)',short:'Đèn ngủ',room:'Phòng ngủ',color:'#e67700',
+        old:{gpio:'D26',pins:led('top',4)}, new:{gpio:'D26',pins:led('top',4)}, note:LED_NOTE},
+      {id:'ceiling',name:'Đèn trần (LED trắng)',short:'Đèn trần',room:'Phòng khách',color:'#495057',
+        old:{gpio:'D25',pins:led('top',5)}, new:{gpio:'D25',pins:led('top',5)}, note:LED_NOTE},
+      {id:'mood',name:'Vòng LED WS2812',short:'WS2812',room:'Phòng khách',color:'#c2255c',
+        old:{gpio:'D32',pins:ws2812('top',7)}, new:{gpio:'D33',pins:ws2812('top',6)},
+        why:'Nằm cạnh đèn trần (nhóm đèn), nhường D32 cho servo giàn phơi để cụm ban công liền nhau.',
+        note:'Phía IN của thanh: GND, IN, VCC, GND. VCC lấy 5 V adapter, chung GND. Khi cấp từ USB giữ level ≤ 50.'},
+      {id:'clothes',name:'Servo giàn phơi SG90',short:'Servo giàn phơi',room:'Ban công',color:'#2b8a3e',
+        old:{gpio:'D33',pins:servo('top',6)}, new:{gpio:'D32',pins:servo('top',7)},
+        why:'Nằm cạnh cảm biến mưa (cụm ban công).', note:SERVO_NOTE},
+      {id:'rain',name:'Cảm biến mưa (DO)',short:'Cảm biến mưa',room:'Ban công',color:'#1971c2',
+        old:{gpio:'D34',pins:sens4('top',9,{doS:true})}, new:{gpio:'D35',pins:sens4('top',8,{doS:true})},
+        why:'Nằm cạnh servo giàn phơi. D34 và D35 đều là chân chỉ đọc.',
+        note:'3,3 V. DO xuống mức thấp khi ướt, chỉnh độ nhạy bằng núm trên module. AO không dùng.'},
+      {id:'light',name:'Quang trở (AO)',short:'Quang trở',room:'Phòng khách',color:'#a61e4d',
+        old:{gpio:'D35',pins:sens4('top',8,{aoS:true})}, new:{gpio:'D34',pins:sens4('top',9,{aoS:true})},
+        why:'Nằm cạnh PIR (hai cảm biến phòng khách). D34 và D35 đều là ADC1.',
+        note:'3,3 V. AO cần chân ADC1 để đọc được khi bật WiFi.'},
+      {id:'motion',name:'PIR HC-SR501',short:'PIR',room:'Phòng khách',color:'#5f3dc4',
+        old:{gpio:'VN',pins:pir('top',10)}, new:{gpio:'VN',pins:pir('top',10)},
+        note:'HC-SR501 cần từ 4,5 V trở lên: VCC lấy 5 V adapter. Chân giữa là OUT nên không cắm thẳng 3 chân được. OUT ra 3,3 V, an toàn cho ESP32.'},
+      {id:'fan',name:'Relay quạt phòng khách',short:'Relay quạt',room:'Phòng khách',color:'#e8590c',
+        old:{gpio:'D16',pins:relay('bottom',3)}, new:{gpio:'D16',pins:relay('bottom',3)},
+        note:'Module relay của bạn hút ở mức cao (kFanRelayActiveLow = false). Quạt lấy 5 V adapter qua tiếp điểm. Rút dây V khỏi đầu cắm rồi nối riêng.'},
+    ]
+  }
+};
+
+/* ===== Trạng thái ===== */
+let state = {board:'guard', design:'new', sel:null, on:{guard:{}, comfort:{}}};
+try{ const s = JSON.parse(localStorage.getItem('domisen-pin-map')||'null'); if(s&&s.on) state = Object.assign(state,s); }catch(e){}
+function save(){ try{ localStorage.setItem('domisen-pin-map', JSON.stringify(state)); }catch(e){} }
+const board = () => BOARDS[state.board];
+const isOn  = id => state.on[state.board][id] !== false;
+const setOn = (id,v) => { state.on[state.board][id] = v; };
+const $  = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ===== Tính vị trí module và số chỗ bắt chéo ===== */
+function holeXY(to){
+  if(to.t==='col') return {x:colX(to.c), y:rowY(to.side,to.row), side:to.side};
+  if(to.t==='i2c') return {x:leftX(I2C.indexOf(to.pin)), y:BASE.bottom+to.port*18, side:'bottom'};
+  return null;
+}
+function inversions(pins){
+  let n=0;
+  for(let i=0;i<pins.length;i++) for(let j=i+1;j<pins.length;j++)
+    if(pins[i].hole && pins[j].hole && pins[i].hole.x > pins[j].hole.x) n++;
+  return n;
+}
+function layout(parts, design){
+  const items = parts.map(p=>{
+    let pins = p[design].pins.map(pin=>Object.assign({},pin,{hole:holeXY(pin.to)}));
+    const holes = pins.filter(x=>x.hole);
+    const side  = holes.length ? holes[0].hole.side : 'top';
+    let flipped = false;
+    const rev = pins.slice().reverse();
+    if(inversions(rev) < inversions(pins)){ pins = rev; flipped = true; }
+    const meanX = holes.reduce((a,h)=>a+h.hole.x,0)/Math.max(1,holes.length);
+    return {p, pins, side, meanX, flipped, w:pins.length*CFG.gap+14};
+  });
+  const out = {boxes:[], wires:[], cross:{top:0,bottom:0}};
+  ['top','bottom'].forEach(side=>{
+    const arr = items.filter(i=>i.side===side).sort((a,b)=>a.meanX-b.meanX);
+    let cur = 20;
+    arr.forEach(it=>{ it.x0 = Math.max(cur, it.meanX - it.w/2); cur = it.x0 + it.w + 8; });
+    let right = 1085;
+    for(let i=arr.length-1;i>=0;i--){ arr[i].x0 = Math.min(arr[i].x0, right - arr[i].w); right = arr[i].x0 - 8; }
+    const wires=[];
+    arr.forEach(it=>{
+      it.pins.forEach((pin,k)=>{
+        pin.xm = it.x0 + 7 + CFG.gap/2 + k*CFG.gap;
+        pin.ym = MOD_Y[side];
+        if(pin.hole) wires.push({part:it.p, pin, xm:pin.xm, ym:pin.ym, hx:pin.hole.x, hy:pin.hole.y});
+      });
+      out.boxes.push(it);
+    });
+    for(let i=0;i<wires.length;i++) for(let j=i+1;j<wires.length;j++){
+      if((wires[i].xm-wires[j].xm)*(wires[i].hx-wires[j].hx) < 0) out.cross[side]++;
+    }
+    out.wires.push(...wires);
+  });
+  out.total = out.cross.top + out.cross.bottom;
+  return out;
+}
+const activeParts = () => board().parts.filter(p=>isOn(p.id));
+
+/* ===== Vẽ SVG ===== */
+function drawBoard(used){
+  let s='';
+  s+=`<rect x="56" y="188" width="990" height="270" rx="14" fill="#e4eee7" stroke="#a9bdb0" stroke-width="1.5"/>`;
+  // ESP32
+  s+=`<rect x="118" y="276" width="34" height="80" rx="4" fill="#cfd6d1" stroke="#8d9a92"/><text x="135" y="320" font-size="10" text-anchor="middle" fill="#3e4a43" transform="rotate(-90 135 320)">USB</text>`;
+  s+=`<rect x="152" y="270" width="860" height="92" rx="6" fill="#2f3a35" stroke="#1d2420"/>`;
+  s+=`<text x="470" y="312" font-size="15" font-weight="600" fill="#e8efe9" text-anchor="middle">ESP32 DevKit (38 chân)</text>`;
+  s+=`<text x="470" y="332" font-size="11" fill="#aebbb3" text-anchor="middle">đầu USB ở bên trái</text>`;
+  s+=`<rect x="900" y="276" width="106" height="80" rx="4" fill="#3d4a44"/><text x="953" y="320" font-size="10" fill="#aebbb3" text-anchor="middle">ăng-ten</text>`;
+  // cụm trái trên: 3 hàng
+  const lt = ['-','GND','3V3/5V'];
+  for(let k=0;k<4;k++){
+    s+=`<g><rect x="${leftX(k)-6}" y="${BASE.top-6}" width="12" height="12" rx="2" fill="#f3f5f3" stroke="#c2cbc5"/><text x="${leftX(k)}" y="${BASE.top+3}" font-size="8" text-anchor="middle" fill="#9aa59e">-</text></g>`;
+    s+=hole(leftX(k),BASE.top+18,'#dfe3e0','GND');
+    s+=hole(leftX(k),BASE.top+36,'#fde1e1',['3V3','3V3','5V','5V'][k]);
+  }
+  s+=`<text x="${leftX(0)-26}" y="${BASE.top+22}" font-size="9" fill="#59665f" text-anchor="end">G</text>`;
+  s+=`<text x="${leftX(0)-26}" y="${BASE.top+40}" font-size="9" fill="#59665f" text-anchor="end">V</text>`;
+  s+=`<text x="${leftX(0)-26}" y="${BASE.top+4}" font-size="9" fill="#59665f" text-anchor="end">S</text>`;
+  // cụm trái dưới: 2 cổng I2C
+  for(let port=0;port<2;port++) for(let k=0;k<4;k++){
+    const key='i2c'+port+I2C[k];
+    s+=hole(leftX(k),BASE.bottom+port*18,used[key]||'#c9f0cf',I2C[k]==='SDA'?'D21':I2C[k]==='SCL'?'D22':I2C[k]);
+  }
+  s+=`<text x="${leftX(0)}" y="${BASE.bottom+66}" font-size="10" fill="#3f6d4a">cổng I2C (2 ổ)</text>`;
+  // cột chính
+  [['top',TOP],['bottom',BOTTOM]].forEach(([side,names])=>{
+    names.forEach((n,c)=>{
+      ['S','V','G'].forEach(row=>{
+        const key=side+c+row;
+        const base = row==='S'?'#ffffff':row==='V'?'#fde1e1':'#dfe3e0';
+        s+=hole(colX(c),rowY(side,row),used[key]||base,
+          `${n} (${row==='S'?'tín hiệu':row==='V'?'V':'GND'})`, !!used[key]);
+      });
+    });
+  });
+  return s;
+}
+function hole(x,y,fill,title,hot){
+  return `<g><title>${esc(title)}</title><rect x="${x-6}" y="${y-6}" width="12" height="12" rx="2.5" fill="${fill}" stroke="${hot?'#1c2420':'#8d9a92'}" stroke-width="${hot?1.6:1}"/></g>`;
+}
+function colLabels(){
+  let s='';
+  [['top',TOP,BASE.top-14],['bottom',BOTTOM,BASE.bottom+56]].forEach(([side,names,y])=>{
+    names.forEach((n,c)=>{
+      const info = PIN_INFO[n]||['ok',''];
+      const w = Math.max(30, n.length*7+10);
+      s+=`<g><title>${esc(n+': '+info[1])}</title><rect x="${colX(c)-w/2}" y="${y-11}" width="${w}" height="16" rx="8" fill="${CLS_FILL[info[0]]}" stroke="#8d9a92" stroke-width=".8"/><text x="${colX(c)}" y="${y+1}" font-size="10.5" font-weight="600" text-anchor="middle" fill="#1c2420">${n}</text></g>`;
+    });
+  });
+  return s;
+}
+function drawModule(it, dim){
+  const p = it.p, side = it.side, w = it.w;
+  const top = side==='top';
+  const y = top ? MOD_Y.top-64 : MOD_Y.bottom;
+  let g=`<g class="part ${dim?'dimmed':''}" data-id="${p.id}">`;
+  // dây trước, hộp sau
+  it.pins.forEach(pin=>{
+    if(!pin.hole) return;
+    const ym=(pin.ym+pin.hole.y)/2;
+    g+=`<path class="wire" d="M${pin.xm} ${pin.ym} C${pin.xm} ${ym} ${pin.hole.x} ${ym} ${pin.hole.x} ${pin.hole.y}" fill="none" stroke="${p.color}" stroke-width="${state.sel===p.id?3.6:2.4}" stroke-linecap="round" opacity=".92"/>`;
+    g+=`<circle cx="${pin.hole.x}" cy="${pin.hole.y}" r="4" fill="${p.color}" stroke="#fff" stroke-width="1.2"/>`;
+  });
+  g+=`<rect x="${it.x0}" y="${y}" width="${w}" height="64" rx="8" fill="#fff" stroke="${p.color}" stroke-width="${state.sel===p.id?3:1.8}"/>`;
+  g+=`<rect x="${it.x0}" y="${y}" width="${w}" height="6" rx="3" fill="${p.color}" opacity=".9"/>`;
+  g+=`<text x="${it.x0+w/2}" y="${top?y+24:y+50}" font-size="11" font-weight="650" text-anchor="middle" fill="#1c2420">${esc(p.short)}</text>`;
+  it.pins.forEach(pin=>{
+    const ad = pin.to.t==='adapter', nc = pin.to.t==='nc';
+    const cy = pin.ym;
+    const ly = top ? cy-10 : cy+16;
+    g+=`<circle cx="${pin.xm}" cy="${cy}" r="5.5" fill="${ad?'#ffe3e3':nc?'#f1f3f2':'#fff'}" stroke="${ad?'#e03131':nc?'#adb5bd':p.color}" stroke-width="${ad?2.4:1.8}"/>`;
+    g+=`<text x="${pin.xm}" y="${ly}" font-size="8.5" text-anchor="middle" fill="${ad?'#c92a2a':nc?'#9aa59e':'#1c2420'}" font-weight="${ad?700:500}">${esc(pin.n)}</text>`;
+  });
+  g+=`<title>${esc(p.name)}: ${esc(p[state.design].gpio)}</title></g>`;
+  return g;
+}
+function render(){
+  // màu chân đã dùng
+  const parts = activeParts();
+  const lay = layout(parts, state.design);
+  const used = {};
+  lay.boxes.forEach(it=>it.pins.forEach(pin=>{
+    const t=pin.to;
+    if(t.t==='col') used[t.side+t.c+t.row]=it.p.color+'';
+    if(t.t==='i2c') used['i2c'+t.port+t.pin]=it.p.color+'';
+  }));
+  // tô màu nhạt hơn cho ô đã dùng
+  Object.keys(used).forEach(k=>used[k]=tint(used[k]));
+  let svg = drawBoard(used);
+  lay.boxes.forEach(it=>{ svg+=drawModule(it, state.sel && state.sel!==it.p.id); });
+  svg += colLabels();
+  svg += `<text x="20" y="22" font-size="12" fill="#59665f">Dây đi lên (cụm hàng trên của board)</text>`;
+  svg += `<text x="20" y="592" font-size="12" fill="#59665f">Dây đi xuống (cụm hàng dưới của board)</text>`;
+  $('#svg').innerHTML = svg;
+
+  // chip thống kê
+  const other = layout(parts, state.design==='new'?'old':'new');
+  const cn = state.design==='new'?lay.total:other.total, co = state.design==='new'?other.total:lay.total;
+  const wires = lay.wires.length;
+  $('#stats').innerHTML =
+    `<span class="chip ${cn<=co?'good':'bad'}">Dây bắt chéo, bảng mới: <b>${cn}</b></span>`+
+    `<span class="chip ${co<=cn?'good':'bad'}">Bảng cũ: <b>${co}</b></span>`+
+    `<span class="chip">Đang bật: <b>${parts.length}/${board().parts.length}</b> thiết bị, <b>${wires}</b> dây</span>`;
+
+  renderList(); renderDetail(lay); renderTables(lay);
+  $('#segBoard').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===state.board));
+  $('#segDesign').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===state.design));
+  save();
+}
+function tint(hex){
+  const n=parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&255, b=n&255;
+  const m=(v)=>Math.round(v+(255-v)*.55);
+  return '#'+[m(r),m(g),m(b)].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+/* ===== Danh sách, chi tiết, bảng ===== */
+function renderList(){
+  const b = board();
+  let h='';
+  b.rooms.forEach(room=>{
+    const ps = b.parts.filter(p=>p.room===room);
+    const allOn = ps.every(p=>isOn(p.id));
+    h+=`<div class="room"><span>${esc(room)}</span><button data-room="${esc(room)}">${allOn?'Tắt cả phòng':'Bật cả phòng'}</button></div>`;
+    ps.forEach(p=>{
+      const on=isOn(p.id), chg = p.old.gpio!==p.new.gpio;
+      const gp = state.design==='new'?p.new.gpio:p.old.gpio;
+      h+=`<div class="item ${on?'':'off'} ${state.sel===p.id?'sel':''}" data-id="${p.id}">
+        <label class="sw" title="Bật/tắt"><input type="checkbox" data-sw="${p.id}" ${on?'checked':''} aria-label="Bật ${esc(p.name)}"><span></span></label>
+        <i class="dot" style="background:${p.color}"></i>
+        <div class="nm">${esc(p.name)}</div>
+        <span class="gp ${chg&&state.design==='new'?'chg':''}">${esc(gp)}</span>
+      </div>`;
+    });
+  });
+  $('#list').innerHTML = h;
+}
+function plugStraight(pins){
+  if(pins.length!==3) return false;
+  const rows = pins.map(p=>p.to.t==='col'?p.to.row:null);
+  if(rows.includes(null)) return false;
+  const c = pins[0].to.c;
+  if(!pins.every(p=>p.to.c===c)) return false;
+  const s = rows.join('');
+  return s==='SVG' || s==='GVS';
+}
+function pinText(pin){
+  const t=pin.to;
+  if(t.t==='adapter') return '<span style="color:#c92a2a;font-weight:600">5 V adapter</span>';
+  if(t.t==='nc') return '<span class="hint">không nối</span>';
+  if(t.t==='i2c') return `cổng I2C ${t.port+1}, chân ${t.pin}`;
+  const name = (t.side==='top'?TOP:BOTTOM)[t.c];
+  return `${name}, hàng ${t.row}`;
+}
+function renderDetail(lay){
+  const p = board().parts.find(x=>x.id===state.sel);
+  if(!p){ $('#detail').innerHTML = `<h3>${esc(board().title)}</h3><div class="meta">Bấm một thiết bị (ở danh sách hoặc trên sơ đồ) để xem cách đấu từng chân. Tắt các thiết bị khác để nhìn rõ hơn.</div>`; return; }
+  const d = p[state.design];
+  const straight = plugStraight(d.pins);
+  const it = layout([p], state.design).boxes[0];
+  let h=`<h3><i class="dot" style="display:inline-block;background:${p.color};vertical-align:-1px"></i> ${esc(p.name)}</h3>
+    <div class="meta">${esc(p.room)} · chân: <b>${esc(d.gpio)}</b>${p.old.gpio!==p.new.gpio?` <span class="hint">(${state.design==='new'?'cũ':'mới'}: ${esc(state.design==='new'?p.old.gpio:p.new.gpio)})</span>`:''}</div>
+    <div style="margin-bottom:8px">${straight?'<span class="tag ok">cắm thẳng bộ 3 chân</span>':'<span class="tag no">dùng dây rời</span>'}${it&&it.flipped?'<span class="tag no">quay đầu cắm 180° cho khỏi chéo</span>':''}</div>
+    <table><tr><th>Chân module</th><th>Nối vào</th></tr>`;
+  d.pins.forEach(pin=>{ h+=`<tr><td><b>${esc(pin.n)}</b></td><td>${pinText(pin)}</td></tr>`; });
+  h+=`</table><p style="margin:10px 0 0">${p.note}</p>`;
+  if(p.why && p.old.gpio!==p.new.gpio) h+=`<p class="hint" style="margin:8px 0 0"><b>Vì sao đổi:</b> ${esc(p.why)}</p>`;
+  $('#detail').innerHTML = h;
+}
+function renderTables(lay){
+  // bảng chân tín hiệu đang bật
+  const rows=[];
+  lay.boxes.forEach(it=>it.pins.forEach(pin=>{
+    const t=pin.to;
+    if(t.t==='col' && t.row==='S') rows.push({side:t.side,c:t.c,name:(t.side==='top'?TOP:BOTTOM)[t.c],part:it.p,pin:pin.n});
+    if(t.t==='i2c' && (t.pin==='SDA'||t.pin==='SCL')) rows.push({side:'bottom',c:-1,name:t.pin==='SDA'?'D21':'D22',part:it.p,pin:pin.n});
+  }));
+  rows.sort((a,b)=> (a.side===b.side? a.c-b.c : a.side==='top'?-1:1));
+  let h='<tr><th>Cụm</th><th>Chân</th><th>Thiết bị</th><th>Chân module</th></tr>';
+  rows.forEach(r=>{ h+=`<tr><td>${r.side==='top'?'Trên':'Dưới'}</td><td><b>${r.name}</b></td><td><i class="dot" style="display:inline-block;background:${r.part.color};vertical-align:-1px"></i> ${esc(r.part.short)}</td><td>${esc(r.pin)}</td></tr>`; });
+  if(!rows.length) h+='<tr><td colspan="4" class="hint">Chưa bật thiết bị nào.</td></tr>';
+  $('#tblPins').innerHTML=h;
+  // thay đổi
+  let c='<tr><th>Thiết bị</th><th>Cũ</th><th>Mới</th><th>Lý do</th></tr>';
+  const chg = board().parts.filter(p=>p.old.gpio!==p.new.gpio);
+  chg.forEach(p=>{ c+=`<tr style="${isOn(p.id)?'':'opacity:.45'}"><td>${esc(p.short)}</td><td><code>${esc(p.old.gpio)}</code></td><td><code>${esc(p.new.gpio)}</code></td><td>${esc(p.why||'')}</td></tr>`; });
+  if(!chg.length) c+='<tr><td colspan="4" class="hint">Không đổi chân nào.</td></tr>';
+  $('#tblChg').innerHTML=c;
+  const a=layout(activeParts(),'new').total, o=layout(activeParts(),'old').total;
+  $('#chgNote').textContent = a<o
+    ? `Với các thiết bị đang bật, bảng mới giảm số chỗ bắt chéo từ ${o} xuống ${a}.`
+    : a===o ? `Với các thiết bị đang bật, số chỗ bắt chéo bằng nhau (${a}): những thay đổi ở đây chỉ để gom thiết bị theo phòng, không bắt buộc.`
+            : `Với các thiết bị đang bật, bảng mới làm tăng số chỗ bắt chéo (${o} lên ${a}).`;
+}
+
+/* ===== Sự kiện ===== */
+$('#segBoard').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; state.board=b.dataset.v; state.sel=null; render(); });
+$('#segDesign').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; state.design=b.dataset.v; render(); });
+$('#list').addEventListener('change',e=>{ const i=e.target.closest('input[data-sw]'); if(!i) return; setOn(i.dataset.sw,i.checked); render(); });
+$('#list').addEventListener('click',e=>{
+  if(e.target.closest('.sw')) return;
+  const rb=e.target.closest('button[data-room]');
+  if(rb){ const ps=board().parts.filter(p=>p.room===rb.dataset.room); const allOn=ps.every(p=>isOn(p.id)); ps.forEach(p=>setOn(p.id,!allOn)); render(); return; }
+  const it=e.target.closest('.item'); if(!it) return;
+  state.sel = state.sel===it.dataset.id ? null : it.dataset.id; render();
+});
+$('#svg').addEventListener('click',e=>{
+  const g=e.target.closest('.part');
+  state.sel = g ? (state.sel===g.dataset.id?null:g.dataset.id) : null; render();
+});
+$('#bAll').onclick =()=>{ board().parts.forEach(p=>setOn(p.id,true)); render(); };
+$('#bNone').onclick=()=>{ board().parts.forEach(p=>setOn(p.id,false)); render(); };
+$('#bInv').onclick =()=>{ board().parts.forEach(p=>setOn(p.id,!isOn(p.id))); render(); };
+$('#bOnly').onclick=()=>{ if(!state.sel) return; board().parts.forEach(p=>setOn(p.id,p.id===state.sel)); render(); };
+
+render();
+})();
+</script>
+</body>
+</html>
