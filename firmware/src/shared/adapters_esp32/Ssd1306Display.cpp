@@ -7,6 +7,8 @@ namespace domisen::adapters::esp32 {
 // Phông Unifont tiếng Việt cao 16 px, nên mỗi dòng cách nhau 16 px và 4 dòng vừa đủ 64 px; chữ Latin rộng 8 px nên mỗi dòng 16 ký tự.
 // Dùng bản vietnamese2 vì bản vietnamese1 thiếu chữ Ư.
 static constexpr int kLineStridePx = 16;
+static constexpr int kScreenWidthPx = 128;
+static constexpr int kScreenHeightPx = 64;
 
 Ssd1306Display::Ssd1306Display(int sdaPin, int sclPin, uint8_t address)
     : sdaPin_(sdaPin),
@@ -32,11 +34,16 @@ void Ssd1306Display::begin() {
   ready_ = true;
 }
 
+// Căn giữa: mỗi dòng căn giữa theo chiều ngang, cả khối chữ căn giữa theo chiều dọc.
 void Ssd1306Display::show(const std::vector<std::string>& lines) {
   if (!ready_) return;
   display_.clearBuffer();
+  const int blockHeight = static_cast<int>(lines.size()) * kLineStridePx;
+  const int top = (kScreenHeightPx - blockHeight) / 2;
   for (size_t index = 0; index < lines.size(); ++index) {
-    display_.drawUTF8(0, static_cast<int>(index) * kLineStridePx, lines[index].c_str());
+    const int width = display_.getUTF8Width(lines[index].c_str());
+    const int left = (kScreenWidthPx - width) / 2;
+    display_.drawUTF8(left, top + static_cast<int>(index) * kLineStridePx, lines[index].c_str());
   }
   display_.sendBuffer();
 }

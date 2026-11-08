@@ -163,6 +163,7 @@ State `{"on":true,"color":"#FF0000","level":40}` (retain). `color` là chuỗi `
 `entrance/display`, guard, I2C: GPIO21 SDA, GPIO22 SCL, SSD1306 128x64, địa chỉ 0x3C. Lệnh `{"text":"Xin chào"}`, state `{"text":"Xin chào"}` (retain).
 - Tối đa 4 dòng, các dòng ngăn bằng `\n`, mỗi dòng tối đa **16 ký tự** (đếm ký tự, không đếm byte). Phông `u8g2_font_unifont_t_vietnamese2` cao 16 px, rộng 8 px, nên 4 dòng đầy màn hình và mỗi dòng đủ 128 px.
 - Chỉ nhận **ASCII in được** (khoảng trắng đến `~`) và **chữ cái tiếng Việt có dấu dạng dựng sẵn (UTF-8 NFC)**: `a ă â e ê i o ô ơ u ư y` và `đ`, chữ thường và chữ hoa, cùng đủ năm dấu thanh (146 chữ cái, tính cả chữ không dấu). Chữ tổ hợp rời (chữ gốc cộng dấu riêng), ký tự điều khiển, ký tự ngoài tập này và UTF-8 sai đều bị từ chối.
+- Chữ được **căn giữa**: mỗi dòng căn giữa theo chiều ngang, cả khối chữ căn giữa theo chiều dọc (một dòng nằm giữa màn hình, bốn dòng đầy màn hình). Việc căn chỉ nằm trong adapter, `text` và state giữ nguyên, không có khoảng trắng đệm.
 - Quá 4 dòng, dòng quá 16 ký tự hoặc ký tự không được nhận: báo lỗi, giữ nguyên màn hình.
 - Khởi động: màn hình trống, state `{"text":""}`.
 - Thư viện `U8g2`, chỉ nằm trong `adapters_esp32`. Không thấy OLED ở địa chỉ I2C thì adapter in lỗi ra Serial và bỏ qua mọi lệnh hiển thị, các thiết bị khác vẫn chạy.
