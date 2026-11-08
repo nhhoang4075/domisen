@@ -165,8 +165,8 @@
   <a href="#pwm">PWM và gamma</a>
   <a href="#led">LED và điện trở</a>
   <a href="#dht22">DHT22</a>
-  <a href="#relay">Relay và quạt</a>
-  <div class="soon">Thêm dần khi lắp tới: servo, quang trở, PIR, đầu đọc thẻ, màn hình OLED...</div>
+  <a href="#relay">Relay và quạt hút</a>
+  <a href="#thiet-bi-khac">Các thiết bị khác</a>
   <div class="grp">Cách viết code</div>
   <a href="#kien-truc">Lõi và adapter</a>
   <a href="#luong-lenh">Đi theo một lệnh</a>
@@ -350,24 +350,24 @@
   </table></div>
 </section>
 
-<!-- ============ Relay và quạt ============ -->
+<!-- ============ Relay và quạt hút ============ -->
 <section id="relay">
-  <h2><span class="no"></span>Relay và quạt</h2>
-  <p class="lead">Quạt 5V cần nhiều dòng hơn chân ESP32 chịu được, nên ESP32 chỉ bật tắt một relay, còn relay đóng ngắt điện cho quạt.</p>
+  <h2><span class="no"></span>Relay và quạt hút</h2>
+  <p class="lead">Quạt hút bếp 5V cần nhiều dòng hơn chân ESP32 chịu được, nên ESP32 chỉ bật tắt một relay, còn relay đóng ngắt điện cho quạt. (Quạt phòng khách khác: chỉnh tốc độ bằng PWM qua module MOSFET, xem mục "Các thiết bị khác".)</p>
 
   <div class="part">
     <div class="ph"><b>Module relay 1 kênh 5V</b><span class="tag t-core">đang dùng</span></div>
     <dl>
       <dt>Là gì</dt><dd>Relay là công tắc điều khiển bằng điện: cuộn dây bên trong hút lên thì tiếp điểm đóng lại, nghe tiếng "tách". Phần điều khiển (chân IN) và phần tải (tiếp điểm) <b>tách rời về điện</b>, nên ESP32 chỉ phát một tín hiệu nhỏ, còn quạt lấy điện riêng.</dd>
-      <dt>Trong dự án</dt><dd>Chân IN vào GPIO16, VCC vào 5V, GND chung với ESP32. Quạt đi qua tiếp điểm: dây dương nguồn 5V vào <b>COM</b>, <b>NO</b> ra dây dương của quạt, dây âm quạt về GND nguồn. Bật tắt bằng lệnh <code>{"on":true}</code> hoặc <code>{"on":false}</code> vào <code>domisen/living/fan/cmd</code>.</dd>
+      <dt>Trong dự án</dt><dd>Trên board guard, chân IN vào GPIO32, VCC vào 5V, GND chung với ESP32. Quạt đi qua tiếp điểm: dây dương nguồn 5V vào <b>COM</b>, <b>NO</b> ra dây dương của quạt, dây âm quạt về GND nguồn. Bật tắt bằng lệnh <code>{"on":true}</code> hoặc <code>{"on":false}</code> vào <code>domisen/kitchen/exhaust-fan/cmd</code>.</dd>
       <dt>Cần biết</dt><dd>
         <ul class="tight">
           <li><b>NO hay NC:</b> NO (normally open) hở khi relay nghỉ và kín khi relay hút, tức quạt chỉ chạy khi có lệnh bật. Dùng NO, không dùng NC.</li>
-          <li><b>Mức thấp hay mức cao (active low):</b> nhiều module relay hút khi chân IN xuống <b>0 V</b> chứ không phải lên 3,3 V. Nếu bạn gửi bật mà quạt tắt (và ngược lại), đổi hằng số <code>kFanRelayActiveLow</code> trong <code>comfort/main.cpp</code> rồi nạp lại.</li>
+          <li><b>Mức thấp hay mức cao (active low):</b> nhiều module relay hút khi chân IN xuống <b>0 V</b> chứ không phải lên 3,3 V. Nếu bạn gửi bật mà quạt tắt (và ngược lại), đổi hằng số <code>kExhaustFanActiveLow</code> trong <code>guard/main.cpp</code> rồi nạp lại. Module relay của dự án chạy <b>mức cao</b> (hút khi IN lên 5 V), nên hằng số này là <code>false</code>.</li>
           <li><b>Không để relay nháy lúc khởi động:</b> adapter đặt mức "tắt" trước, rồi mới chuyển chân sang chế độ đầu ra.</li>
-          <li>Quạt khởi động ở trạng thái <b>tắt</b>. Mất mạng thì quạt <b>giữ nguyên</b> trạng thái đang có.</li>
+          <li>Quạt khởi động ở trạng thái <b>tắt</b>. Mất mạng thì quạt <b>giữ nguyên</b> trạng thái đang có. Ngoại lệ là khi có gas: board tự bật quạt hút và khóa, lệnh tắt bị từ chối cho tới khi hết gas (xem mục "Các thiết bị khác").</li>
           <li>Nguồn quạt không lấy từ chân 3V3 của ESP32. Lúc thử có thể mượn 5V từ board mở rộng, khi lắp vào mô hình thì dùng adapter 5V.</li>
-          <li>Tự bật quạt theo nhiệt độ là luật của <b>server</b> (chưa làm). Board chỉ nhận lệnh bật tắt, đúng nguyên tắc: việc tiện nghi chạy trên server, việc an toàn chạy tại board.</li>
+          <li>Tự bật quạt theo nhiệt độ là luật của <b>server</b> (chưa làm). Board chỉ nhận lệnh bật tắt, đúng nguyên tắc: việc tiện nghi chạy trên server, việc an toàn (gas) chạy tại board.</li>
         </ul>
       </dd>
     </dl>
@@ -380,7 +380,7 @@
     <tr><td>Adapter thật</td><td><code>adapters_esp32/Esp32DigitalOut</code></td><td>Lo mức thấp/cao của relay và thứ tự lúc khởi động</td></tr>
     <tr><td>Bản giả</td><td><code>adapters_fake/FakeDigitalOutput.h</code></td><td>Ghi lại trạng thái để test</td></tr>
     <tr><td>Mã hóa JSON</td><td><code>protocol/Switch</code></td><td>Đọc <code>{"on":true}</code>, ghi state</td></tr>
-    <tr><td>Thiết bị</td><td><code>services/SwitchDevice</code></td><td>Dùng chung cho mọi thiết bị bật tắt (quạt phòng khách, sau này quạt hút bếp)</td></tr>
+    <tr><td>Thiết bị</td><td><code>services/SwitchDevice</code></td><td>Dùng chung cho mọi thiết bị bật tắt (quạt hút bếp, còi). <code>SwitchDevice</code> còn có <code>setOn</code> và <code>lockOn</code> cho quy tắc an toàn gas</td></tr>
   </table></div>
 </section>
 
@@ -483,6 +483,26 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
   <p>Dùng MQTTX khi cần xem nhiều topic cùng lúc và gửi qua lại nhiều lần. Dùng dòng lệnh khi cần thử nhanh hoặc ghi vào script.</p>
 </section>
 
+<!-- ============ Các thiết bị khác ============ -->
+<section id="thiet-bi-khac">
+  <h2><span class="no"></span>Các thiết bị khác</h2>
+  <p class="lead">Ngoài đèn, DHT22 và quạt hút, các thiết bị còn lại đều theo cùng khuôn: một <b>port</b> trong lõi, một <b>lớp dịch vụ</b> giữ luật, một adapter thật và một bản giả. Topic, trường và chân từng thiết bị nằm ở <code>docs/mqtt-topics.md</code> và <code>docs/gpio.md</code>.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Thiết bị</th><th>Port</th><th>Lớp dịch vụ</th><th>Điểm chính</th></tr>
+    <tr><td>Quạt phòng khách (module MOSFET LR7843)</td><td><code>PwmOutput</code></td><td><code>SpeedFan</code></td><td>Duty tuyến tính từ duty tối thiểu, không bù gamma. Từ đứng yên lên duty thấp thì chạy hết ga một lúc (kick-start) cho quạt kịp quay</td></tr>
+    <tr><td>PIR, cảm biến mưa, nút TTP223, công tắc từ MC-38</td><td><code>DigitalInput</code></td><td><code>BinarySensorDevice</code></td><td>Chống nhiễu 50 ms (cảm biến mưa 1 giây), chỉ đọc. MC-38 dùng điện trở kéo lên nội (<code>INPUT_PULLUP</code>), HIGH là cửa sổ mở</td></tr>
+    <tr><td>Cảm biến gas MQ-2</td><td><code>AnalogInput</code></td><td><code>GasSensorDevice</code></td><td>Làm nóng 60 giây, trung bình 8 mẫu, báo động có trễ (bật từ 1200, tắt dưới 1000). <code>ppm_raw</code> là giá trị ADC thô, không phải ppm thật</td></tr>
+    <tr><td>Quy tắc an toàn gas</td><td>(nối các thiết bị)</td><td><code>GasSafety</code></td><td>Có gas thì còi và quạt hút bật ngay trên board, quạt hút bị khóa không tắt được bằng lệnh. Chạy cả khi mất kết nối broker</td></tr>
+    <tr><td>Cảm biến ánh sáng (module quang trở LM393)</td><td><code>AnalogInput</code></td><td><code>LightSensorDevice</code></td><td><code>light_raw</code> chuẩn hóa để lớn hơn là sáng hơn, <code>dark</code> có trễ (bật dưới 800, tắt từ 1200). Hàm trễ dùng chung với gas ở <code>core/Hysteresis.h</code></td></tr>
+    <tr><td>Còi (buzzer thụ động)</td><td><code>DigitalOutput</code></td><td><code>SwitchDevice</code></td><td>Adapter <code>Esp32ToneOutput</code> phát xung 3000 Hz, vì còi thụ động chỉ kêu khi nhận xung</td></tr>
+    <tr><td>Servo cửa, rèm, giàn phơi</td><td><code>PwmOutput</code></td><td><code>PositionDevice</code></td><td>Mỗi servo có hai vị trí có tên, mỗi vị trí ứng với một góc. Luật đổi góc ra duty nằm ở <code>core/Servo.h</code></td></tr>
+    <tr><td>Vòng LED WS2812</td><td><code>PixelStrip</code></td><td><code>ColorLight</code></td><td>Cả thanh cùng một màu, luật bật tắt, màu và độ sáng nằm ở <code>core/ColorLight.h</code></td></tr>
+    <tr><td>Màn hình OLED</td><td><code>TextDisplay</code></td><td><code>DisplayDevice</code></td><td>Tối đa 4 dòng, mỗi dòng 16 ký tự, tiếng Việt có dấu, căn giữa. Kiểm tra ký tự nằm ở <code>core/DisplayText</code></td></tr>
+    <tr><td>Đầu đọc thẻ RC522</td><td><code>CardReader</code></td><td><code>CardReaderDevice</code></td><td>UID viết hoa, chống lặp 2 giây, tin <b>không retain</b></td></tr>
+  </table></div>
+  <div class="note">Mọi cảm biến ở trên chỉ đọc: gửi lệnh vào <code>.../cmd</code> nhận lỗi "chỉ đọc". Mọi luật nằm ở <code>core</code> hoặc <code>services</code> và có test chạy trên laptop bằng bản giả.</div>
+</section>
+
 <!-- ============ 2 ============ -->
 <section id="kien-truc">
   <h2><span class="no"></span>Lõi và adapter</h2>
@@ -491,15 +511,15 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
   <div class="layers">
     <div class="layer L-assembly"><h4>Lắp ráp <span class="tag t-assembly">src/guard, src/comfort</span></h4><p>Mỗi board có một <code>main.cpp</code>: tạo adapter, tạo thiết bị, đưa vào Hub. Không chứa logic.</p></div>
     <div class="down">dùng ↓</div>
-    <div class="layer L-services"><h4>Dịch vụ <span class="tag t-services">shared/services</span></h4><p><code>Hub</code> (đăng ký thiết bị, chuyển lệnh, báo trạng thái), <code>DimmableLight</code>, <code>ClimateDevice</code>, <code>SwitchDevice</code>. Chỉ làm việc với interface, không biết phần cứng.</p></div>
+    <div class="layer L-services"><h4>Dịch vụ <span class="tag t-services">shared/services</span></h4><p><code>Hub</code> (đăng ký thiết bị, chuyển lệnh, báo trạng thái), <code>DimmableLight</code>, <code>SpeedFan</code>, <code>ClimateDevice</code>, <code>SwitchDevice</code>, <code>BinarySensorDevice</code>, <code>GasSensorDevice</code>, <code>LightSensorDevice</code>, <code>PositionDevice</code>, <code>ColorLight</code>, <code>DisplayDevice</code>, <code>CardReaderDevice</code>. Chỉ làm việc với interface, không biết phần cứng.</p></div>
     <div class="down">dùng ↓</div>
     <div class="row2">
       <div class="layer L-protocol"><h4>Giao thức <span class="tag t-protocol">shared/protocol</span></h4><p>Tên topic và mã hóa JSON. <b>Một nguồn duy nhất</b> cho mọi tên topic.</p></div>
-      <div class="layer L-core"><h4>Lõi <span class="tag t-core">shared/core</span></h4><p>Luật thuần của đèn và các <b>port</b> (interface): <code>Transport</code>, <code>PwmOutput</code>, <code>Clock</code>, <code>ClimateSensor</code>, <code>DigitalOutput</code>.</p></div>
+      <div class="layer L-core"><h4>Lõi <span class="tag t-core">shared/core</span></h4><p>Luật thuần (đèn, quạt, gas, ánh sáng, servo...) và các <b>port</b> (interface): <code>Transport</code>, <code>PwmOutput</code>, <code>Clock</code>, <code>ClimateSensor</code>, <code>DigitalOutput</code>, <code>DigitalInput</code>, <code>AnalogInput</code>, <code>PixelStrip</code>, <code>TextDisplay</code>, <code>CardReader</code>.</p></div>
     </div>
     <div class="down">port được cài đặt bởi ↑</div>
     <div class="row2">
-      <div class="layer L-adapter"><h4>Adapter thật <span class="tag t-adapter">shared/adapters_esp32</span></h4><p>WiFi + MQTT, PWM của ESP32, <code>millis()</code>. Chỉ chạy trên board.</p></div>
+      <div class="layer L-adapter"><h4>Adapter thật <span class="tag t-adapter">shared/adapters_esp32</span></h4><p>WiFi + MQTT, PWM, ADC, GPIO, I2C, SPI của ESP32, <code>millis()</code>. Chỉ chạy trên board.</p></div>
       <div class="layer L-adapter"><h4>Adapter giả <span class="tag t-adapter">shared/adapters_fake</span></h4><p>Ghi lại tin đã gửi, giả lập nhận tin, đồng hồ tua được. Dùng để test trên laptop.</p></div>
     </div>
   </div>
@@ -519,7 +539,12 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <tr><td><code>PwmOutput</code>: <code>write(duty)</code> với duty từ 0 đến 1</td><td><code>Esp32Pwm</code> (LEDC)</td><td><code>FakePwm</code></td></tr>
     <tr><td><code>Clock</code>: <code>nowMs()</code></td><td><code>ArduinoClock</code></td><td><code>FakeClock</code></td></tr>
     <tr><td><code>ClimateSensor</code>: <code>read()</code> trả nhiệt độ, độ ẩm hoặc lỗi</td><td><code>Dht22Sensor</code></td><td><code>FakeClimateSensor</code></td></tr>
-    <tr><td><code>DigitalOutput</code>: <code>write(on)</code> bật hoặc tắt (relay)</td><td><code>Esp32DigitalOut</code></td><td><code>FakeDigitalOutput</code></td></tr>
+    <tr><td><code>DigitalOutput</code>: <code>write(on)</code> bật hoặc tắt (relay, còi)</td><td><code>Esp32DigitalOut</code>, <code>Esp32ToneOutput</code> (còi)</td><td><code>FakeDigitalOutput</code></td></tr>
+    <tr><td><code>DigitalInput</code>: <code>read()</code> trả <code>bool</code> (PIR, mưa, nút, MC-38)</td><td><code>Esp32DigitalIn(pin, pullup)</code></td><td><code>FakeDigitalInput</code></td></tr>
+    <tr><td><code>AnalogInput</code>: <code>read()</code> trả 0 đến 4095 (MQ-2, quang trở)</td><td><code>Esp32AnalogIn</code></td><td><code>FakeAnalogInput</code></td></tr>
+    <tr><td><code>PixelStrip</code>: <code>setColor(r, g, b)</code> cho cả thanh</td><td><code>Ws2812Strip</code></td><td><code>FakePixelStrip</code></td></tr>
+    <tr><td><code>TextDisplay</code>: <code>show(các dòng)</code></td><td><code>Ssd1306Display</code></td><td><code>FakeTextDisplay</code></td></tr>
+    <tr><td><code>CardReader</code>: <code>poll()</code> trả UID hoặc rỗng</td><td><code>Rc522Reader</code></td><td><code>FakeCardReader</code></td></tr>
   </table></div>
 
   <h3>Luật phụ thuộc</h3>
@@ -721,10 +746,10 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
   <div class="tbl-wrap"><table>
     <tr><th>Chưa làm</th><th>Ghi chú</th></tr>
     <tr><td>Server (Bun + PostgreSQL) và web dashboard</td><td>Chỉ có thư mục trống kèm README. Chúng sẽ dùng đúng quy ước topic ở <code>docs/mqtt-topics.md</code></td></tr>
-    <tr><td>Thiết bị trên board <code>guard</code></td><td>Board này mới chỉ nối broker và báo <code>online</code>, chưa có cửa, buzzer, RFID, MQ-2...</td></tr>
-    <tr><td>Servo, WS2812, quang trở, PIR</td><td>Mới có ba loại thiết bị: đèn chỉnh độ sáng, cảm biến nhiệt độ, độ ẩm (DHT22) và thiết bị bật tắt (quạt). Các loại khác thêm theo tab Thêm thiết bị</td></tr>
-    <tr><td>Tự bật quạt theo nhiệt độ</td><td>Chưa làm, và sẽ do <b>server</b> làm (đọc <code>living/climate/state</code>, gửi lệnh vào <code>living/fan/cmd</code>, có độ trễ để quạt không bật tắt liên tục). Hiện bật tắt tay bằng MQTTX</td></tr>
-    <tr><td>Hiệu chuẩn quạt</td><td>Đã chạy thật trên board comfort: gửi <code>{"on":true}</code> thì relay hút và quạt quay, <code>{"on":false}</code> thì dừng. Module relay của dự án chạy <b>mức cao</b> (hút khi IN lên 5 V), nên <code>kFanRelayActiveLow = false</code></td></tr>
+    <tr><td>Luật tiện nghi trên server</td><td>Tự đóng rèm khi tối (<code>living/light-sensor</code>), cảnh báo cửa sổ mở khi mưa, quét thẻ rồi mở cửa... là việc của server, chưa làm. Board chỉ gửi số đo và nhận lệnh</td></tr>
+    <tr><td>Tự bật quạt theo nhiệt độ</td><td>Chưa làm, và sẽ do <b>server</b> làm (đọc <code>living/climate/state</code>, gửi lệnh vào <code>living/fan/cmd</code>, có độ trễ để quạt không bật tắt liên tục). Hiện chỉnh tay bằng MQTTX</td></tr>
+    <tr><td>An toàn gas</td><td>Đã thử trên board guard (08/11/2026): còi, relay quạt hút và MQ-2 phối hợp tốt. Ngưỡng 1200 và 1000 chọn theo số đo bật lửa gas chưa châm lửa. <code>ppm_raw</code> chưa quy ra ppm thật và chưa bù hệ số phân áp</td></tr>
+    <tr><td>Quạt phòng khách</td><td>Đổi từ relay sang module MOSFET chỉnh tốc độ PWM ngày 07/11/2026 (lệnh <code>on</code> và <code>level</code>)</td></tr>
     <tr><td>Hiệu chuẩn DHT22</td><td>Đã chạy thật trên board comfort: <code>domisen/living/climate/state</code> gửi đều 10 giây một lần, độ ẩm tăng vọt (97 %) rồi giảm dần khi hà hơi vào cảm biến. Chưa so với nhiệt kế hay ẩm kế chuẩn nên chưa biết độ lệch tuyệt đối</td></tr>
     <tr><td>Đèn trần (GPIO25) trên board thật</td><td>Đèn ngủ (GPIO26, LED đỏ) đã chạy thật với MQTTX: bật tắt, chỉnh mức, lệnh sai, ping, Last Will. Đèn trần dùng chung class nên chạy cùng cách, nhưng chưa nối LED trắng để thử</td></tr>
   </table></div>
@@ -733,6 +758,7 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
     <li><b>MQTT không mã hóa:</b> kết nối TCP thường, mật khẩu đi dạng rõ trong mạng. Đủ cho đồ án ở WiFi tin cậy, chưa đủ để đưa ra internet.</li>
     <li><b>Chỉ QoS 0:</b> PubSubClient chỉ gửi mức "tối đa một lần", tin có thể mất nếu mạng chập chờn. Trạng thái được gửi lại mỗi lần nối nên về lâu dài vẫn đúng.</li>
     <li><b>Bộ đệm 512 byte:</b> tin dài hơn bị bỏ. Lệnh và trạng thái hiện tại chỉ vài chục byte nên chưa vướng.</li>
+    <li><b>Mất broker có thể làm board chậm:</b> khi WiFi còn mà broker tắt, <code>MqttTransport::loop</code> có thể bị chặn vài giây mỗi lần thử nối lại. Trong lúc bị chặn, mọi thiết bị (kể cả quy tắc an toàn gas) chưa được tick, nên phản ứng chậm tương ứng. Đã ghi ở PR #18, chưa sửa.</li>
     <li><b>Địa chỉ broker ghi cứng trong config:</b> đổi WiFi thì IP laptop đổi, phải sửa <code>MQTT_HOST</code> và nạp lại.</li>
   </ul>
 </section>
@@ -754,14 +780,14 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
 │   ├── platformio.ini           2 board + môi trường native
 │   ├── include/                 domisen_config.example.h (config thật không commit)
 │   ├── tools/                   check-purity.sh, setup-editor.sh
-│   ├── test/                    4 bộ test chạy trên laptop
+│   ├── test/                    4 bộ test chạy trên laptop (contracts, core, protocol, services)
 │   └── src/
 │       ├── shared/
-│       │   ├── core/            Ports.h, Light.h
-│       │   ├── protocol/        Topics.h, Light, Climate, Switch (.h/.cpp), Error.h/.cpp
-│       │   ├── services/        Device.h, Hub.h/.cpp, DimmableLight, ClimateDevice, SwitchDevice
-│       │   ├── adapters_esp32/  MqttTransport, Esp32Pwm, ArduinoClock, Dht22Sensor, Esp32DigitalOut
-│       │   └── adapters_fake/   FakeTransport, FakePwm, FakeClock, FakeClimateSensor, FakeDigitalOutput
+│       │   ├── core/            Ports.h, Light, Fan, Servo, ColorLight, Gas, LightSensor, Hysteresis, DisplayText
+│       │   ├── protocol/        Topics.h, Error, và mã hóa JSON: Light, Climate, Switch, BinarySensor, Gas, LightSensor, Position, ColorLight, Display, CardReader
+│       │   ├── services/        Device.h, Hub, DimmableLight, SpeedFan, ClimateDevice, SwitchDevice, BinarySensorDevice, GasSensorDevice, GasSafety, LightSensorDevice, PositionDevice, ColorLight, DisplayDevice, CardReaderDevice
+│       │   ├── adapters_esp32/  MqttTransport, Esp32Pwm, ArduinoClock, Dht22Sensor, Esp32DigitalOut, Esp32DigitalIn, Esp32AnalogIn, Esp32ToneOutput, Ws2812Strip, Ssd1306Display, Rc522Reader
+│       │   └── adapters_fake/   FakeTransport, FakePwm, FakeClock, FakeClimateSensor, FakeDigitalOutput, FakeDigitalInput, FakeAnalogInput, FakePixelStrip, FakeTextDisplay, FakeCardReader
 │       ├── guard/main.cpp       lắp ráp board guard
 │       └── comfort/main.cpp     lắp ráp board comfort
 ├── server/                      (chưa làm)
