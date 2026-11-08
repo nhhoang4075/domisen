@@ -75,8 +75,8 @@ static services::BinarySensorDevice wallButton("living/wall-button", "pressed", 
 // Xem docs/mqtt-topics.md, mục "Cảm biến ánh sáng". Ba hằng số dưới đây là giá trị tạm: chủ dự án đo trên module thật
 // (che tay thì AO tăng hay giảm; số ở phòng sáng, tối, chạng vạng) rồi chỉnh. light_raw luôn là số lớn nghĩa là sáng hơn.
 static const bool kLightAoFallsWhenBright = true;  // true nếu AO giảm khi sáng hơn
-static const int kLightDarkBelowRaw = 1000;         // dark bật khi light_raw dưới số này
-static const int kLightBrightAtOrAboveRaw = 1500;   // dark tắt khi light_raw đạt số này (phải >= kLightDarkBelowRaw)
+static const int kLightDarkBelowRaw = 800;          // dark bật khi light_raw dưới số này
+static const int kLightBrightAtOrAboveRaw = 1200;   // dark tắt khi light_raw đạt số này (phải >= kLightDarkBelowRaw)
 static adapters::esp32::Esp32AnalogIn lightInput(34);  // GPIO34, ADC1
 static services::LightSensorDevice lightSensor("living/light-sensor", lightInput,
                                                {.darkBelowRaw = kLightDarkBelowRaw,
