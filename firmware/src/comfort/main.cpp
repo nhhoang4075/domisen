@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
 #include <shared/adapters_esp32/Dht22Sensor.h>
+#include <shared/adapters_esp32/Esp32AnalogIn.h>
 #include <shared/adapters_esp32/Esp32DigitalIn.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/MqttTransport.h>
@@ -13,6 +14,7 @@
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/Hub.h>
+#include <shared/services/LightSensorDevice.h>
 #include <shared/services/PositionDevice.h>
 #include <shared/services/SpeedFan.h>
 
@@ -69,6 +71,18 @@ static services::BinarySensorDevice rain("balcony/rain", "raining", rainInput,
 static services::BinarySensorDevice wallButton("living/wall-button", "pressed", wallButtonInput,
                                                kWallButtonActiveLow);
 
+// Cảm biến ánh sáng: module quang trở LDR có LM393, chân AO vào GPIO34 (ADC1), cấp 3,3V, chân DO không dùng.
+// Xem docs/mqtt-topics.md, mục "Cảm biến ánh sáng". Ba hằng số dưới đây là giá trị tạm: chủ dự án đo trên module thật
+// (che tay thì AO tăng hay giảm; số ở phòng sáng, tối, chạng vạng) rồi chỉnh. light_raw luôn là số lớn nghĩa là sáng hơn.
+static const bool kLightAoFallsWhenBright = true;  // true nếu AO giảm khi sáng hơn
+static const int kLightDarkBelowRaw = 800;          // dark bật khi light_raw dưới số này
+static const int kLightBrightAtOrAboveRaw = 1200;   // dark tắt khi light_raw đạt số này (phải >= kLightDarkBelowRaw)
+static adapters::esp32::Esp32AnalogIn lightInput(34);  // GPIO34, ADC1
+static services::LightSensorDevice lightSensor("living/light-sensor", lightInput,
+                                               {.darkBelowRaw = kLightDarkBelowRaw,
+                                                .brightAtOrAboveRaw = kLightBrightAtOrAboveRaw,
+                                                .aoFallsWhenBright = kLightAoFallsWhenBright});
+
 static adapters::esp32::Ws2812Strip moodStrip(33, 8);  // GPIO33, thanh 8 bóng
 static services::ColorLight moodLight("living/mood-light", moodStrip);
 
@@ -97,6 +111,7 @@ void setup() {
   motionInput.begin();
   rainInput.begin();
   wallButtonInput.begin();
+  lightInput.begin();
   moodStrip.begin();
   hub.add(ceilingLight);
   hub.add(nightLight);
@@ -105,6 +120,7 @@ void setup() {
   hub.add(motion);
   hub.add(rain);
   hub.add(wallButton);
+  hub.add(lightSensor);
   hub.add(moodLight);
   hub.add(curtain);
   hub.add(clothesline);

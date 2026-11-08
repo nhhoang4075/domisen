@@ -2,6 +2,8 @@
 #include <shared/core/ColorLight.h>
 #include <shared/core/Fan.h>
 #include <shared/core/Gas.h>
+#include <shared/core/Hysteresis.h>
+#include <shared/core/LightSensor.h>
 #include <shared/core/Light.h>
 #include <shared/core/DisplayText.h>
 
@@ -164,6 +166,41 @@ void test_gas_alarm_giu_nguyen_o_giua_hai_nguong() {
   TEST_ASSERT_TRUE(gasAlarm(true, 1900, 2000, 1800));    // đang báo động thì không tự tắt ở giữa
 }
 
+// ---- cờ có trễ tổng quát và cảm biến ánh sáng (docs/mqtt-topics.md, mục "Cảm biến ánh sáng") ----
+void test_hysteresis_above_bat_khi_dat_nguong_bat_va_chi_tat_khi_xuong_duoi_nguong_tat() {
+  TEST_ASSERT_FALSE(hysteresisAbove(false, 99, 100, 80));
+  TEST_ASSERT_TRUE(hysteresisAbove(false, 100, 100, 80));
+  TEST_ASSERT_TRUE(hysteresisAbove(true, 80, 100, 80));
+  TEST_ASSERT_FALSE(hysteresisAbove(true, 79, 100, 80));
+  TEST_ASSERT_TRUE(hysteresisAbove(true, 90, 100, 80));    // giữa hai ngưỡng: giữ nguyên
+  TEST_ASSERT_FALSE(hysteresisAbove(false, 90, 100, 80));
+}
+
+void test_hysteresis_below_bat_khi_xuong_duoi_nguong_bat_va_chi_tat_khi_len_toi_nguong_tat() {
+  TEST_ASSERT_TRUE(hysteresisBelow(false, 799, 800, 1200));
+  TEST_ASSERT_FALSE(hysteresisBelow(false, 800, 800, 1200));
+  TEST_ASSERT_TRUE(hysteresisBelow(true, 1199, 800, 1200));
+  TEST_ASSERT_FALSE(hysteresisBelow(true, 1200, 800, 1200));
+  TEST_ASSERT_TRUE(hysteresisBelow(true, 1000, 800, 1200));    // giữa hai ngưỡng: giữ nguyên
+  TEST_ASSERT_FALSE(hysteresisBelow(false, 1000, 800, 1200));
+}
+
+void test_anh_sang_chuan_hoa_chieu_cua_ao() {
+  TEST_ASSERT_EQUAL(1000, normalizeLight(1000, false));
+  TEST_ASSERT_EQUAL(3095, normalizeLight(1000, true));
+  TEST_ASSERT_EQUAL(4095, normalizeLight(0, true));
+  TEST_ASSERT_EQUAL(0, normalizeLight(4095, true));
+  TEST_ASSERT_EQUAL(4095, normalizeLight(5000, false));  // ngoài thang thì kẹp lại
+  TEST_ASSERT_EQUAL(0, normalizeLight(-5, false));
+}
+
+void test_anh_sang_dark_co_tre() {
+  TEST_ASSERT_TRUE(lightIsDark(false, 799, 800, 1200));
+  TEST_ASSERT_FALSE(lightIsDark(false, 800, 800, 1200));
+  TEST_ASSERT_TRUE(lightIsDark(true, 1100, 800, 1200));
+  TEST_ASSERT_FALSE(lightIsDark(true, 1200, 800, 1200));
+}
+
 // ---- đèn màu WS2812 (bảng lệnh trong docs/mqtt-topics.md, mục "Đèn màu WS2812") ----
 static const Rgb kRed{255, 0, 0};
 
@@ -297,6 +334,10 @@ int main() {
   RUN_TEST(test_level_ngoai_khoang_bi_cat);
   RUN_TEST(test_duty_gamma);
   RUN_TEST(test_display_text_chap_nhan_mot_dong_va_bon_dong);
+  RUN_TEST(test_hysteresis_above_bat_khi_dat_nguong_bat_va_chi_tat_khi_xuong_duoi_nguong_tat);
+  RUN_TEST(test_hysteresis_below_bat_khi_xuong_duoi_nguong_bat_va_chi_tat_khi_len_toi_nguong_tat);
+  RUN_TEST(test_anh_sang_chuan_hoa_chieu_cua_ao);
+  RUN_TEST(test_anh_sang_dark_co_tre);
   RUN_TEST(test_gas_alarm_bat_khi_dat_nguong_bat);
   RUN_TEST(test_gas_alarm_chi_tat_khi_xuong_duoi_nguong_tat);
   RUN_TEST(test_gas_alarm_giu_nguyen_o_giua_hai_nguong);
