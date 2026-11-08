@@ -6,12 +6,14 @@
 #include <shared/adapters_fake/FakeDigitalOutput.h>
 #include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
+#include <shared/adapters_fake/FakeTextDisplay.h>
 #include <shared/adapters_fake/FakeTransport.h>
 #include <shared/services/BinarySensorDevice.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
+#include <shared/services/DisplayDevice.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
 #include <shared/services/SpeedFan.h>
@@ -26,12 +28,14 @@ using adapters::fake::FakeDigitalInput;
 using adapters::fake::FakeDigitalOutput;
 using adapters::fake::FakePixelStrip;
 using adapters::fake::FakePwm;
+using adapters::fake::FakeTextDisplay;
 using adapters::fake::FakeTransport;
 using services::BinarySensorDevice;
 using services::CardReaderDevice;
 using services::ClimateDevice;
 using services::ColorLight;
 using services::DimmableLight;
+using services::DisplayDevice;
 using services::Hub;
 using services::PositionDevice;
 using services::SpeedFan;
@@ -460,6 +464,23 @@ void test_quat_noi_lai_gui_lai_state() {
   TEST_ASSERT_TRUE(r.relay.last);  // mất mạng thì quạt giữ nguyên trạng thái
 }
 
+// ---- màn hình OLED ----
+static const char* DISPLAY_CMD = "domisen/entrance/display/cmd";
+static const char* DISPLAY_STATE = "domisen/entrance/display/state";
+
+struct DisplayRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeTextDisplay screen;
+  DisplayDevice display{"entrance/display", screen};
+  Hub hub{"guard", transport, clock, 5000};
+
+  DisplayRig() {
+    hub.add(display);
+    hub.begin();
+  }
+};
+
 // ---- cảm biến nhị phân ----
 static const char* MOTION_CMD = "domisen/living/motion/cmd";
 static const char* MOTION_STATE = "domisen/living/motion/state";
@@ -476,6 +497,85 @@ struct BinarySensorRig {
     hub.begin();
   }
 };
+
+void test_oled_khoi_dong_trong_va_gui_state_retain() {
+  DisplayRig r;
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"\"}", r.display.stateJson().c_str());
+  TEST_ASSERT_EQUAL(0, r.screen.last.size());
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"\"}", r.transport.last(DISPLAY_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(DISPLAY_STATE)->retain);
+}
+
+void test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_16_ky_tu() {
+  DisplayRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Xin chao\"}");
+  TEST_ASSERT_EQUAL(1, r.screen.last.size());
+  TEST_ASSERT_EQUAL_STRING("Xin chao", r.screen.last[0].c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"Xin chao\"}", r.transport.last(DISPLAY_STATE)->payload.c_str());
+
+  r.transport.simulateMessage(DISPLAY_CMD,
+                              "{\"text\":\"1234567890123456\\nDong 2\\nDong 3\\nDong 4\"}");
+  TEST_ASSERT_EQUAL(4, r.screen.last.size());
+  TEST_ASSERT_EQUAL(16, r.screen.last[0].size());
+  TEST_ASSERT_EQUAL_STRING("Dong 4", r.screen.last[3].c_str());
+}
+
+void test_oled_tu_choi_lenh_sai_va_giu_nguyen_man_hinh() {
+  DisplayRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Xin chao\"}");
+  const auto oldLines = r.screen.last;
+  const std::string oldState = r.display.stateJson();
+  const size_t oldHistory = r.screen.history.size();
+
+  // Mỗi lệnh sai báo đúng một lỗi riêng (không retain) và không đụng tới màn hình hay state.
+  const struct {
+    const char* command;
+    const char* error;
+  } badCommands[] = {
+      {"{\"text\":\"1\\n2\\n3\\n4\\n5\"}", "{\"error\":\"text vượt quá 4 dòng\"}"},
+      {"{\"text\":\"12345678901234567\"}", "{\"error\":\"mỗi dòng tối đa 16 ký tự\"}"},
+      {"{\"text\":\"Xin ch\\u00f1o\"}", "{\"error\":\"text chỉ nhận ASCII in được và chữ cái tiếng Việt (UTF-8 dựng sẵn)\"}"},
+      {"{}", "{\"error\":\"text phải là chuỗi\"}"},
+  };
+  for (const auto& bad : badCommands) {
+    r.transport.simulateMessage(DISPLAY_CMD, bad.command);
+    const auto* error = r.transport.last("domisen/entrance/display/error");
+    TEST_ASSERT_NOT_NULL(error);
+    TEST_ASSERT_FALSE(error->retain);
+    TEST_ASSERT_EQUAL_STRING(bad.error, error->payload.c_str());
+  }
+  TEST_ASSERT_EQUAL(oldHistory, r.screen.history.size());
+  TEST_ASSERT_EQUAL_STRING(oldState.c_str(), r.display.stateJson().c_str());
+  TEST_ASSERT_EQUAL(oldLines.size(), r.screen.last.size());
+  TEST_ASSERT_EQUAL_STRING("Xin chao", r.screen.last[0].c_str());
+}
+
+void test_oled_hien_thi_tieng_viet_co_dau_va_gui_lai_dung_state() {
+  DisplayRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Đèn phòng khách\\nBật\"}");
+  TEST_ASSERT_EQUAL(2, r.screen.last.size());
+  TEST_ASSERT_EQUAL_STRING("Đèn phòng khách", r.screen.last[0].c_str());
+  TEST_ASSERT_EQUAL_STRING("Bật", r.screen.last[1].c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"Đèn phòng khách\\nBật\"}", r.transport.last(DISPLAY_STATE)->payload.c_str());
+  // Chữ có dấu viết bằng \u trong JSON cũng được nhận và hiện đúng.
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Xin ch\\u00e0o\"}");
+  TEST_ASSERT_EQUAL_STRING("Xin chào", r.screen.last[0].c_str());
+}
+
+void test_oled_noi_lai_gui_lai_state_hien_tai() {
+  DisplayRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Dong 1\\nDong 2\"}");
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"Dong 1\\nDong 2\"}",
+                           r.transport.last(DISPLAY_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(DISPLAY_STATE)->retain);
+}
 
 void test_cam_bien_nhi_phan_chua_doc_gui_null_va_lan_dau_nhan_ngay() {
   BinarySensorRig r;
@@ -1061,6 +1161,12 @@ int main() {
   RUN_TEST(test_quat_bat_tat_va_bao_lai_state);
   RUN_TEST(test_quat_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_quat_noi_lai_gui_lai_state);
+  RUN_TEST(test_oled_khoi_dong_trong_va_gui_state_retain);
+  RUN_TEST(test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_16_ky_tu);
+  RUN_TEST(test_oled_tu_choi_lenh_sai_va_giu_nguyen_man_hinh);
+  RUN_TEST(test_oled_hien_thi_tieng_viet_co_dau_va_gui_lai_dung_state);
+  RUN_TEST(test_oled_noi_lai_gui_lai_state_hien_tai);
+
   RUN_TEST(test_cam_bien_nhi_phan_chua_doc_gui_null_va_lan_dau_nhan_ngay);
   RUN_TEST(test_cam_bien_nhi_phan_chong_nhieu_va_nhan_gia_tri_on_dinh_sau_50ms);
   RUN_TEST(test_cam_bien_nhi_phan_bo_qua_nhieu_ngan_hon_50ms);

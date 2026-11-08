@@ -3,12 +3,14 @@
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
 #include <shared/adapters_esp32/Esp32DigitalOut.h>
-#include <shared/adapters_esp32/Esp32ToneOutput.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
+#include <shared/adapters_esp32/Esp32ToneOutput.h>
 #include <shared/adapters_esp32/MqttTransport.h>
 #include <shared/adapters_esp32/Rc522Reader.h>
+#include <shared/adapters_esp32/Ssd1306Display.h>
 #include <shared/protocol/Topics.h>
 #include <shared/services/CardReaderDevice.h>
+#include <shared/services/DisplayDevice.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
 #include <shared/services/SwitchDevice.h>
@@ -52,6 +54,9 @@ static adapters::esp32::Esp32DigitalOut exhaustFanRelay(32, kExhaustFanActiveLow
 static services::SwitchDevice alarmDevice("house/alarm", alarmOutput);
 static services::SwitchDevice exhaustFan("kitchen/exhaust-fan", exhaustFanRelay);
 
+static adapters::esp32::Ssd1306Display oled(21, 22, 0x3C);  // I2C: SDA GPIO21, SCL GPIO22, địa chỉ 0x3C
+static services::DisplayDevice display("entrance/display", oled);
+
 static services::Hub hub(NODE, transport, clock_);
 
 void setup() {
@@ -64,6 +69,8 @@ void setup() {
   exhaustFanRelay.begin();
   hub.add(alarmDevice);
   hub.add(exhaustFan);
+  oled.begin();
+  hub.add(display);
   hub.begin();
   transport.begin();
 }

@@ -66,7 +66,7 @@ Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqt
 | Còi, quạt hút bếp | `DigitalOutput` (đã có) | `SwitchDevice` (đã có) | `Esp32ToneOutput` (còi thụ động, phát xung) và `Esp32DigitalOut` (quạt hút, đã có) | `FakeDigitalOutput` (đã có) |
 | Servo cửa, rèm, giàn phơi | `PwmOutput` (đã có) | `PositionDevice` (các vị trí có tên và góc); luật đổi góc ra duty nằm ở `core` | `Esp32Pwm(pin, kênh, 50, 16)` (đã có) | `FakePwm` (đã có) |
 | Đèn WS2812 | `PixelStrip` (`setColor(r, g, b)` cho cả thanh) | `ColorLight` (luật bật tắt, màu, độ sáng nằm ở `core`) | `Ws2812Strip` (Adafruit NeoPixel) | `FakePixelStrip` |
-| OLED | `TextDisplay` (`show(các dòng)`) | `DisplayDevice` (kiểm tra ASCII, số dòng, độ dài) | `Ssd1306Display` | `FakeTextDisplay` |
+| OLED | `TextDisplay` (`show(các dòng)`) | `DisplayDevice` (kiểm tra ký tự được nhận, số dòng, độ dài) | `Ssd1306Display` | `FakeTextDisplay` |
 | RC522 | `CardReader` (`poll()` trả UID hoặc rỗng) | `CardReaderDevice` (chống lặp 2 giây) | `Rc522Reader` | `FakeCardReader` |
 
 - `Device` thêm hai hàm có giá trị mặc định cũ: `virtual bool retainState() const { return true; }` và `virtual bool publishOnConnect() const { return true; }`. Hub dùng chúng khi gửi state. Chỉ `CardReaderDevice` trả `false`.

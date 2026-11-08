@@ -2,6 +2,8 @@
 #include <shared/core/ColorLight.h>
 #include <shared/core/Fan.h>
 #include <shared/core/Light.h>
+#include <shared/core/DisplayText.h>
+
 #include <shared/core/Servo.h>
 #include <unity.h>
 
@@ -52,6 +54,95 @@ void test_duty_gamma() {
   TEST_ASSERT_EQUAL_FLOAT(0.0f, lightDuty({false, 100}));
   TEST_ASSERT_EQUAL_FLOAT(1.0f, lightDuty({true, 100}));
   TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.2176f, lightDuty({true, 50}));  // 0,5 mũ 2,2
+}
+
+void test_display_text_chap_nhan_mot_dong_va_bon_dong() {
+  std::vector<std::string> lines;
+  std::string error;
+  TEST_ASSERT_TRUE(splitDisplayText("Xin chao", lines, error));
+  TEST_ASSERT_EQUAL(1, lines.size());
+  TEST_ASSERT_EQUAL_STRING("Xin chao", lines[0].c_str());
+  TEST_ASSERT_TRUE(splitDisplayText("Dong 1\nDong 2\nDong 3\nDong 4", lines, error));
+  TEST_ASSERT_EQUAL(4, lines.size());
+  TEST_ASSERT_EQUAL_STRING("Dong 4", lines[3].c_str());
+}
+
+void test_display_text_gioi_han_16_ky_tu() {
+  std::vector<std::string> lines;
+  std::string error;
+  TEST_ASSERT_TRUE(splitDisplayText("1234567890123456", lines, error));
+  TEST_ASSERT_EQUAL(16, lines[0].size());
+  TEST_ASSERT_FALSE(splitDisplayText("12345678901234567", lines, error));
+  TEST_ASSERT_TRUE(error.find("16") != std::string::npos);
+  TEST_ASSERT_EQUAL(0, lines.size());
+}
+
+void test_display_text_tu_choi_qua_bon_dong() {
+  std::vector<std::string> lines;
+  std::string error;
+  TEST_ASSERT_FALSE(splitDisplayText("1\n2\n3\n4\n5", lines, error));
+  TEST_ASSERT_TRUE(error.find("4") != std::string::npos);
+}
+
+void test_display_text_chap_nhan_chuoi_rong_va_chi_ascii_in_duoc() {
+  std::vector<std::string> lines{"old"};
+  std::string error;
+  TEST_ASSERT_TRUE(splitDisplayText("", lines, error));
+  TEST_ASSERT_EQUAL(0, lines.size());
+  TEST_ASSERT_TRUE(splitDisplayText(" !~", lines, error));
+  TEST_ASSERT_EQUAL_STRING(" !~", lines[0].c_str());
+  TEST_ASSERT_FALSE(splitDisplayText("A\tB", lines, error));
+  TEST_ASSERT_FALSE(splitDisplayText("A\x7f", lines, error));
+}
+
+// Đếm theo ký tự, không theo byte: 16 chữ có dấu (3 byte mỗi chữ) vẫn vừa một dòng, 17 chữ thì không.
+void test_display_text_chap_nhan_tieng_viet_co_dau_va_dem_theo_ky_tu() {
+  std::vector<std::string> lines;
+  std::string error;
+  TEST_ASSERT_TRUE(splitDisplayText("Xin chào", lines, error));
+  TEST_ASSERT_EQUAL_STRING("Xin chào", lines[0].c_str());
+  TEST_ASSERT_TRUE(splitDisplayText("Đèn phòng khách\nBật", lines, error));
+  TEST_ASSERT_EQUAL(2, lines.size());
+  TEST_ASSERT_TRUE(splitDisplayText("ẠẠẠẠẠẠẠẠẠẠẠẠẠẠẠẠ", lines, error));
+  TEST_ASSERT_EQUAL_STRING("ẠẠẠẠẠẠẠẠẠẠẠẠẠẠẠẠ", lines[0].c_str());
+  TEST_ASSERT_FALSE(splitDisplayText("ẠẠẠẠẠẠẠẠẠẠẠẠẠẠẠẠẠ", lines, error));
+  TEST_ASSERT_TRUE(error.find("16") != std::string::npos);
+}
+
+// Đủ 146 chữ cái tiếng Việt (12 chữ gốc x 2 kiểu chữ, đủ năm dấu thanh, và đ Đ): mỗi dòng dưới đây có 16 chữ hoặc ít hơn.
+void test_display_text_chap_nhan_du_chu_cai_tieng_viet() {
+  static const char* const kLetterRows[] = {
+    "aàáảãạăằắẳẵặâầấẩ",
+    "ẫậeèéẻẽẹêềếểễệiì",
+    "íỉĩịoòóỏõọôồốổỗộ",
+    "ơờớởỡợuùúủũụưừứử",
+    "ữựyỳýỷỹỵAÀÁẢÃẠĂẰ",
+    "ẮẲẴẶÂẦẤẨẪẬEÈÉẺẼẸ",
+    "ÊỀẾỂỄỆIÌÍỈĨỊOÒÓỎ",
+    "ÕỌÔỒỐỔỖỘƠỜỚỞỠỢUÙ",
+    "ÚỦŨỤƯỪỨỬỮỰYỲÝỶỸỴ",
+    "đĐ",
+  };
+  for (const char* row : kLetterRows) {
+    std::vector<std::string> lines;
+    std::string error;
+    TEST_ASSERT_TRUE_MESSAGE(splitDisplayText(row, lines, error), row);
+    TEST_ASSERT_EQUAL(1, lines.size());
+  }
+}
+
+void test_display_text_tu_choi_ky_tu_ngoai_tap_cho_phep_va_utf8_sai() {
+  std::vector<std::string> lines;
+  std::string error;
+  TEST_ASSERT_FALSE(splitDisplayText("a\xCC\x81", lines, error));      // chữ a cộng dấu sắc rời (tổ hợp)
+  TEST_ASSERT_TRUE(error.find("ASCII") != std::string::npos);
+  TEST_ASSERT_FALSE(splitDisplayText("ñ", lines, error));
+  TEST_ASSERT_FALSE(splitDisplayText("€", lines, error));
+  TEST_ASSERT_FALSE(splitDisplayText("\xF0\x9F\x98\x80", lines, error));  // biểu tượng cảm xúc 4 byte
+  TEST_ASSERT_FALSE(splitDisplayText("\xC3", lines, error));          // thiếu byte
+  TEST_ASSERT_FALSE(splitDisplayText("\xC0\xA0", lines, error));      // mã quá dài
+  TEST_ASSERT_FALSE(splitDisplayText("\xE0\x80\xA0", lines, error)); // mã quá dài 3 byte
+  TEST_ASSERT_FALSE(splitDisplayText("\xFF", lines, error));
 }
 
 // ---- đèn màu WS2812 (bảng lệnh trong docs/mqtt-topics.md, mục "Đèn màu WS2812") ----
@@ -186,6 +277,14 @@ int main() {
   RUN_TEST(test_on_ghi_ro_thang_level);
   RUN_TEST(test_level_ngoai_khoang_bi_cat);
   RUN_TEST(test_duty_gamma);
+  RUN_TEST(test_display_text_chap_nhan_mot_dong_va_bon_dong);
+  RUN_TEST(test_display_text_gioi_han_16_ky_tu);
+  RUN_TEST(test_display_text_tu_choi_qua_bon_dong);
+  RUN_TEST(test_display_text_chap_nhan_chuoi_rong_va_chi_ascii_in_duoc);
+  RUN_TEST(test_display_text_chap_nhan_tieng_viet_co_dau_va_dem_theo_ky_tu);
+  RUN_TEST(test_display_text_chap_nhan_du_chu_cai_tieng_viet);
+  RUN_TEST(test_display_text_tu_choi_ky_tu_ngoai_tap_cho_phep_va_utf8_sai);
+
   RUN_TEST(test_den_mau_mac_dinh_tat_trang_am_muc_100);
   RUN_TEST(test_den_mau_on_true_dung_mau_va_muc_da_nho);
   RUN_TEST(test_den_mau_on_false_tat_nho_mau_va_muc_cu);

@@ -4,6 +4,8 @@
 #include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeDigitalInput.h>
 #include <shared/adapters_fake/FakeDigitalOutput.h>
+#include <shared/adapters_fake/FakeTextDisplay.h>
+
 #include <shared/adapters_fake/FakePixelStrip.h>
 #include <shared/adapters_fake/FakePwm.h>
 #include <shared/adapters_fake/FakeTransport.h>
@@ -129,12 +131,25 @@ void test_fake_card_reader() {
   cardReaderContract(reader);
 }
 
+// ---- TextDisplay ----
+template <typename D> void textDisplayContract() {
+  D display;
+  display.show({"Xin chao", "Dong 2"});
+  TEST_ASSERT_EQUAL(2, display.last.size());
+  TEST_ASSERT_EQUAL_STRING("Xin chao", display.last[0].c_str());
+  TEST_ASSERT_EQUAL_STRING("Dong 2", display.last[1].c_str());
+}
+
+void test_fake_text_display() { textDisplayContract<adapters::fake::FakeTextDisplay>(); }
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_fake_transport);
   RUN_TEST(test_fake_pwm);
   RUN_TEST(test_fake_climate);
   RUN_TEST(test_fake_digital_output);
+  RUN_TEST(test_fake_text_display);
+
   RUN_TEST(test_fake_digital_input);
   RUN_TEST(test_fake_pixel_strip);
   RUN_TEST(test_fake_card_reader);
