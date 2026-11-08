@@ -57,9 +57,10 @@ static services::SwitchDevice alarmDevice("house/alarm", alarmOutput);
 static services::SwitchDevice exhaustFan("kitchen/exhaust-fan", exhaustFanRelay);
 
 // Cảm biến gas MQ-2: AO qua hai điện trở 10 kΩ (cầu phân áp) vào GPIO35. Xem docs/mqtt-topics.md, mục "Cảm biến gas MQ-2".
-// Ngưỡng báo động bên dưới là giá trị tạm: chủ dự án đo trên board (không khí sạch, bật lửa gas chưa châm) rồi chỉnh. Phải có kGasAlarmOffRaw < kGasAlarmOnRaw.
-static const int kGasAlarmOnRaw = 2000;
-static const int kGasAlarmOffRaw = 1800;
+// Ngưỡng báo động đặt theo số đo ngày 08/11/2026: không khí sạch khoảng 10 đến 30, bật lửa đang cháy đưa trước cảm biến khoảng 60 đến 90.
+// Số đo lúc mới bật nguồn (khoảng 3 phút); chủ dự án đo lại sau khi cảm biến nóng ổn định và khi có gas thật (bật lửa gas chưa châm) rồi chỉnh. Phải có kGasAlarmOffRaw < kGasAlarmOnRaw.
+static const int kGasAlarmOnRaw = 50;
+static const int kGasAlarmOffRaw = 40;
 static const uint32_t kGasWarmupMs = 60000;
 static const uint32_t kGasSampleMs = 1000;
 static const uint32_t kGasPublishMs = 5000;
