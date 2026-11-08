@@ -9,11 +9,11 @@ Code dùng chung nằm trong `src/shared/`, điểm vào của từng board nằ
 
 | Thư mục | Chứa | Được include |
 |---|---|---|
-| `shared/core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock`, `ClimateSensor`, `DigitalOutput` | Chỉ thư viện chuẩn C++ |
+| `shared/core` | Luật thuần (độ sáng, gamma, chuyển trạng thái đèn) và **port**: `Transport`, `PwmOutput`, `Clock`, `ClimateSensor`, `DigitalOutput`, `DigitalInput`, `AnalogInput`, `PixelStrip`, `TextDisplay`, `CardReader` | Chỉ thư viện chuẩn C++ |
 | `shared/protocol` | Tên topic, mã hóa và giải mã JSON của lệnh, trạng thái, lỗi | ArduinoJson, thư viện chuẩn |
-| `shared/services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, `ClimateDevice`, `SwitchDevice`, nhận port qua constructor | `shared/core`, `shared/protocol` |
-| `shared/adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock`, `Dht22Sensor` (thư viện DHT của Adafruit), `Esp32DigitalOut` | `shared/core`, Arduino, PubSubClient |
-| `shared/adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock`, `FakeClimateSensor`, `FakeDigitalOutput` | `shared/core` |
+| `shared/services` | `Hub` (đăng ký thiết bị, chuyển lệnh, báo trạng thái, nhịp uptime), `Device`, `DimmableLight`, `SpeedFan`, `ClimateDevice`, `SwitchDevice`, `BinarySensorDevice`, `GasSensorDevice`, `GasSafety`, `LightSensorDevice`, `PositionDevice`, `ColorLight`, `DisplayDevice`, `CardReaderDevice`, nhận port qua constructor | `shared/core`, `shared/protocol` |
+| `shared/adapters_esp32` | Cài đặt port bằng phần cứng thật: `MqttTransport` (WiFi + PubSubClient), `Esp32Pwm`, `ArduinoClock`, `Dht22Sensor` (thư viện DHT của Adafruit), `Esp32DigitalOut`, `Esp32DigitalIn`, `Esp32AnalogIn`, `Esp32ToneOutput`, `Ws2812Strip`, `Ssd1306Display`, `Rc522Reader` | `shared/core`, Arduino, PubSubClient |
+| `shared/adapters_fake` | Bản giả để test trên laptop: `FakeTransport`, `FakePwm`, `FakeClock`, `FakeClimateSensor`, `FakeDigitalOutput`, `FakeDigitalInput`, `FakeAnalogInput`, `FakePixelStrip`, `FakeTextDisplay`, `FakeCardReader` | `shared/core` |
 | `guard/`, `comfort/` | Chỉ **lắp ráp**: tạo adapter, tạo thiết bị, đưa vào `Hub` | Tất cả |
 
 ## Luật
@@ -50,15 +50,15 @@ Cảm biến nhận lệnh thì trả lỗi "chỉ đọc" như mọi lệnh sai
 Lõi chỉ biết "bật" hay "tắt" theo nghĩa logic: relay chạy mức thấp (active low) hay mức cao là việc của adapter `Esp32DigitalOut`.
 Khởi động luôn ở trạng thái tắt, và adapter đặt mức "tắt" trước khi bật chế độ đầu ra để relay không nháy lúc khởi động.
 Việc tự bật quạt theo nhiệt độ **không nằm trên board**: đó là luật tiện nghi, chạy trên server (xem `docs/plan`, nguyên tắc "việc an toàn xử lý ngay tại nhà").
-Board chỉ nhận lệnh `on` và báo state. Quạt hút khi có gas (an toàn) mới do board guard tự quyết, làm sau.
+Board chỉ nhận lệnh `on` và báo state. Quạt hút khi có gas (an toàn) do board guard tự quyết, mô tả ở mục "Quy tắc an toàn gas" bên dưới.
 
 ## Quạt phòng khách chỉnh tốc độ
 
 Quạt phòng khách dùng lớp dịch vụ `SpeedFan`: cùng lệnh `on`/`level` và trạng thái `LightState` với đèn, nhưng luật khác. `core/Fan.h` có `fanDuty` (tuyến tính từ duty tối thiểu, không bù gamma) và `fanNeedsKick` (kick-start (chạy hết ga lúc khởi động): từ đứng yên lên duty thấp thì chạy hết ga một lúc). `SpeedFan` nhận `Clock` để đo thời gian kick và hết kick ở `tick` của Hub. Adapter vẫn là `Esp32Pwm`, bản giả `FakePwm`.
 
-## Thiết bị sẽ thêm (đã duyệt, chưa làm)
+## Port, lớp dịch vụ và adapter của từng thiết bị
 
-Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqtt-topics.md`. Ở đây chỉ ghi phần kiến trúc: port mới, lớp mới, chỗ đặt.
+Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqtt-topics.md`. Ở đây chỉ ghi phần kiến trúc: port, lớp, chỗ đặt.
 
 | Thiết bị | Port | Lớp dịch vụ | Adapter thật | Bản giả |
 |---|---|---|---|---|
@@ -71,7 +71,7 @@ Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqt
 | Quang trở (module LM393) | `AnalogInput` (dùng lại) | `LightSensorDevice` (trung bình 8 mẫu, chuẩn hóa chiều AO, `dark` có trễ; luật ở `core/LightSensor.h`) | `Esp32AnalogIn` (dùng lại) | `FakeAnalogInput` (dùng lại) |
 | MQ-2 | `AnalogInput` (`read()` trả 0 đến 4095) | `GasSensorDevice` (làm nóng, trung bình 8 mẫu, báo động có trễ; luật trễ nằm ở `core/Gas.h`, hàm trễ chung ở `core/Hysteresis.h`) | `Esp32AnalogIn` | `FakeAnalogInput` |
 
-- `Device` thêm hai hàm có giá trị mặc định cũ: `virtual bool retainState() const { return true; }` và `virtual bool publishOnConnect() const { return true; }`. Hub dùng chúng khi gửi state. Chỉ `CardReaderDevice` trả `false`.
+- `Device` có hai hàm với giá trị mặc định cũ: `virtual bool retainState() const { return true; }` và `virtual bool publishOnConnect() const { return true; }`. Hub dùng chúng khi gửi state. Chỉ `CardReaderDevice` trả `false`.
 - **Quy tắc an toàn gas:** `GasSafety` (services) nối `GasSensorDevice` với hai `SwitchDevice` (còi, quạt hút) qua `onAlarmChange`. `SwitchDevice` có `setOn()` (bật tắt từ code trên board, báo `Hub` gửi state qua `tick`) và `lockOn()` (từ chối lệnh tắt). `Device` thêm `virtual bool runsOffline() const { return false; }`: `Hub::loop` vẫn tick các thiết bị này khi mất kết nối broker (không gửi state), nên quy tắc an toàn chạy được khi offline.
 - **Nút cảm ứng điều khiển đèn trần:** `TouchToggle` (services) nối `BinarySensorDevice` (nút TTP223) với `DimmableLight` (đèn trần) qua `BinarySensorDevice::onChange`: chạm (giá trị đổi sang true sau chống nhiễu, không tính lần đọc đầu) thì gọi `DimmableLight::setOn(!isOn())`. `BinarySensorDevice` có `setRunsOffline()` (mặc định false) và `DimmableLight` luôn `runsOffline()` để nhận cờ "đổi từ board" qua `tick`, như `SwitchDevice`. Dùng lại `applyLightCommand`, không có luật mới ở `core`.
 - Mỗi port mới có contract test (luật 6) và bản giả; mỗi lớp dịch vụ có test chạy trên laptop với bản giả.

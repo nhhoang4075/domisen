@@ -99,7 +99,7 @@ Thiếu `on`, hoặc `on` không phải `true`/`false` thì giữ nguyên trạn
 
 Đấu dây: module relay 1 kênh 5V. IN vào chân điều khiển, VCC vào 5V, GND chung. Quạt 5V đi qua tiếp điểm COM và NO của relay, nguồn quạt từ adapter 5V. Module relay hay chạy mức thấp (IN xuống 0 V thì relay hút), chỉnh bằng hằng số `ActiveLow` trong `main.cpp`. Module đang dùng chạy mức cao (hút khi IN lên 5 V) nên hằng số này là `false`.
 
-## Cảm biến hai trạng thái (chưa làm: PIR, cảm biến mưa, nút cảm ứng)
+## Cảm biến hai trạng thái (đã làm: PIR, cảm biến mưa, nút cảm ứng, MC-38)
 
 Cùng một kiểu thiết bị, chỉ khác id, chân, tên trường và mức tín hiệu. Chỉ gửi `state` (retain), không có lệnh: gửi vào `.../cmd` nhận lỗi "chỉ đọc" như DHT22.
 
@@ -129,7 +129,7 @@ Chạm nút TTP223 (`living/wall-button`, GPIO27) thì đèn trần (`living/cei
 - **Lệnh MQTT và chạm xen kẽ:** lệnh nào đến sau thì thắng, state luôn đúng với đèn thật.
 - Chỉ áp dụng cho đèn trần. Không có chạm giữ để chỉnh độ sáng, và không điều khiển đèn ngủ hay quạt.
 
-## Cảm biến gas MQ-2 (chưa làm: #16)
+## Cảm biến gas MQ-2 (đã làm: #16)
 
 Id `kitchen/gas`, board guard, chân AO vào GPIO35. Topic `domisen/kitchen/gas/state` (retain). Không có lệnh: gửi vào `.../cmd` nhận lỗi "cảm biến chỉ đọc, không nhận lệnh". Duyệt thiết kế: chủ dự án, 08/11/2026.
 
@@ -147,7 +147,7 @@ Ví dụ `{"ppm_raw":1830,"alarm":true}`.
 - **Phần cứng:** port `AnalogInput` (`read()` trả 0 đến 4095), adapter `Esp32AnalogIn` dùng `analogRead` với độ suy hao 11 dB. Port này dùng lại được cho quang trở (số 5).
 - Việc tự bật còi và quạt hút khi `alarm` bật là Phần 2 của #16, mô tả trong mục "Còi và quạt hút".
 
-## Cảm biến ánh sáng (chưa làm: #19)
+## Cảm biến ánh sáng (đã làm: #19)
 
 Id `living/light-sensor`, board comfort, chân AO vào GPIO34. Topic `domisen/living/light-sensor/state` (retain). Không có lệnh: gửi vào `.../cmd` nhận lỗi "cảm biến chỉ đọc, không nhận lệnh". Duyệt thiết kế: chủ dự án, 08/11/2026.
 
@@ -163,7 +163,7 @@ Ví dụ `{"light_raw":2310,"dark":false}`.
 - **Điện và đấu dây:** module quang trở có chip LM393 (4 chân: AO, DO, GND, VCC). Cấp **3,3 V**, chung GND với ESP32; AO nối thẳng GPIO34, không cần cầu phân áp vì AO không vượt điện áp cấp. Chân DO (so sánh bằng núm trên module) **không dùng**. GPIO34 thuộc ADC1 nên đọc được khi WiFi bật; chỉ đọc, không có điện trở kéo nội. Trước khi nối, đo AO bằng đồng hồ để chắc nó không vượt 3,3 V.
 - **Phần cứng:** dùng lại port `AnalogInput` và adapter `Esp32AnalogIn` của MQ-2. Luật trễ dùng chung `core/Hysteresis.h` với báo động gas.
 
-## Còi và quạt hút (chưa làm: #10 còi, #9 quạt hút bếp)
+## Còi và quạt hút (đã làm: #10 còi, #9 quạt hút bếp)
 
 Dùng lại thiết bị bật tắt của quạt phòng khách: lệnh `{"on":true}` hoặc `{"on":false}`, state `{"on":true}` (retain), khởi động ở trạng thái tắt.
 
@@ -181,7 +181,7 @@ Còi là module **thụ động**: cấp mức cao hoặc thấp liên tục ch�
 - **Chạy được khi mất kết nối broker:** cảm biến gas vẫn lấy mẫu, còi và quạt hút vẫn tự bật. State chưa gửi được lúc mất mạng sẽ gửi khi nối lại. Thiết bị khác vẫn chỉ chạy khi có kết nối (chỉ thiết bị khai báo `runsOffline()` mới được tick lúc mất kết nối).
 - Hệ quả của thời gian làm nóng: sau khi khởi động lại board, `alarm` bị giữ `false` trong `kGasWarmupMs` (60 giây), nên chưa tự bật gì trong thời gian đó.
 
-## Servo: cửa, rèm, giàn phơi (chưa làm)
+## Servo: cửa, rèm, giàn phơi (đã làm)
 
 Servo SG90 góc 0 đến 180 độ. Mỗi thiết bị có **hai vị trí có tên**, mỗi vị trí ứng với một góc.
 
@@ -195,7 +195,7 @@ Lệnh `{"position":"open"}`, state `{"position":"open"}` (retain). Tên vị tr
 Góc là hằng số trong `main.cpp`, chủ dự án chỉnh khi lắp cơ khí. Servo cần 5V từ adapter, không lấy từ ESP32 (xem `docs/gpio.md`).
 Điều khiển bằng PWM 50 Hz, xung 0,5 ms (0 độ) đến 2,4 ms (180 độ), bằng cổng `PwmOutput` và `Esp32Pwm(pin, kênh, 50, 16)` đã có, **không thêm thư viện servo**. Mỗi servo một kênh LEDC riêng (kênh 0 và 1 đã dùng cho đèn).
 
-## Đèn màu WS2812 (chưa làm: #15 đèn tâm trạng)
+## Đèn màu WS2812 (đã làm: #15 đèn tâm trạng)
 
 `living/mood-light`, comfort GPIO33, thanh 8 bóng. Cả thanh luôn cùng một màu.
 
@@ -210,7 +210,7 @@ State `{"on":true,"color":"#FF0000","level":40}` (retain). `color` là chuỗi `
 Độ sáng nhân thẳng vào từng kênh màu (không bù gamma). Lệnh gửi về qua thư viện `Adafruit NeoPixel` đặt trong `adapters_esp32`.
 Điện: 5V từ adapter. Thử trên USB thì chủ dự án giữ mức tối đa 50.
 
-## Màn hình OLED (chưa làm: #8)
+## Màn hình OLED (đã làm: #8)
 
 `entrance/display`, guard, I2C: GPIO21 SDA, GPIO22 SCL, SSD1306 128x64, địa chỉ 0x3C. Lệnh `{"text":"Xin chào"}`, state `{"text":"Xin chào"}` (retain).
 - Tối đa 4 dòng, các dòng ngăn bằng `\n`, mỗi dòng tối đa **16 ký tự** (đếm ký tự, không đếm byte). Phông `u8g2_font_unifont_t_vietnamese2` cao 16 px, rộng 8 px, nên 4 dòng đầy màn hình và mỗi dòng đủ 128 px.
@@ -222,7 +222,7 @@ State `{"on":true,"color":"#FF0000","level":40}` (retain). `color` là chuỗi `
 
 Quyết định 08/11/2026 (chủ dự án duyệt): bản đầu chỉ nhận ASCII, dùng `Adafruit SSD1306` và `Adafruit GFX` (phông 5x7 không có chữ có dấu), mỗi dòng 21 ký tự. Đổi sang `U8g2` với phông Unifont tiếng Việt để hiện được chữ có dấu. Đổi lại mỗi dòng còn 16 ký tự. Đã kiểm tra bằng chương trình thử trên máy: `u8g2_font_unifont_t_vietnamese2` có đủ 146 chữ cái trên, còn `u8g2_font_unifont_t_vietnamese1` thiếu chữ Ư nên không dùng.
 
-## Đầu đọc thẻ RC522 (chưa làm: #11)
+## Đầu đọc thẻ RC522 (đã làm: #11)
 
 `entrance/card-reader`, guard, SPI: GPIO16 SDA (SS), GPIO17 SCK, GPIO5 MOSI, GPIO18 MISO, GPIO19 RST (SPI chạy qua GPIO matrix, xem `docs/gpio.md`). **Nguồn 3,3V, không cắm 5V.** Thư viện `MFRC522`.
 Khi quẹt thẻ: gửi `domisen/entrance/card-reader/state` là `{"uid":"A3F2197C"}` (UID hex **chữ hoa**, không dấu cách), **không retain**.
