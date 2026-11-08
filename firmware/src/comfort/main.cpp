@@ -17,6 +17,7 @@
 #include <shared/services/LightSensorDevice.h>
 #include <shared/services/PositionDevice.h>
 #include <shared/services/SpeedFan.h>
+#include <shared/services/TouchToggle.h>
 
 #include "domisen_config.h"
 
@@ -71,6 +72,9 @@ static services::BinarySensorDevice rain("balcony/rain", "raining", rainInput,
 static services::BinarySensorDevice wallButton("living/wall-button", "pressed", wallButtonInput,
                                                kWallButtonActiveLow);
 
+// Chạm nút thì đèn trần bật hoặc tắt ngay trên board, kể cả khi mất mạng. Xem docs/mqtt-topics.md, mục "Nút cảm ứng điều khiển đèn trần".
+static services::TouchToggle wallTouch(wallButton, ceilingLight);
+
 // Cảm biến ánh sáng: module quang trở LDR có LM393, chân AO vào GPIO34 (ADC1), cấp 3,3V, chân DO không dùng.
 // Xem docs/mqtt-topics.md, mục "Cảm biến ánh sáng". Ba hằng số dưới đây là giá trị tạm: chủ dự án đo trên module thật
 // (che tay thì AO tăng hay giảm; số ở phòng sáng, tối, chạng vạng) rồi chỉnh. light_raw luôn là số lớn nghĩa là sáng hơn.
@@ -120,6 +124,7 @@ void setup() {
   hub.add(motion);
   hub.add(rain);
   hub.add(wallButton);
+  wallTouch.begin();
   hub.add(lightSensor);
   hub.add(moodLight);
   hub.add(curtain);

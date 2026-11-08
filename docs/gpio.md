@@ -29,7 +29,7 @@ Bảng gốc lấy từ `docs/plan/ke-hoach.html`, đã được đổi chân ng
 | 15 | Vòng LED WS2812 | GPIO33 | Nguồn 5V từ adapter |
 | 16 | Cảm biến mưa (DO) | GPIO35 | Chỉnh độ nhạy bằng núm trên module |
 | 17 | Servo giàn phơi SG90 | GPIO32 | Dây đỏ nối 5V adapter |
-| 19 | Nút cảm ứng TTP223 | GPIO27 | Nguồn 3,3V. Board tự xử lý, mất mạng vẫn dùng được |
+| 19 | Nút cảm ứng TTP223 | GPIO27 | Nguồn 3,3V. Chạm thì board tự bật tắt đèn trần, mất mạng vẫn dùng được (xem `docs/mqtt-topics.md`) |
 
 ## Cần nhớ
 

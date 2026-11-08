@@ -22,6 +22,7 @@
 #include <shared/services/PositionDevice.h>
 #include <shared/services/SpeedFan.h>
 #include <shared/services/SwitchDevice.h>
+#include <shared/services/TouchToggle.h>
 #include <unity.h>
 
 using namespace domisen;
@@ -48,6 +49,7 @@ using services::Hub;
 using services::PositionDevice;
 using services::SpeedFan;
 using services::SwitchDevice;
+using services::TouchToggle;
 
 static const char* CEILING_CMD = "domisen/living/ceiling-light/cmd";
 static const char* CEILING_STATE = "domisen/living/ceiling-light/state";
@@ -1176,6 +1178,129 @@ void test_cong_tac_tu_cua_so_high_la_mo_low_la_dong() {
   TEST_ASSERT_EQUAL_STRING("{\"open\":false}", transport.last(WINDOW_STATE)->payload.c_str());
 }
 
+// ---- chạm nút cảm ứng bật tắt đèn trần (docs/mqtt-topics.md, mục "Nút cảm ứng điều khiển đèn trần") ----
+static const char* WALL_BUTTON_STATE = "domisen/living/wall-button/state";
+
+struct TouchRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeDigitalInput input;
+  FakePwm pwm;
+  DimmableLight ceiling{"living/ceiling-light", pwm};
+  BinarySensorDevice wallButton{"living/wall-button", "pressed", input, false};
+  TouchToggle toggle{wallButton, ceiling};
+  Hub hub{"comfort", transport, clock, 5000};
+
+  explicit TouchRig(bool firstReadWhileTouched = false) {
+    hub.add(ceiling);
+    hub.add(wallButton);
+    hub.begin();
+    toggle.begin();
+    input.value = firstReadWhileTouched;
+    hub.loop();  // lần đọc đầu của nút
+  }
+  void setTouch(bool touched) {
+    input.value = touched;
+    hub.loop();
+    clock.advance(50);  // đủ thời gian chống nhiễu
+    hub.loop();
+    hub.loop();  // vòng sau mới gửi state của đèn (đèn được tick trước nút)
+  }
+  void hold(uint32_t ms) {
+    for (uint32_t t = 0; t < ms; t += 100) {
+      clock.advance(100);
+      hub.loop();
+    }
+  }
+};
+
+void test_cham_bat_den_dang_tat_va_gui_state() {
+  TouchRig r;
+  r.transport.simulateConnect();
+  r.setTouch(true);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r.pwm.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true,\"level\":100}", r.transport.last(CEILING_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(CEILING_STATE)->retain);
+  TEST_ASSERT_EQUAL_STRING("{\"pressed\":true}", r.transport.last(WALL_BUTTON_STATE)->payload.c_str());  // state của nút không đổi
+}
+
+void test_cham_tat_den_dang_bat_giu_muc_cu_va_bat_lai_dung_muc() {
+  TouchRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(CEILING_CMD, "{\"on\":true,\"level\":40}");
+  r.setTouch(true);  // đang bật: tắt
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.pwm.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false,\"level\":40}", r.transport.last(CEILING_STATE)->payload.c_str());
+  r.setTouch(false);  // nhả tay: không đổi
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false,\"level\":40}", r.transport.last(CEILING_STATE)->payload.c_str());
+  r.setTouch(true);  // đang tắt: bật lại đúng mức 40 (độ sáng thật theo gamma 2,2: 0,4^2,2 = 0,1332)
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true,\"level\":40}", r.transport.last(CEILING_STATE)->payload.c_str());
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.1332f, r.pwm.last);
+}
+
+void test_cham_giu_tay_khong_lap_lai() {
+  TouchRig r;
+  r.transport.simulateConnect();
+  r.setTouch(true);
+  const int sent = r.transport.count(CEILING_STATE);
+  r.hold(5000);
+  TEST_ASSERT_EQUAL(sent, r.transport.count(CEILING_STATE));
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r.pwm.last);
+}
+
+void test_cham_nhieu_ngan_duoi_chong_nhieu_khong_doi_den() {
+  TouchRig r;
+  r.transport.simulateConnect();
+  r.input.value = true;
+  r.hub.loop();
+  r.clock.advance(49);  // chưa đủ 50 ms
+  r.input.value = false;
+  r.hub.loop();
+  r.clock.advance(100);
+  r.hub.loop();
+  r.hub.loop();
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.pwm.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false,\"level\":100}", r.ceiling.stateJson().c_str());
+}
+
+void test_cham_lan_doc_dau_dang_cham_khong_doi_den() {
+  TouchRig r(true);  // tay đang đặt trên nút lúc cấp điện
+  r.transport.simulateConnect();
+  r.hold(1000);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.pwm.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false,\"level\":100}", r.ceiling.stateJson().c_str());
+  r.setTouch(false);  // nhả tay: vẫn không đổi
+  r.setTouch(true);   // chạm lần sau mới là một lần chạm
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r.pwm.last);
+}
+
+void test_cham_mat_ket_noi_van_doi_den_roi_noi_lai_gui_state_mot_lan() {
+  TouchRig r;  // chưa nối broker
+  r.setTouch(true);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r.pwm.last);
+  TEST_ASSERT_EQUAL(0, r.transport.count(CEILING_STATE));
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL(1, r.transport.count(CEILING_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true,\"level\":100}", r.transport.last(CEILING_STATE)->payload.c_str());
+  r.hub.loop();
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(1, r.transport.count(CEILING_STATE));  // không gửi lặp
+}
+
+void test_cham_xen_ke_lenh_mqtt_state_luon_dung_voi_den_that() {
+  TouchRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(CEILING_CMD, "{\"on\":true}");
+  r.setTouch(true);   // chạm: tắt
+  r.setTouch(false);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false,\"level\":100}", r.transport.last(CEILING_STATE)->payload.c_str());
+  r.transport.simulateMessage(CEILING_CMD, "{\"on\":true}");  // lệnh đến sau: bật
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r.pwm.last);
+  r.setTouch(true);  // chạm: tắt
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r.pwm.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false,\"level\":100}", r.transport.last(CEILING_STATE)->payload.c_str());
+}
+
 void test_cam_bien_nhi_phan_chi_doc_va_khong_doi_state_khi_nhan_lenh() {
   BinarySensorRig r;
   r.transport.simulateConnect();
@@ -1727,6 +1852,13 @@ int main() {
   RUN_TEST(test_cam_bien_nhi_phan_active_low_dao_muc);
   RUN_TEST(test_cam_bien_nhi_phan_chong_nhieu_1_giay_cho_cam_bien_mua);
   RUN_TEST(test_cong_tac_tu_cua_so_high_la_mo_low_la_dong);
+  RUN_TEST(test_cham_bat_den_dang_tat_va_gui_state);
+  RUN_TEST(test_cham_tat_den_dang_bat_giu_muc_cu_va_bat_lai_dung_muc);
+  RUN_TEST(test_cham_giu_tay_khong_lap_lai);
+  RUN_TEST(test_cham_nhieu_ngan_duoi_chong_nhieu_khong_doi_den);
+  RUN_TEST(test_cham_lan_doc_dau_dang_cham_khong_doi_den);
+  RUN_TEST(test_cham_mat_ket_noi_van_doi_den_roi_noi_lai_gui_state_mot_lan);
+  RUN_TEST(test_cham_xen_ke_lenh_mqtt_state_luon_dung_voi_den_that);
   RUN_TEST(test_cam_bien_nhi_phan_chi_doc_va_khong_doi_state_khi_nhan_lenh);
   RUN_TEST(test_cam_bien_nhi_phan_noi_lai_gui_lai_state_hien_tai);
   RUN_TEST(test_den_mau_tat_luc_khoi_dong);
