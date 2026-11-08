@@ -108,12 +108,14 @@ Cùng một kiểu thiết bị, chỉ khác id, chân, tên trường và mức
 | 6 | `living/motion` (PIR HC-SR501) | comfort, GPIO39 | `motion` | HIGH là có chuyển động |
 | 16 | `balcony/rain` (cảm biến mưa, chân DO) | comfort, GPIO35 | `raining` | LOW là đang mưa (module kéo DO xuống khi ướt) |
 | 19 | `living/wall-button` (TTP223) | comfort, GPIO27 | `pressed` | HIGH là đang chạm |
+| 12 | `bedroom/window` (công tắc từ MC-38) | guard, GPIO26 | `open` | HIGH là cửa sổ mở |
 
 Ví dụ `domisen/living/motion/state`: `{"motion":true}`.
 - Giá trị chỉ đổi khi tín hiệu đã **ổn định** một khoảng thời gian (chống nhiễu): mặc định **50 ms** (PIR, nút cảm ứng). Riêng cảm biến mưa là **1 giây** (`kRainDebounceMs` trong `comfort/main.cpp`): chip so sánh LM393 trên module không có độ trễ nên chân DO nhấp nháy khi nhỏ nước, mà mưa là hiện tượng chậm. Chủ dự án quyết định ngày 07/11/2026, sau khi thử trên module thật.
 - Gửi ngay khi đổi, và gửi lại khi nối lại broker. Lần đọc đầu tiên sau khi khởi động được nhận ngay (không chờ 50 ms) và gửi đi. Trước lần đọc đầu tiên, state là `{"motion":null}` (cùng cách với DHT22 khi chưa đo được).
 - GPIO35 và 39 chỉ đọc, không có điện trở kéo nội: module phải tự kéo mức (PIR và DO của cảm biến mưa đều tự kéo). Chân chưa nối module sẽ nhấp nháy khi có tay lại gần, đó không phải lỗi.
 - Mức tín hiệu (HIGH hay LOW là "bật") là hằng số của từng thiết bị trong `main.cpp`; chủ dự án kiểm tra trên module thật.
+- **Công tắc từ MC-38** (`bedroom/window`, duyệt 08/11/2026): công tắc lưỡi gà. Nam châm ở gần (cửa sổ đóng) thì tiếp điểm đóng, nối chân với GND, đọc LOW; nam châm xa thì tiếp điểm hở, chân được kéo lên HIGH, tức `{"open":true}`. Dây đứt hoặc rút ra cũng đọc HIGH, tức báo mở (không chắc thì báo mở). Đấu dây: một dây vào GPIO26, một dây vào GND, không phân cực, không cần điện trở ngoài vì firmware bật `INPUT_PULLUP` (`Esp32DigitalIn(26, true)`; GPIO26 có pull-up nội, khác GPIO34 đến 39). Chống nhiễu mặc định 50 ms. Chủ dự án đo trên module thật (08/11/2026): chuyển từ `open:false` sang `open:true` khi nam châm cách khoảng 1,5 đến 2 cm.
 - PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware. Jumper của HC-SR501 để ở **H** (kích lặp lại: còn chuyển động thì OUT giữ mức cao); ở L (kích một lần) OUT tự hạ sau thời gian giữ dù vẫn còn chuyển động.
 
 ## Cảm biến gas MQ-2 (chưa làm: #16)

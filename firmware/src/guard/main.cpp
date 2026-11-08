@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
 #include <shared/adapters_esp32/Esp32AnalogIn.h>
+#include <shared/adapters_esp32/Esp32DigitalIn.h>
 #include <shared/adapters_esp32/Esp32DigitalOut.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/Esp32ToneOutput.h>
@@ -10,6 +11,7 @@
 #include <shared/adapters_esp32/Rc522Reader.h>
 #include <shared/adapters_esp32/Ssd1306Display.h>
 #include <shared/protocol/Topics.h>
+#include <shared/services/BinarySensorDevice.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/DisplayDevice.h>
 #include <shared/services/GasSafety.h>
@@ -81,6 +83,13 @@ static services::GasSensorDevice gas("kitchen/gas", gasInput, clock_,
 // Quy tắc an toàn: có gas thì còi và quạt hút bật ngay trên board (kể cả khi mất mạng), quạt hút bị khóa không tắt được bằng lệnh.
 static services::GasSafety gasSafety(gas, alarmDevice, exhaustFan);
 
+// Công tắc từ MC-38 (cửa sổ phòng ngủ): một dây vào GPIO26, một dây vào GND, dùng pull-up nội.
+// Nam châm ở gần (cửa sổ đóng) thì tiếp điểm đóng, chân xuống LOW; nam châm xa hoặc dây rút ra thì HIGH, tức báo mở.
+// Xem docs/mqtt-topics.md, mục "Cảm biến hai trạng thái".
+static const bool kWindowSensorActiveLow = false;  // HIGH là cửa sổ mở (key "open")
+static adapters::esp32::Esp32DigitalIn windowInput(26, true);  // GPIO26, INPUT_PULLUP
+static services::BinarySensorDevice window("bedroom/window", "open", windowInput, kWindowSensorActiveLow);
+
 static adapters::esp32::Ssd1306Display oled(21, 22, 0x3C);  // I2C: SDA GPIO21, SCL GPIO22, địa chỉ 0x3C
 static services::DisplayDevice display("entrance/display", oled);
 
@@ -95,9 +104,11 @@ void setup() {
   alarmOutput.begin();
   exhaustFanRelay.begin();
   gasInput.begin();
+  windowInput.begin();
   hub.add(alarmDevice);
   hub.add(exhaustFan);
   hub.add(gas);
+  hub.add(window);
   gasSafety.begin();
   oled.begin();
   hub.add(display);

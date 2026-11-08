@@ -1149,6 +1149,33 @@ void test_cam_bien_nhi_phan_chong_nhieu_1_giay_cho_cam_bien_mua() {
   TEST_ASSERT_EQUAL_STRING("{\"raining\":true}", rain.stateJson().c_str());
 }
 
+// Công tắc từ MC-38 (docs/mqtt-topics.md): HIGH là cửa sổ mở (nam châm xa hoặc dây rút ra), LOW là đóng.
+static const char* WINDOW_STATE = "domisen/bedroom/window/state";
+
+void test_cong_tac_tu_cua_so_high_la_mo_low_la_dong() {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeDigitalInput input;
+  BinarySensorDevice window("bedroom/window", "open", input, false);
+  Hub hub{"guard", transport, clock, 5000};
+  hub.add(window);
+  hub.begin();
+  TEST_ASSERT_EQUAL_STRING("{\"open\":null}", window.stateJson().c_str());  // trước lần đọc đầu
+  input.value = true;                                                       // nam châm xa: mở
+  transport.simulateConnect();
+  hub.loop();
+  TEST_ASSERT_EQUAL_STRING("{\"open\":true}", transport.last(WINDOW_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(transport.last(WINDOW_STATE)->retain);
+  input.value = false;  // nam châm sát: đóng
+  hub.loop();
+  clock.advance(49);
+  hub.loop();
+  TEST_ASSERT_EQUAL_STRING("{\"open\":true}", transport.last(WINDOW_STATE)->payload.c_str());  // chưa đủ 50 ms
+  clock.advance(1);
+  hub.loop();
+  TEST_ASSERT_EQUAL_STRING("{\"open\":false}", transport.last(WINDOW_STATE)->payload.c_str());
+}
+
 void test_cam_bien_nhi_phan_chi_doc_va_khong_doi_state_khi_nhan_lenh() {
   BinarySensorRig r;
   r.transport.simulateConnect();
@@ -1699,6 +1726,7 @@ int main() {
   RUN_TEST(test_cam_bien_nhi_phan_bo_qua_nhieu_ngan_hon_50ms);
   RUN_TEST(test_cam_bien_nhi_phan_active_low_dao_muc);
   RUN_TEST(test_cam_bien_nhi_phan_chong_nhieu_1_giay_cho_cam_bien_mua);
+  RUN_TEST(test_cong_tac_tu_cua_so_high_la_mo_low_la_dong);
   RUN_TEST(test_cam_bien_nhi_phan_chi_doc_va_khong_doi_state_khi_nhan_lenh);
   RUN_TEST(test_cam_bien_nhi_phan_noi_lai_gui_lai_state_hien_tai);
   RUN_TEST(test_den_mau_tat_luc_khoi_dong);
