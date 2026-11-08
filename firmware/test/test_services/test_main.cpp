@@ -507,7 +507,7 @@ void test_oled_khoi_dong_trong_va_gui_state_retain() {
   TEST_ASSERT_TRUE(r.transport.last(DISPLAY_STATE)->retain);
 }
 
-void test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_21_ky_tu() {
+void test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_16_ky_tu() {
   DisplayRig r;
   r.transport.simulateConnect();
   r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Xin chao\"}");
@@ -516,9 +516,9 @@ void test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_21_ky_tu() {
   TEST_ASSERT_EQUAL_STRING("{\"text\":\"Xin chao\"}", r.transport.last(DISPLAY_STATE)->payload.c_str());
 
   r.transport.simulateMessage(DISPLAY_CMD,
-                              "{\"text\":\"123456789012345678901\\nDong 2\\nDong 3\\nDong 4\"}");
+                              "{\"text\":\"1234567890123456\\nDong 2\\nDong 3\\nDong 4\"}");
   TEST_ASSERT_EQUAL(4, r.screen.last.size());
-  TEST_ASSERT_EQUAL(21, r.screen.last[0].size());
+  TEST_ASSERT_EQUAL(16, r.screen.last[0].size());
   TEST_ASSERT_EQUAL_STRING("Dong 4", r.screen.last[3].c_str());
 }
 
@@ -536,8 +536,8 @@ void test_oled_tu_choi_lenh_sai_va_giu_nguyen_man_hinh() {
     const char* error;
   } badCommands[] = {
       {"{\"text\":\"1\\n2\\n3\\n4\\n5\"}", "{\"error\":\"text vượt quá 4 dòng\"}"},
-      {"{\"text\":\"1234567890123456789012\"}", "{\"error\":\"mỗi dòng tối đa 21 ký tự\"}"},
-      {"{\"text\":\"Xin chào\"}", "{\"error\":\"text chỉ nhận ký tự ASCII in được\"}"},
+      {"{\"text\":\"12345678901234567\"}", "{\"error\":\"mỗi dòng tối đa 16 ký tự\"}"},
+      {"{\"text\":\"Xin ch\\u00f1o\"}", "{\"error\":\"text chỉ nhận ASCII in được và chữ cái tiếng Việt (UTF-8 dựng sẵn)\"}"},
       {"{}", "{\"error\":\"text phải là chuỗi\"}"},
   };
   for (const auto& bad : badCommands) {
@@ -551,6 +551,19 @@ void test_oled_tu_choi_lenh_sai_va_giu_nguyen_man_hinh() {
   TEST_ASSERT_EQUAL_STRING(oldState.c_str(), r.display.stateJson().c_str());
   TEST_ASSERT_EQUAL(oldLines.size(), r.screen.last.size());
   TEST_ASSERT_EQUAL_STRING("Xin chao", r.screen.last[0].c_str());
+}
+
+void test_oled_hien_thi_tieng_viet_co_dau_va_gui_lai_dung_state() {
+  DisplayRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Đèn phòng khách\\nBật\"}");
+  TEST_ASSERT_EQUAL(2, r.screen.last.size());
+  TEST_ASSERT_EQUAL_STRING("Đèn phòng khách", r.screen.last[0].c_str());
+  TEST_ASSERT_EQUAL_STRING("Bật", r.screen.last[1].c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"text\":\"Đèn phòng khách\\nBật\"}", r.transport.last(DISPLAY_STATE)->payload.c_str());
+  // Chữ có dấu viết bằng \u trong JSON cũng được nhận và hiện đúng.
+  r.transport.simulateMessage(DISPLAY_CMD, "{\"text\":\"Xin ch\\u00e0o\"}");
+  TEST_ASSERT_EQUAL_STRING("Xin chào", r.screen.last[0].c_str());
 }
 
 void test_oled_noi_lai_gui_lai_state_hien_tai() {
@@ -1149,8 +1162,9 @@ int main() {
   RUN_TEST(test_quat_lenh_sai_bao_loi_va_giu_nguyen);
   RUN_TEST(test_quat_noi_lai_gui_lai_state);
   RUN_TEST(test_oled_khoi_dong_trong_va_gui_state_retain);
-  RUN_TEST(test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_21_ky_tu);
+  RUN_TEST(test_oled_hien_thi_mot_dong_va_bon_dong_moi_dong_16_ky_tu);
   RUN_TEST(test_oled_tu_choi_lenh_sai_va_giu_nguyen_man_hinh);
+  RUN_TEST(test_oled_hien_thi_tieng_viet_co_dau_va_gui_lai_dung_state);
   RUN_TEST(test_oled_noi_lai_gui_lai_state_hien_tai);
 
   RUN_TEST(test_cam_bien_nhi_phan_chua_doc_gui_null_va_lan_dau_nhan_ngay);

@@ -160,11 +160,14 @@ State `{"on":true,"color":"#FF0000","level":40}` (retain). `color` là chuỗi `
 
 ## Màn hình OLED (chưa làm: #8)
 
-`entrance/display`, guard, I2C: GPIO21 SDA, GPIO22 SCL, SSD1306 128x64, địa chỉ 0x3C. Lệnh `{"text":"Xin chao"}`, state `{"text":"Xin chao"}` (retain).
-- Tối đa 4 dòng, các dòng ngăn bằng `\n`, mỗi dòng tối đa 21 ký tự (phông chữ cỡ 1). Chỉ nhận ASCII in được (khoảng trắng đến `~`): tiếng Việt có dấu bị từ chối với lỗi rõ ràng, giữ nguyên màn hình.
-- Quá 4 dòng hoặc dòng quá dài: báo lỗi, giữ nguyên.
+`entrance/display`, guard, I2C: GPIO21 SDA, GPIO22 SCL, SSD1306 128x64, địa chỉ 0x3C. Lệnh `{"text":"Xin chào"}`, state `{"text":"Xin chào"}` (retain).
+- Tối đa 4 dòng, các dòng ngăn bằng `\n`, mỗi dòng tối đa **16 ký tự** (đếm ký tự, không đếm byte). Phông `u8g2_font_unifont_t_vietnamese2` cao 16 px, rộng 8 px, nên 4 dòng đầy màn hình và mỗi dòng đủ 128 px.
+- Chỉ nhận **ASCII in được** (khoảng trắng đến `~`) và **chữ cái tiếng Việt có dấu dạng dựng sẵn (UTF-8 NFC)**: `a ă â e ê i o ô ơ u ư y` và `đ`, chữ thường và chữ hoa, cùng đủ năm dấu thanh (146 chữ cái, tính cả chữ không dấu). Chữ tổ hợp rời (chữ gốc cộng dấu riêng), ký tự điều khiển, ký tự ngoài tập này và UTF-8 sai đều bị từ chối.
+- Quá 4 dòng, dòng quá 16 ký tự hoặc ký tự không được nhận: báo lỗi, giữ nguyên màn hình.
 - Khởi động: màn hình trống, state `{"text":""}`.
-- Thư viện `Adafruit SSD1306` và `Adafruit GFX`, chỉ nằm trong `adapters_esp32`.
+- Thư viện `U8g2`, chỉ nằm trong `adapters_esp32`. Không thấy OLED ở địa chỉ I2C thì adapter in lỗi ra Serial và bỏ qua mọi lệnh hiển thị, các thiết bị khác vẫn chạy.
+
+Quyết định 08/11/2026 (chủ dự án duyệt): bản đầu chỉ nhận ASCII, dùng `Adafruit SSD1306` và `Adafruit GFX` (phông 5x7 không có chữ có dấu), mỗi dòng 21 ký tự. Đổi sang `U8g2` với phông Unifont tiếng Việt để hiện được chữ có dấu. Đổi lại mỗi dòng còn 16 ký tự. Đã kiểm tra bằng chương trình thử trên máy: `u8g2_font_unifont_t_vietnamese2` có đủ 146 chữ cái trên, còn `u8g2_font_unifont_t_vietnamese1` thiếu chữ Ư nên không dùng.
 
 ## Đầu đọc thẻ RC522 (chưa làm: #11)
 
