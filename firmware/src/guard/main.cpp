@@ -1,7 +1,8 @@
-// Board guard: cửa, bếp, an ninh. Hiện có servo cửa chính, đầu đọc thẻ RC522, còi và quạt hút bếp; các thiết bị khác làm sau.
+// Board guard: cửa, bếp, an ninh. Hiện có servo cửa chính, đầu đọc thẻ RC522, còi, quạt hút bếp, màn hình OLED và cảm biến gas; các thiết bị khác làm sau.
 // Chỉ lắp ráp: adapter, thiết bị, hub. Xem docs/architecture.md.
 #include <Arduino.h>
 #include <shared/adapters_esp32/ArduinoClock.h>
+#include <shared/adapters_esp32/Esp32AnalogIn.h>
 #include <shared/adapters_esp32/Esp32DigitalOut.h>
 #include <shared/adapters_esp32/Esp32Pwm.h>
 #include <shared/adapters_esp32/Esp32ToneOutput.h>
@@ -11,6 +12,7 @@
 #include <shared/protocol/Topics.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/DisplayDevice.h>
+#include <shared/services/GasSensorDevice.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
 #include <shared/services/SwitchDevice.h>
@@ -54,6 +56,27 @@ static adapters::esp32::Esp32DigitalOut exhaustFanRelay(32, kExhaustFanActiveLow
 static services::SwitchDevice alarmDevice("house/alarm", alarmOutput);
 static services::SwitchDevice exhaustFan("kitchen/exhaust-fan", exhaustFanRelay);
 
+// Cảm biến gas MQ-2: AO qua hai điện trở 10 kΩ (cầu phân áp) vào GPIO35. Xem docs/mqtt-topics.md, mục "Cảm biến gas MQ-2".
+// Ngưỡng báo động do chủ dự án chọn ngày 08/11/2026, sau khi đo (mỗi giá trị là một lần gửi state, cách nhau 5 giây):
+// không khí sạch khoảng 0 đến 30; bật lửa đang cháy đưa trước cảm biến 60 đến 90;
+// gas thật (bật lửa gas bóp van không châm) lên 1485, 942, 530, 421 rồi giảm dần về dưới 50 trong khoảng 30 giây.
+// 1200 và 1000 nằm trong vùng ADC đo chính xác (150 đến 3100 mV tại chân), xa hẳn nền sạch (cao hơn khoảng 40 lần).
+// Muốn nhạy hơn thì hạ hai số này, muốn ít báo giả hơn thì nâng. Phải có kGasAlarmOffRaw < kGasAlarmOnRaw.
+static const int kGasAlarmOnRaw = 1200;
+static const int kGasAlarmOffRaw = 1000;
+static const uint32_t kGasWarmupMs = 60000;
+static const uint32_t kGasSampleMs = 1000;
+static const uint32_t kGasPublishMs = 5000;
+static const int kGasSamples = 8;
+static adapters::esp32::Esp32AnalogIn gasInput(35);  // GPIO35, ADC1
+static services::GasSensorDevice gas("kitchen/gas", gasInput, clock_,
+                                     {.onRaw = kGasAlarmOnRaw,
+                                      .offRaw = kGasAlarmOffRaw,
+                                      .warmupMs = kGasWarmupMs,
+                                      .sampleMs = kGasSampleMs,
+                                      .publishMs = kGasPublishMs,
+                                      .samples = kGasSamples});
+
 static adapters::esp32::Ssd1306Display oled(21, 22, 0x3C);  // I2C: SDA GPIO21, SCL GPIO22, địa chỉ 0x3C
 static services::DisplayDevice display("entrance/display", oled);
 
@@ -67,8 +90,10 @@ void setup() {
   hub.add(cardReader);
   alarmOutput.begin();
   exhaustFanRelay.begin();
+  gasInput.begin();
   hub.add(alarmDevice);
   hub.add(exhaustFan);
+  hub.add(gas);
   oled.begin();
   hub.add(display);
   hub.begin();

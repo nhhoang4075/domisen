@@ -3,6 +3,7 @@
 #include <shared/protocol/CardReader.h>
 #include <shared/protocol/Climate.h>
 #include <shared/protocol/Display.h>
+#include <shared/protocol/Gas.h>
 
 #include <shared/protocol/ColorLight.h>
 #include <shared/protocol/Error.h>
@@ -211,6 +212,12 @@ void test_den_mau_ma_hoa_trang_thai() {
 }
 
 // Servo cửa: danh sách vị trí theo thứ tự khai báo trong main.cpp.
+void test_gas_ma_hoa_trang_thai() {
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":1830,\"alarm\":true}", encodeGasState(1830, true).c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":0,\"alarm\":false}", encodeGasState(0, false).c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":null,\"alarm\":false}", encodeGasWarmup().c_str());
+}
+
 void test_giai_ma_vi_tri() {
   std::vector<std::string> names = {"closed", "open"};
   std::string pos = "closed", err;
@@ -263,6 +270,7 @@ int main() {
   RUN_TEST(test_den_mau_giai_ma_lenh);
   RUN_TEST(test_den_mau_lenh_sai_bi_tu_choi_va_khong_doi_out);
   RUN_TEST(test_den_mau_ma_hoa_trang_thai);
+  RUN_TEST(test_gas_ma_hoa_trang_thai);
   RUN_TEST(test_giai_ma_vi_tri);
   RUN_TEST(test_vi_tri_sai_bao_loi_neu_danh_sach);
   RUN_TEST(test_ma_hoa_vi_tri);

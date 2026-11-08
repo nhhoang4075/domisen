@@ -68,6 +68,7 @@ Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqt
 | Đèn WS2812 | `PixelStrip` (`setColor(r, g, b)` cho cả thanh) | `ColorLight` (luật bật tắt, màu, độ sáng nằm ở `core`) | `Ws2812Strip` (Adafruit NeoPixel) | `FakePixelStrip` |
 | OLED | `TextDisplay` (`show(các dòng)`) | `DisplayDevice` (kiểm tra ký tự được nhận, số dòng, độ dài) | `Ssd1306Display` | `FakeTextDisplay` |
 | RC522 | `CardReader` (`poll()` trả UID hoặc rỗng) | `CardReaderDevice` (chống lặp 2 giây) | `Rc522Reader` | `FakeCardReader` |
+| MQ-2 | `AnalogInput` (`read()` trả 0 đến 4095) | `GasSensorDevice` (làm nóng, trung bình 8 mẫu, báo động có trễ; luật trễ nằm ở `core/Gas.h`) | `Esp32AnalogIn` | `FakeAnalogInput` |
 
 - `Device` thêm hai hàm có giá trị mặc định cũ: `virtual bool retainState() const { return true; }` và `virtual bool publishOnConnect() const { return true; }`. Hub dùng chúng khi gửi state. Chỉ `CardReaderDevice` trả `false`.
 - Mỗi port mới có contract test (luật 6) và bản giả; mỗi lớp dịch vụ có test chạy trên laptop với bản giả.

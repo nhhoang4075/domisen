@@ -1,5 +1,6 @@
 // Contract của từng port: hành vi mà Hub và thiết bị dựa vào. Chạy cho mọi adapter chạy được trên laptop
 // (hiện là bản giả). Adapter thật cần board nên chỉ kiểm tra được khi nạp lên thiết bị.
+#include <shared/adapters_fake/FakeAnalogInput.h>
 #include <shared/adapters_fake/FakeCardReader.h>
 #include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeDigitalInput.h>
@@ -91,6 +92,19 @@ template <typename I> void digitalInputContract() {
   TEST_ASSERT_FALSE(input.read());
 }
 
+// ---- AnalogInput ----
+template <typename I> void analogInputContract() {
+  I input;
+  input.value = 1830;
+  TEST_ASSERT_EQUAL_UINT16(1830, input.read());
+  input.value = 0;
+  TEST_ASSERT_EQUAL_UINT16(0, input.read());
+  input.value = 4095;
+  TEST_ASSERT_EQUAL_UINT16(4095, input.read());
+}
+
+void test_fake_analog_input() { analogInputContract<adapters::fake::FakeAnalogInput>(); }
+
 // ---- PixelStrip ----
 template <typename S> void pixelStripContract() {
   S s;
@@ -151,6 +165,7 @@ int main() {
   RUN_TEST(test_fake_text_display);
 
   RUN_TEST(test_fake_digital_input);
+  RUN_TEST(test_fake_analog_input);
   RUN_TEST(test_fake_pixel_strip);
   RUN_TEST(test_fake_card_reader);
   return UNITY_END();

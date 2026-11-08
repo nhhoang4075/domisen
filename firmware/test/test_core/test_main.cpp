@@ -1,6 +1,7 @@
 // Luật thuần của đèn, đèn màu và servo: không cần phần cứng, không cần JSON.
 #include <shared/core/ColorLight.h>
 #include <shared/core/Fan.h>
+#include <shared/core/Gas.h>
 #include <shared/core/Light.h>
 #include <shared/core/DisplayText.h>
 
@@ -145,6 +146,24 @@ void test_display_text_tu_choi_ky_tu_ngoai_tap_cho_phep_va_utf8_sai() {
   TEST_ASSERT_FALSE(splitDisplayText("\xFF", lines, error));
 }
 
+// ---- báo động gas có trễ (docs/mqtt-topics.md, mục "Cảm biến gas MQ-2") ----
+void test_gas_alarm_bat_khi_dat_nguong_bat() {
+  TEST_ASSERT_FALSE(gasAlarm(false, 1999, 2000, 1800));
+  TEST_ASSERT_TRUE(gasAlarm(false, 2000, 2000, 1800));
+  TEST_ASSERT_TRUE(gasAlarm(false, 4095, 2000, 1800));
+}
+
+void test_gas_alarm_chi_tat_khi_xuong_duoi_nguong_tat() {
+  TEST_ASSERT_TRUE(gasAlarm(true, 1800, 2000, 1800));
+  TEST_ASSERT_FALSE(gasAlarm(true, 1799, 2000, 1800));
+  TEST_ASSERT_FALSE(gasAlarm(true, 0, 2000, 1800));
+}
+
+void test_gas_alarm_giu_nguyen_o_giua_hai_nguong() {
+  TEST_ASSERT_FALSE(gasAlarm(false, 1900, 2000, 1800));  // chưa báo động thì không tự bật ở giữa
+  TEST_ASSERT_TRUE(gasAlarm(true, 1900, 2000, 1800));    // đang báo động thì không tự tắt ở giữa
+}
+
 // ---- đèn màu WS2812 (bảng lệnh trong docs/mqtt-topics.md, mục "Đèn màu WS2812") ----
 static const Rgb kRed{255, 0, 0};
 
@@ -278,6 +297,9 @@ int main() {
   RUN_TEST(test_level_ngoai_khoang_bi_cat);
   RUN_TEST(test_duty_gamma);
   RUN_TEST(test_display_text_chap_nhan_mot_dong_va_bon_dong);
+  RUN_TEST(test_gas_alarm_bat_khi_dat_nguong_bat);
+  RUN_TEST(test_gas_alarm_chi_tat_khi_xuong_duoi_nguong_tat);
+  RUN_TEST(test_gas_alarm_giu_nguyen_o_giua_hai_nguong);
   RUN_TEST(test_display_text_gioi_han_16_ky_tu);
   RUN_TEST(test_display_text_tu_choi_qua_bon_dong);
   RUN_TEST(test_display_text_chap_nhan_chuoi_rong_va_chi_ascii_in_duoc);

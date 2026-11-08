@@ -116,6 +116,24 @@ Ví dụ `domisen/living/motion/state`: `{"motion":true}`.
 - Mức tín hiệu (HIGH hay LOW là "bật") là hằng số của từng thiết bị trong `main.cpp`; chủ dự án kiểm tra trên module thật.
 - PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware. Jumper của HC-SR501 để ở **H** (kích lặp lại: còn chuyển động thì OUT giữ mức cao); ở L (kích một lần) OUT tự hạ sau thời gian giữ dù vẫn còn chuyển động.
 
+## Cảm biến gas MQ-2 (chưa làm: #16)
+
+Id `kitchen/gas`, board guard, chân AO vào GPIO35. Topic `domisen/kitchen/gas/state` (retain). Không có lệnh: gửi vào `.../cmd` nhận lỗi "cảm biến chỉ đọc, không nhận lệnh". Duyệt thiết kế: chủ dự án, 08/11/2026.
+
+| Trường | Ý nghĩa |
+|---|---|
+| `ppm_raw` | Giá trị ADC **thô** 0 đến 4095, trung bình `kGasSamples` = 8 mẫu đọc liên tiếp. Không phải ppm thật (giữ tên trường như bản đầu của tài liệu) |
+| `alarm` | `true` khi có gas, tính theo ngưỡng có trễ bên dưới |
+
+Ví dụ `{"ppm_raw":1830,"alarm":true}`.
+- **Lấy mẫu** mỗi `kGasSampleMs` = 1000 ms.
+- **Ngưỡng có trễ:** `alarm` đổi false sang true khi `ppm_raw >= kGasAlarmOnRaw`, đổi true sang false khi `ppm_raw < kGasAlarmOffRaw`, ở giữa thì giữ nguyên. Phải có `kGasAlarmOffRaw < kGasAlarmOnRaw` để không nhấp nháy quanh ngưỡng. Hai hằng số nằm trong `guard/main.cpp`; chủ dự án đo trên board (không khí sạch, và đưa bật lửa gas chưa châm lửa lại gần) rồi chọn giá trị.
+- **Làm nóng:** MQ-2 có điện trở sưởi nên cần thời gian sau khi cấp điện. Trong `kGasWarmupMs` (mặc định 60000, chỉnh theo thực tế khi thử trên board) state là `{"ppm_raw":null,"alarm":false}`, chưa báo động. Hết thời gian làm nóng thì đọc và gửi ngay.
+- **Gửi state:** ngay khi `alarm` đổi, và mỗi `kGasPublishMs` = 5000 ms, và mỗi lần nối lại broker.
+- **Điện và đấu dây:** MQ-2 cấp 5V từ adapter, chung GND với ESP32. Chân AO ra tới 5V nên qua **cầu phân áp hai điện trở 10 kΩ**: AO, điện trở 10 kΩ, GPIO35, điện trở 10 kΩ, GND. GPIO35 nhận 2,5 V khi AO ra 5 V. GPIO35 thuộc ADC1 nên đọc được khi WiFi bật; chỉ đọc, không có điện trở kéo nội.
+- **Phần cứng:** port `AnalogInput` (`read()` trả 0 đến 4095), adapter `Esp32AnalogIn` dùng `analogRead` với độ suy hao 11 dB. Port này dùng lại được cho quang trở (số 5).
+- Việc tự bật còi và quạt hút khi `alarm` bật là Phần 2 của #16, mô tả trong mục "Còi và quạt hút".
+
 ## Còi và quạt hút (chưa làm: #10 còi, #9 quạt hút bếp)
 
 Dùng lại thiết bị bật tắt của quạt phòng khách: lệnh `{"on":true}` hoặc `{"on":false}`, state `{"on":true}` (retain), khởi động ở trạng thái tắt.

@@ -1,5 +1,6 @@
 // Hub, đèn, cảm biến, quạt, servo và đầu đọc thẻ, chạy với bản giả: không cần board, không cần mạng.
 #include <shared/adapters_fake/FakeCardReader.h>
+#include <shared/adapters_fake/FakeAnalogInput.h>
 #include <shared/adapters_fake/FakeClimateSensor.h>
 #include <shared/adapters_fake/FakeClock.h>
 #include <shared/adapters_fake/FakeDigitalInput.h>
@@ -11,6 +12,7 @@
 #include <shared/services/BinarySensorDevice.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/ClimateDevice.h>
+#include <shared/services/GasSensorDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/DisplayDevice.h>
@@ -22,6 +24,7 @@
 
 using namespace domisen;
 using adapters::fake::FakeCardReader;
+using adapters::fake::FakeAnalogInput;
 using adapters::fake::FakeClimateSensor;
 using adapters::fake::FakeClock;
 using adapters::fake::FakeDigitalInput;
@@ -33,6 +36,7 @@ using adapters::fake::FakeTransport;
 using services::BinarySensorDevice;
 using services::CardReaderDevice;
 using services::ClimateDevice;
+using services::GasSensorDevice;
 using services::ColorLight;
 using services::DimmableLight;
 using services::DisplayDevice;
@@ -480,6 +484,168 @@ struct DisplayRig {
     hub.begin();
   }
 };
+
+// ---- cảm biến gas MQ-2 (docs/mqtt-topics.md, mục "Cảm biến gas MQ-2") ----
+static const char* GAS_CMD = "domisen/kitchen/gas/cmd";
+static const char* GAS_STATE = "domisen/kitchen/gas/state";
+
+// Mẫu đọc lần lượt theo danh sách rồi quay vòng, để thử việc lấy trung bình.
+struct SequenceAnalogInput : core::AnalogInput {
+  uint16_t read() override {
+    const uint16_t v = values[next % values.size()];
+    ++next;
+    return v;
+  }
+  std::vector<uint16_t> values;
+  size_t next = 0;
+};
+
+struct GasRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeAnalogInput input;
+  GasSensorDevice gas;
+  Hub hub{"guard", transport, clock, 5000};
+
+  // Ngưỡng bật 2000, ngưỡng tắt 1800, làm nóng 60 s, lấy mẫu 1 s, gửi 5 s, 8 mẫu (giá trị mặc định của Config).
+  explicit GasRig(int offRaw = 1800) : gas("kitchen/gas", input, clock, {.onRaw = 2000, .offRaw = offRaw}) {
+    hub.add(gas);
+    hub.begin();
+  }
+  void connectAndWarmUp() {
+    transport.simulateConnect();
+    clock.advance(60000);
+    hub.loop();
+  }
+  void step(uint32_t ms = 1000) {
+    clock.advance(ms);
+    hub.loop();
+  }
+};
+
+void test_gas_dang_lam_nong_state_null_va_chua_doc() {
+  GasRig r;
+  r.transport.simulateConnect();
+  r.clock.advance(59999);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(0, r.input.reads);
+  const auto* state = r.transport.last(GAS_STATE);
+  TEST_ASSERT_NOT_NULL(state);
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":null,\"alarm\":false}", state->payload.c_str());
+  TEST_ASSERT_TRUE(state->retain);
+}
+
+void test_gas_het_lam_nong_doc_8_mau_va_gui_ngay() {
+  GasRig r;
+  r.input.value = 500;
+  r.connectAndWarmUp();
+  TEST_ASSERT_EQUAL(8, r.input.reads);
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":500,\"alarm\":false}", r.transport.last(GAS_STATE)->payload.c_str());
+}
+
+void test_gas_ppm_raw_la_trung_binh_8_mau() {
+  FakeTransport transport;
+  FakeClock clock;
+  SequenceAnalogInput input;
+  input.values = {0, 100, 200, 300, 400, 500, 600, 700};  // trung bình 350
+  GasSensorDevice gas("kitchen/gas", input, clock, {.onRaw = 2000, .offRaw = 1800});
+  Hub hub{"guard", transport, clock, 5000};
+  hub.add(gas);
+  hub.begin();
+  transport.simulateConnect();
+  clock.advance(60000);
+  hub.loop();
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":350,\"alarm\":false}", transport.last(GAS_STATE)->payload.c_str());
+}
+
+void test_gas_alarm_bat_dung_nguong_va_gui_ngay() {
+  GasRig r;
+  r.input.value = 500;
+  r.connectAndWarmUp();
+  const int before = r.transport.count(GAS_STATE);
+  r.input.value = 1999;
+  r.step();
+  TEST_ASSERT_EQUAL(before, r.transport.count(GAS_STATE));  // chưa tới ngưỡng, chưa tới chu kỳ gửi 5 s
+  r.input.value = 2000;
+  r.step();
+  TEST_ASSERT_EQUAL(before + 1, r.transport.count(GAS_STATE));  // alarm đổi thì gửi ngay
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":2000,\"alarm\":true}", r.transport.last(GAS_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.gas.alarm());
+}
+
+void test_gas_alarm_co_tre_khong_nhap_nhay_quanh_nguong() {
+  GasRig r;
+  r.input.value = 2100;
+  r.connectAndWarmUp();
+  TEST_ASSERT_TRUE(r.gas.alarm());
+  r.input.value = 1900;  // giữa hai ngưỡng: vẫn báo động
+  r.step();
+  TEST_ASSERT_TRUE(r.gas.alarm());
+  r.input.value = 1801;
+  r.step();
+  TEST_ASSERT_TRUE(r.gas.alarm());
+  const int before = r.transport.count(GAS_STATE);
+  r.input.value = 1799;  // xuống dưới ngưỡng tắt
+  r.step();
+  TEST_ASSERT_FALSE(r.gas.alarm());
+  TEST_ASSERT_EQUAL(before + 1, r.transport.count(GAS_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":1799,\"alarm\":false}", r.transport.last(GAS_STATE)->payload.c_str());
+  r.input.value = 1900;  // lên lại giữa hai ngưỡng: chưa tự bật
+  r.step();
+  TEST_ASSERT_FALSE(r.gas.alarm());
+}
+
+void test_gas_lay_mau_moi_giay_va_gui_moi_5_giay_khi_alarm_khong_doi() {
+  GasRig r;
+  r.input.value = 500;
+  r.connectAndWarmUp();
+  const int reads = r.input.reads;
+  const int sent = r.transport.count(GAS_STATE);
+  r.step(500);
+  TEST_ASSERT_EQUAL(reads, r.input.reads);  // chưa đủ 1 giây
+  r.step(500);
+  TEST_ASSERT_EQUAL(reads + 8, r.input.reads);
+  r.step();
+  r.step();
+  r.step();
+  TEST_ASSERT_EQUAL(sent, r.transport.count(GAS_STATE));  // mới 4 giây sau lần gửi đầu
+  r.input.value = 520;
+  r.step();  // đúng 5 giây sau lần gửi đầu
+  TEST_ASSERT_EQUAL(sent + 1, r.transport.count(GAS_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":520,\"alarm\":false}", r.transport.last(GAS_STATE)->payload.c_str());
+}
+
+void test_gas_chi_doc_khong_nhan_lenh() {
+  GasRig r;
+  r.input.value = 500;
+  r.connectAndWarmUp();
+  const int stateCount = r.transport.count(GAS_STATE);
+  r.transport.simulateMessage(GAS_CMD, "{\"on\":true}");
+  const auto* error = r.transport.last("domisen/kitchen/gas/error");
+  TEST_ASSERT_NOT_NULL(error);
+  TEST_ASSERT_EQUAL_STRING("{\"error\":\"cảm biến chỉ đọc, không nhận lệnh\"}", error->payload.c_str());
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(GAS_STATE));
+}
+
+void test_gas_noi_lai_gui_lai_state_hien_tai() {
+  GasRig r;
+  r.input.value = 2300;
+  r.connectAndWarmUp();
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":2300,\"alarm\":true}", r.transport.last(GAS_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(GAS_STATE)->retain);
+}
+
+void test_gas_nguong_tat_cao_hon_nguong_bat_bi_ep_bang_nguong_bat() {
+  GasRig r(2500);  // sai cấu hình: ngưỡng tắt cao hơn ngưỡng bật
+  r.input.value = 2000;
+  r.connectAndWarmUp();
+  TEST_ASSERT_TRUE(r.gas.alarm());
+  r.input.value = 1999;
+  r.step();
+  TEST_ASSERT_FALSE(r.gas.alarm());  // không kẹt ở trạng thái báo động
+}
 
 // ---- cảm biến nhị phân ----
 static const char* MOTION_CMD = "domisen/living/motion/cmd";
@@ -1150,6 +1316,15 @@ int main() {
   RUN_TEST(test_nhip_uptime);
   RUN_TEST(test_uptime_khong_bi_dat_lai_khi_dong_ho_quay_vong);
   RUN_TEST(test_mat_ket_noi_thi_khong_gui_uptime);
+  RUN_TEST(test_gas_dang_lam_nong_state_null_va_chua_doc);
+  RUN_TEST(test_gas_het_lam_nong_doc_8_mau_va_gui_ngay);
+  RUN_TEST(test_gas_ppm_raw_la_trung_binh_8_mau);
+  RUN_TEST(test_gas_alarm_bat_dung_nguong_va_gui_ngay);
+  RUN_TEST(test_gas_alarm_co_tre_khong_nhap_nhay_quanh_nguong);
+  RUN_TEST(test_gas_lay_mau_moi_giay_va_gui_moi_5_giay_khi_alarm_khong_doi);
+  RUN_TEST(test_gas_chi_doc_khong_nhan_lenh);
+  RUN_TEST(test_gas_noi_lai_gui_lai_state_hien_tai);
+  RUN_TEST(test_gas_nguong_tat_cao_hon_nguong_bat_bi_ep_bang_nguong_bat);
   RUN_TEST(test_khi_hau_do_ngay_khi_noi_va_gui_state_retain);
   RUN_TEST(test_khi_hau_do_moi_10_giay);
   RUN_TEST(test_khi_hau_doc_loi_gui_null);
