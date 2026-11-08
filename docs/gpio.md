@@ -13,7 +13,7 @@ Bảng gốc lấy từ `docs/plan/ke-hoach.html`, đã được đổi chân ng
 | 10 | Buzzer | GPIO27 | Module buzzer thụ động 5V: phát bằng xung PWM, tắt thì thả chân về đầu vào, không xuất mức cao vì 3,3 V chưa tắt hẳn module (xem `docs/mqtt-topics.md`) |
 | 11 | RC522 (SPI) | GPIO16 SDA (SS), 17 SCK, 5 MOSI, 18 MISO, 19 RST | **Nguồn 3,3V, không cắm 5V.** Năm chân liền nhau, đúng thứ tự trên module. SPI chạy qua GPIO matrix nên chân tùy ý, tốc độ 4 MHz |
 | 12 | Công tắc từ MC-38 | GPIO26 | Một dây vào chân, một dây vào GND, đặt `INPUT_PULLUP` trong code, không cần điện trở ngoài |
-| 13 | MQ-2 (AO) | GPIO35 | Qua cầu phân áp vì MQ-2 xuất tới 5V |
+| 13 | MQ-2 (AO) | GPIO35 | Cấp 5V từ adapter. AO qua cầu phân áp hai điện trở 10 kΩ (AO, 10 kΩ, GPIO35, 10 kΩ, GND): GPIO35 nhận 2,5 V khi AO ra 5 V |
 
 ## comfort (ESP32 B: phòng khách, phòng ngủ, ban công)
 

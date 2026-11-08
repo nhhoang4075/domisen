@@ -47,6 +47,13 @@ class DigitalInput {
   virtual bool read() = 0;
 };
 
+// Đầu vào analog (ADC 12 bit). read() trả giá trị thô 0 đến 4095, một mẫu mỗi lần gọi.
+class AnalogInput {
+ public:
+  virtual ~AnalogInput() = default;
+  virtual uint16_t read() = 0;
+};
+
 // Thanh đèn nhiều bóng nhận cùng một màu (WS2812). Mỗi kênh 0..255 là màu thực tế đã nhân độ sáng:
 // lõi tính hết, adapter chỉ đẩy ra phần cứng.
 class PixelStrip {
