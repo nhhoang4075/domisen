@@ -12,6 +12,7 @@
 #include <shared/services/BinarySensorDevice.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/ClimateDevice.h>
+#include <shared/services/GasSafety.h>
 #include <shared/services/GasSensorDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
@@ -36,6 +37,7 @@ using adapters::fake::FakeTransport;
 using services::BinarySensorDevice;
 using services::CardReaderDevice;
 using services::ClimateDevice;
+using services::GasSafety;
 using services::GasSensorDevice;
 using services::ColorLight;
 using services::DimmableLight;
@@ -645,6 +647,177 @@ void test_gas_nguong_tat_cao_hon_nguong_bat_bi_ep_bang_nguong_bat() {
   r.input.value = 1999;
   r.step();
   TEST_ASSERT_FALSE(r.gas.alarm());  // không kẹt ở trạng thái báo động
+}
+
+// ---- quy tắc an toàn khi có gas (docs/mqtt-topics.md, mục "Còi và quạt hút") ----
+static const char* BUZZER_CMD = "domisen/house/alarm/cmd";
+static const char* BUZZER_STATE = "domisen/house/alarm/state";
+static const char* FAN_HOOD_CMD = "domisen/kitchen/exhaust-fan/cmd";
+static const char* FAN_HOOD_STATE = "domisen/kitchen/exhaust-fan/state";
+static const char* FAN_HOOD_ERROR = "domisen/kitchen/exhaust-fan/error";
+
+void test_switch_setOn_tu_board_doi_output_va_bao_hub_gui_state_mot_lan() {
+  FakeDigitalOutput out;
+  SwitchDevice device("house/alarm", out);
+  device.begin();
+  TEST_ASSERT_FALSE(device.tick(0));
+  device.setOn(true);
+  TEST_ASSERT_TRUE(out.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", device.stateJson().c_str());
+  TEST_ASSERT_TRUE(device.tick(1));
+  TEST_ASSERT_FALSE(device.tick(2));
+  device.setOn(true);  // không đổi thì không cần gửi lại
+  TEST_ASSERT_FALSE(device.tick(3));
+}
+
+void test_switch_khoa_tu_choi_lenh_tat_nhung_nhan_lenh_bat_va_mo_khoa_thi_tat_duoc() {
+  FakeDigitalOutput out;
+  SwitchDevice device("kitchen/exhaust-fan", out);
+  device.begin();
+  device.setOn(true);
+  device.lockOn("đang có gas");
+  std::string error;
+  TEST_ASSERT_FALSE(device.onCommand("{\"on\":false}", error));
+  TEST_ASSERT_EQUAL_STRING("đang có gas", error.c_str());
+  TEST_ASSERT_TRUE(out.last);
+  TEST_ASSERT_TRUE(device.onCommand("{\"on\":true}", error));
+  device.unlock();
+  TEST_ASSERT_TRUE(device.onCommand("{\"on\":false}", error));
+  TEST_ASSERT_FALSE(out.last);
+}
+
+struct GasSafetyRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeAnalogInput input;
+  FakeDigitalOutput buzzerOut;
+  FakeDigitalOutput fanOut;
+  SwitchDevice buzzer;
+  SwitchDevice fan;
+  GasSensorDevice gas;
+  GasSafety safety;
+  Hub hub{"guard", transport, clock, 5000};
+
+  // Ngưỡng bật 2000, ngưỡng tắt 1800 (xem GasRig).
+  GasSafetyRig()
+      : buzzer("house/alarm", buzzerOut),
+        fan("kitchen/exhaust-fan", fanOut),
+        gas("kitchen/gas", input, clock, {.onRaw = 2000, .offRaw = 1800}),
+        safety(gas, buzzer, fan) {
+    hub.add(buzzer);
+    hub.add(fan);
+    hub.add(gas);
+    hub.begin();
+    safety.begin();
+  }
+  void warmUpAndStep(uint16_t value) {
+    input.value = value;
+    clock.advance(60000);
+    hub.loop();
+    hub.loop();  // vòng sau gửi state của hai công tắc vừa bị code trên board đổi
+  }
+  void step(uint16_t value, uint32_t ms = 1000) {
+    input.value = value;
+    clock.advance(ms);
+    hub.loop();
+    hub.loop();
+  }
+};
+
+void test_gas_an_toan_co_gas_bat_con_va_quat_hut_va_gui_state() {
+  GasSafetyRig r;
+  r.transport.simulateConnect();
+  r.warmUpAndStep(2500);
+  TEST_ASSERT_TRUE(r.gas.alarm());
+  TEST_ASSERT_TRUE(r.buzzerOut.last);
+  TEST_ASSERT_TRUE(r.fanOut.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(BUZZER_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(BUZZER_STATE)->retain);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(FAN_HOOD_STATE)->payload.c_str());
+}
+
+void test_gas_an_toan_het_gas_tat_ca_hai_va_bo_khoa() {
+  GasSafetyRig r;
+  r.transport.simulateConnect();
+  r.warmUpAndStep(2500);
+  r.step(1900);  // gas loãng dần nhưng chưa xuống dưới ngưỡng tắt 1800: vẫn báo động
+  TEST_ASSERT_TRUE(r.fanOut.last);
+  r.step(1799);
+  TEST_ASSERT_FALSE(r.gas.alarm());
+  TEST_ASSERT_FALSE(r.buzzerOut.last);
+  TEST_ASSERT_FALSE(r.fanOut.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(BUZZER_STATE)->payload.c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(FAN_HOOD_STATE)->payload.c_str());
+  r.transport.simulateMessage(FAN_HOOD_CMD, "{\"on\":true}");  // hết gas: quạt hút lại điều khiển như thường
+  r.transport.simulateMessage(FAN_HOOD_CMD, "{\"on\":false}");
+  TEST_ASSERT_FALSE(r.fanOut.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(FAN_HOOD_STATE)->payload.c_str());
+}
+
+void test_gas_an_toan_dang_bao_dong_tu_choi_lenh_tat_quat_hut() {
+  GasSafetyRig r;
+  r.transport.simulateConnect();
+  r.warmUpAndStep(2500);
+  const int stateCount = r.transport.count(FAN_HOOD_STATE);
+  r.transport.simulateMessage(FAN_HOOD_CMD, "{\"on\":false}");
+  TEST_ASSERT_TRUE(r.fanOut.last);
+  const auto* error = r.transport.last(FAN_HOOD_ERROR);
+  TEST_ASSERT_NOT_NULL(error);
+  TEST_ASSERT_FALSE(error->retain);
+  TEST_ASSERT_EQUAL_STRING("{\"error\":\"đang có gas, không tắt quạt hút được\"}", error->payload.c_str());
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(FAN_HOOD_STATE));
+  r.transport.simulateMessage(FAN_HOOD_CMD, "{\"on\":true}");  // lệnh bật vẫn nhận
+  TEST_ASSERT_TRUE(r.fanOut.last);
+}
+
+void test_gas_an_toan_tat_tieng_coi_khong_tu_bat_lai_cho_toi_lan_bao_dong_sau() {
+  GasSafetyRig r;
+  r.transport.simulateConnect();
+  r.warmUpAndStep(2500);
+  TEST_ASSERT_TRUE(r.buzzerOut.last);
+  r.transport.simulateMessage(BUZZER_CMD, "{\"on\":false}");  // tắt tiếng được
+  TEST_ASSERT_FALSE(r.buzzerOut.last);
+  TEST_ASSERT_EQUAL_STRING("{\"on\":false}", r.transport.last(BUZZER_STATE)->payload.c_str());
+  r.step(2600);
+  r.step(2700);
+  TEST_ASSERT_TRUE(r.gas.alarm());
+  TEST_ASSERT_FALSE(r.buzzerOut.last);  // gas vẫn còn nhưng còi không tự bật lại
+  TEST_ASSERT_TRUE(r.fanOut.last);      // quạt hút vẫn chạy
+  r.step(100);                          // hết gas
+  TEST_ASSERT_FALSE(r.gas.alarm());
+  TEST_ASSERT_FALSE(r.fanOut.last);
+  r.step(2500);                         // báo động lần sau: còi kêu lại
+  TEST_ASSERT_TRUE(r.gas.alarm());
+  TEST_ASSERT_TRUE(r.buzzerOut.last);
+  TEST_ASSERT_TRUE(r.fanOut.last);
+}
+
+void test_gas_an_toan_mat_ket_noi_van_bat_con_va_quat_hut_roi_gui_state_khi_noi_lai() {
+  GasSafetyRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateDisconnect();  // mất mạng, quy tắc an toàn vẫn phải chạy
+  const int publishedBefore = static_cast<int>(r.transport.published.size());
+  r.warmUpAndStep(2500);
+  TEST_ASSERT_TRUE(r.input.reads > 0);
+  TEST_ASSERT_TRUE(r.gas.alarm());
+  TEST_ASSERT_TRUE(r.buzzerOut.last);
+  TEST_ASSERT_TRUE(r.fanOut.last);
+  TEST_ASSERT_EQUAL(publishedBefore, static_cast<int>(r.transport.published.size()));  // offline: chưa gửi được gì
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(BUZZER_STATE)->payload.c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"on\":true}", r.transport.last(FAN_HOOD_STATE)->payload.c_str());
+  TEST_ASSERT_EQUAL_STRING("{\"ppm_raw\":2500,\"alarm\":true}", r.transport.last(GAS_STATE)->payload.c_str());
+}
+
+void test_gas_an_toan_chi_thiet_bi_an_toan_chay_khi_mat_ket_noi() {
+  // Cảm biến khí hậu không chạy lúc mất kết nối (test_khi_hau_mat_ket_noi_thi_khong_do); chỉ thiết bị runsOffline() mới được tick.
+  GasSafetyRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateDisconnect();
+  r.input.value = 100;
+  r.clock.advance(60000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(8, r.input.reads);
 }
 
 // ---- cảm biến nhị phân ----
@@ -1325,6 +1498,14 @@ int main() {
   RUN_TEST(test_gas_chi_doc_khong_nhan_lenh);
   RUN_TEST(test_gas_noi_lai_gui_lai_state_hien_tai);
   RUN_TEST(test_gas_nguong_tat_cao_hon_nguong_bat_bi_ep_bang_nguong_bat);
+  RUN_TEST(test_switch_setOn_tu_board_doi_output_va_bao_hub_gui_state_mot_lan);
+  RUN_TEST(test_switch_khoa_tu_choi_lenh_tat_nhung_nhan_lenh_bat_va_mo_khoa_thi_tat_duoc);
+  RUN_TEST(test_gas_an_toan_co_gas_bat_con_va_quat_hut_va_gui_state);
+  RUN_TEST(test_gas_an_toan_het_gas_tat_ca_hai_va_bo_khoa);
+  RUN_TEST(test_gas_an_toan_dang_bao_dong_tu_choi_lenh_tat_quat_hut);
+  RUN_TEST(test_gas_an_toan_tat_tieng_coi_khong_tu_bat_lai_cho_toi_lan_bao_dong_sau);
+  RUN_TEST(test_gas_an_toan_mat_ket_noi_van_bat_con_va_quat_hut_roi_gui_state_khi_noi_lai);
+  RUN_TEST(test_gas_an_toan_chi_thiet_bi_an_toan_chay_khi_mat_ket_noi);
   RUN_TEST(test_khi_hau_do_ngay_khi_noi_va_gui_state_retain);
   RUN_TEST(test_khi_hau_do_moi_10_giay);
   RUN_TEST(test_khi_hau_doc_loi_gui_null);

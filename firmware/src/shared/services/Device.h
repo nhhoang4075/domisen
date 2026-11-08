@@ -14,6 +14,8 @@ class Device {
   virtual void begin() {}
   // Hub gọi mỗi vòng loop() khi đã nối broker. Trả true nếu cần gửi lại state (cảm biến gửi theo chu kỳ).
   virtual bool tick(uint32_t nowMs) { return false; }
+  // Thiết bị an toàn cần chạy cả khi mất kết nối broker (ví dụ cảm biến gas): Hub vẫn gọi tick() lúc đó, nhưng không gửi state.
+  virtual bool runsOffline() const { return false; }
   // Trả false và điền error nếu không hiểu lệnh. Khi đó trạng thái không đổi.
   virtual bool onCommand(const std::string& payload, std::string& error) = 0;
   virtual std::string stateJson() const = 0;

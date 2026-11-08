@@ -145,7 +145,12 @@ Dùng lại thiết bị bật tắt của quạt phòng khách: lệnh `{"on":t
 
 Relay quạt hút có thể chạy mức cao hoặc mức thấp: là hằng số `kExhaustFanActiveLow` trong `guard/main.cpp` (mặc định `false`: hút khi chân lên mức cao), chủ dự án chỉnh khi thử trên board.
 Còi là module **thụ động**: cấp mức cao hoặc thấp liên tục chỉ nghe tiếng tách lúc chuyển mức, nên khi bật phải đưa **xung 50 %** ra chân (3000 Hz, hằng số `kAlarmToneHz`, đã thử quét 1000 đến 5000 Hz trên module thật và chọn 3000 Hz), khi tắt **thả chân về đầu vào** (trở kháng cao). Module có điện trở kéo I/O lên 5 V và kích ở mức thấp: giữ mức thấp thì có dòng chạy liên tục qua còi, còn xuất mức cao từ ESP32 chỉ có 3,3 V nên transistor vẫn hé bật và còi nóng (đã thấy khi thử trên board). Thả chân thì điện trở kéo lên đưa I/O lên đủ 5 V, transistor tắt hẳn. Làm bằng adapter `Esp32ToneOutput` cài đặt `DigitalOutput`, nên thiết bị vẫn là `SwitchDevice` với lệnh `{"on":true}` như cũ. Kênh LEDC của còi phải khác cặp với servo (mỗi cặp kênh dùng chung một bộ định thời, tức chung tần số).
-Việc tự bật còi và quạt hút khi có gas (an toàn, chạy ngay trên board) làm sau khi có cảm biến MQ-2.
+**Tự bật khi có gas (an toàn, chạy ngay trên board, không chờ server; #16 phần 2).** Quy tắc nằm trong `GasSafety`, dựa vào `alarm` của `kitchen/gas`:
+- `alarm` đổi sang `true`: còi `house/alarm` và quạt hút `kitchen/exhaust-fan` **tự bật**; state của hai thiết bị báo `{"on":true}` như khi bật bằng lệnh.
+- Trong lúc `alarm` là `true`: lệnh **tắt quạt hút** từ server bị từ chối với lỗi `{"error":"đang có gas, không tắt quạt hút được"}` (lệnh bật vẫn nhận). Lệnh **tắt còi** được nhận (tắt tiếng), và còi **không tự bật lại** cho đến khi `alarm` xuống `false` rồi lên `true` lần nữa.
+- `alarm` đổi sang `false`: bỏ khóa và **tự tắt cả hai**, kể cả khi trước đó đang bật bằng lệnh.
+- **Chạy được khi mất kết nối broker:** cảm biến gas vẫn lấy mẫu, còi và quạt hút vẫn tự bật. State chưa gửi được lúc mất mạng sẽ gửi khi nối lại. Thiết bị khác vẫn chỉ chạy khi có kết nối (chỉ thiết bị khai báo `runsOffline()` mới được tick lúc mất kết nối).
+- Hệ quả của thời gian làm nóng: sau khi khởi động lại board, `alarm` bị giữ `false` trong `kGasWarmupMs` (60 giây), nên chưa tự bật gì trong thời gian đó.
 
 ## Servo: cửa, rèm, giàn phơi (chưa làm)
 

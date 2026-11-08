@@ -31,6 +31,7 @@ bool GasSensorDevice::tick(uint32_t nowMs) {
 
   const bool previousAlarm = alarm_;
   alarm_ = core::gasAlarm(alarm_, *raw_, config_.onRaw, config_.offRaw);
+  if (alarm_ != previousAlarm && alarmChangeHandler_) alarmChangeHandler_(alarm_);
 
   if (firstReading || alarm_ != previousAlarm || nowMs - lastPublishMs_ >= config_.publishMs) {
     lastPublishMs_ = nowMs;
