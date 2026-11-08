@@ -77,6 +77,10 @@ Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqt
 - Mỗi port mới có contract test (luật 6) và bản giả; mỗi lớp dịch vụ có test chạy trên laptop với bản giả.
 - Thư viện bên thứ ba chỉ được include trong `adapters_esp32`. Thư viện nào chỉ board `comfort` hoặc `guard` cần thì khai báo `lib_deps` riêng cho env đó, và env còn lại loại file adapter tương ứng khỏi `build_src_filter` (giống `Dht22Sensor` cho `guard`).
 
+## Nối broker không chặn lâu
+
+`transport.loop()` và `hub.loop()` chạy nối tiếp trong cùng một vòng `loop()` của board, nên lúc `MqttTransport` chờ broker thì không thiết bị nào được tick, kể cả quy tắc an toàn gas. Vì vậy mỗi lần thử nối broker bị giới hạn thời gian chặn: `kBrokerConnectTimeoutMs` = 1000 ms cho bước nối TCP (mặc định của thư viện là 3000 ms) và `kBrokerReplyTimeoutSec` = 2 giây chờ CONNACK (mặc định `MQTT_SOCKET_TIMEOUT` là 15 giây), hai hằng số trong `MqttTransport.cpp`. Thời gian chặn tối đa mỗi lần thử: khoảng 1 giây khi không ai trả lời, khoảng 3 giây khi TCP nối được nhưng broker im lặng. Chu kỳ thử lại tăng dần 1, 2, 4, 8 rồi 15 giây. Mỗi lần thử in lên Serial thời gian đã chặn để đo trên board. Adapter thật không chạy được trên laptop, nên phần này chỉ kiểm tra được trên board (xem issue #26). Nếu số đo vẫn chưa đạt thì chạy MQTT ở task riêng, nhưng phải có khóa dữ liệu giữa hai task.
+
 ## Thêm một thiết bị
 
 1. Nếu là loại mới (relay, servo...): thêm luật thuần ở `core`, mã hóa ở `protocol`, lớp thiết bị ở `services`, có test với bản giả.
