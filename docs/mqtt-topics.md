@@ -118,6 +118,17 @@ Ví dụ `domisen/living/motion/state`: `{"motion":true}`.
 - **Công tắc từ MC-38** (`bedroom/window`, duyệt 08/11/2026): công tắc lưỡi gà. Nam châm ở gần (cửa sổ đóng) thì tiếp điểm đóng, nối chân với GND, đọc LOW; nam châm xa thì tiếp điểm hở, chân được kéo lên HIGH, tức `{"open":true}`. Dây đứt hoặc rút ra cũng đọc HIGH, tức báo mở (không chắc thì báo mở). Đấu dây: một dây vào GPIO26, một dây vào GND, không phân cực, không cần điện trở ngoài vì firmware bật `INPUT_PULLUP` (`Esp32DigitalIn(26, true)`; GPIO26 có pull-up nội, khác GPIO34 đến 39). Chống nhiễu mặc định 50 ms. Chủ dự án đo trên module thật (08/11/2026): chuyển từ `open:false` sang `open:true` khi nam châm cách khoảng 1,5 đến 2 cm.
 - PIR cần khoảng 1 phút sau khi cấp điện mới ổn định, và tự giữ mức HIGH vài giây theo núm trên module. Đó là việc của module, không xử lý trong firmware. Jumper của HC-SR501 để ở **H** (kích lặp lại: còn chuyển động thì OUT giữ mức cao); ở L (kích một lần) OUT tự hạ sau thời gian giữ dù vẫn còn chuyển động.
 
+## Nút cảm ứng điều khiển đèn trần (đã làm: #24)
+
+Chạm nút TTP223 (`living/wall-button`, GPIO27) thì đèn trần (`living/ceiling-light`) đổi bật tắt ngay trên board `comfort`, kể cả khi mất WiFi hoặc broker. Duyệt thiết kế: chủ dự án, 08/11/2026.
+- **Chạm một lần thì đổi qua lại:** đèn tắt thì bật, đèn bật thì tắt. Bật dùng lại mức sáng đã nhớ, tắt giữ mức cũ, đúng như lệnh `{"on":true}` và `{"on":false}` ở mục "Đèn chỉnh độ sáng".
+- **Chỉ phản ứng khi bắt đầu chạm:** `pressed` đổi từ `false` sang `true` sau chống nhiễu 50 ms. Giữ tay không lặp lại, nhả tay không làm gì. Chạm ngắn hơn thời gian chống nhiễu thì không tính.
+- **Lần đọc đầu sau khi khởi động không tính là chạm:** tay đang đặt trên nút lúc cấp điện thì đèn không tự đổi. Phải nhả tay rồi chạm lần sau.
+- **Mất kết nối vẫn chạy:** nút và đèn trần vẫn được tick khi mất broker (`runsOffline`). Nối lại broker thì state hiện tại của đèn được gửi lại một lần như mọi thiết bị.
+- **Gửi state:** đèn đổi do chạm thì gửi `domisen/living/ceiling-light/state` (retain) ngay khi đã nối broker. State của nút vẫn là `{"pressed":true|false}` như mục "Cảm biến hai trạng thái".
+- **Lệnh MQTT và chạm xen kẽ:** lệnh nào đến sau thì thắng, state luôn đúng với đèn thật.
+- Chỉ áp dụng cho đèn trần. Không có chạm giữ để chỉnh độ sáng, và không điều khiển đèn ngủ hay quạt.
+
 ## Cảm biến gas MQ-2 (chưa làm: #16)
 
 Id `kitchen/gas`, board guard, chân AO vào GPIO35. Topic `domisen/kitchen/gas/state` (retain). Không có lệnh: gửi vào `.../cmd` nhận lỗi "cảm biến chỉ đọc, không nhận lệnh". Duyệt thiết kế: chủ dự án, 08/11/2026.

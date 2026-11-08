@@ -28,6 +28,7 @@ bool BinarySensorDevice::tick(uint32_t nowMs) {
   if (candidate_ == state_ || nowMs - candidateSinceMs_ < debounceMs_) return false;
 
   state_ = candidate_;
+  if (changeHandler_) changeHandler_(state_);
   return true;
 }
 

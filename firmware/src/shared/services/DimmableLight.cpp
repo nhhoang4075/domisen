@@ -15,6 +15,18 @@ bool DimmableLight::onCommand(const std::string& payload, std::string& error) {
   return true;
 }
 
+bool DimmableLight::tick(uint32_t) {
+  const bool changed = changedByBoard_;
+  changedByBoard_ = false;
+  return changed;
+}
+
+void DimmableLight::setOn(bool on) {
+  state_ = core::applyLightCommand(state_, on, std::nullopt);
+  pwm_.write(core::lightDuty(state_));
+  changedByBoard_ = true;
+}
+
 std::string DimmableLight::stateJson() const { return protocol::encodeLightState(state_.on, state_.level); }
 
 }  // namespace domisen::services
