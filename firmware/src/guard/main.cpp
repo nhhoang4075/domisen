@@ -60,10 +60,10 @@ static services::SwitchDevice exhaustFan("kitchen/exhaust-fan", exhaustFanRelay)
 // Ngưỡng báo động do chủ dự án chọn ngày 08/11/2026, sau khi đo (mỗi giá trị là một lần gửi state, cách nhau 5 giây):
 // không khí sạch khoảng 0 đến 30; bật lửa đang cháy đưa trước cảm biến 60 đến 90;
 // gas thật (bật lửa gas bóp van không châm) lên 1485, 942, 530, 421 rồi giảm dần về dưới 50 trong khoảng 30 giây.
-// 1600 và 1400 nằm trong vùng ADC đo chính xác (150 đến 3100 mV tại chân), xa hẳn nền sạch, nên rất khó báo giả.
-// Đổi lại các lần thử gas ở trên (đỉnh thấy được 1485) chưa chạm tới 1600: muốn nhạy hơn thì hạ hai số này. Phải có kGasAlarmOffRaw < kGasAlarmOnRaw.
-static const int kGasAlarmOnRaw = 1600;
-static const int kGasAlarmOffRaw = 1400;
+// 1200 và 1000 nằm trong vùng ADC đo chính xác (150 đến 3100 mV tại chân), xa hẳn nền sạch (cao hơn khoảng 40 lần).
+// Muốn nhạy hơn thì hạ hai số này, muốn ít báo giả hơn thì nâng. Phải có kGasAlarmOffRaw < kGasAlarmOnRaw.
+static const int kGasAlarmOnRaw = 1200;
+static const int kGasAlarmOffRaw = 1000;
 static const uint32_t kGasWarmupMs = 60000;
 static const uint32_t kGasSampleMs = 1000;
 static const uint32_t kGasPublishMs = 5000;
