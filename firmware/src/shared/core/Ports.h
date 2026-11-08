@@ -40,6 +40,29 @@ class DigitalOutput {
   virtual void write(bool on) = 0;
 };
 
+// Đầu vào số. Adapter trả true khi chân ở mức HIGH.
+class DigitalInput {
+ public:
+  virtual ~DigitalInput() = default;
+  virtual bool read() = 0;
+};
+
+// Thanh đèn nhiều bóng nhận cùng một màu (WS2812). Mỗi kênh 0..255 là màu thực tế đã nhân độ sáng:
+// lõi tính hết, adapter chỉ đẩy ra phần cứng.
+class PixelStrip {
+ public:
+  virtual ~PixelStrip() = default;
+  virtual void setColor(uint8_t r, uint8_t g, uint8_t b) = 0;
+};
+
+// Đầu đọc thẻ (RC522). poll() trả UID của thẻ mới đưa vào đầu đọc, dạng hex chữ hoa không dấu cách (ví dụ "A3F2197C"),
+// hoặc rỗng nếu không có thẻ mới. Chống lặp khi giữ thẻ trên đầu đọc là việc của thiết bị, không phải của port.
+class CardReader {
+ public:
+  virtual ~CardReader() = default;
+  virtual std::optional<std::string> poll() = 0;
+};
+
 // Màn hình ký tự. Mỗi phần tử trong danh sách là một dòng.
 class TextDisplay {
  public:
