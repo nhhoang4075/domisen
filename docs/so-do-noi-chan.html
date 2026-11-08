@@ -263,7 +263,7 @@ const BOARDS = {
       {id:'gas',name:'Cảm biến khí MQ-2',short:'MQ-2',room:'Bếp',color:'#0c8599',
         old:{gpio:'VP',pins:sens4('top',11,{adapter:true,aoS:true})}, new:{gpio:'D35',pins:sens4('top',8,{adapter:true,aoS:true})},
         why:'Nằm cạnh relay quạt hút (cụm bếp). D35 cũng là ADC1 chỉ đọc như VP.',
-        note:'VCC cần 5 V (sấy nóng) từ adapter. AO ra tới 5 V nên phải qua cầu phân áp trước khi vào ESP32 (chỉ chịu 3,3 V). DO không dùng.'},
+        note:'VCC cần 5 V (sấy nóng) từ adapter. AO ra tới 5 V nên phải qua cầu phân áp hai điện trở 10 kΩ trước khi vào ESP32 (chỉ chịu 3,3 V): AO, 10 kΩ, D35, 10 kΩ, GND. D35 nhận 2,5 V khi AO ra 5 V. DO không dùng.'},
     ]
   },
   comfort:{
@@ -296,13 +296,13 @@ const BOARDS = {
       {id:'light',name:'Quang trở (AO)',short:'Quang trở',room:'Phòng khách',color:'#a61e4d',
         old:{gpio:'D35',pins:sens4('top',8,{aoS:true})}, new:{gpio:'D34',pins:sens4('top',9,{aoS:true})},
         why:'Nằm cạnh PIR (hai cảm biến phòng khách). D34 và D35 đều là ADC1.',
-        note:'3,3 V. AO cần chân ADC1 để đọc được khi bật WiFi.'},
+        note:'Module LM393 4 chân, cấp 3,3 V. AO nối thẳng D34 (không cần phân áp vì AO không vượt điện áp cấp), đo AO bằng đồng hồ trước khi cắm. Chân DO không dùng. AO cần chân ADC1 để đọc được khi bật WiFi.'},
       {id:'motion',name:'PIR HC-SR501',short:'PIR',room:'Phòng khách',color:'#5f3dc4',
         old:{gpio:'VN',pins:pir('top',10)}, new:{gpio:'VN',pins:pir('top',10)},
         note:'HC-SR501 cần từ 4,5 V trở lên: VCC lấy 5 V adapter. Chân giữa là OUT nên không cắm thẳng 3 chân được. OUT ra 3,3 V, an toàn cho ESP32.'},
-      {id:'fan',name:'Relay quạt phòng khách',short:'Relay quạt',room:'Phòng khách',color:'#e8590c',
+      {id:'fan',name:'Quạt phòng khách (module MOSFET LR7843, PWM)',short:'MOSFET quạt',room:'Phòng khách',color:'#e8590c',
         old:{gpio:'D16',pins:relay('bottom',3)}, new:{gpio:'D16',pins:relay('bottom',3)},
-        note:'Module relay của bạn hút ở mức cao (kFanRelayActiveLow = false). Quạt lấy 5 V adapter qua tiếp điểm. Rút dây V khỏi đầu cắm rồi nối riêng.'},
+        note:'Quạt chỉnh tốc độ bằng PWM qua module MOSFET LR7843 cách ly opto EL817 (không còn là relay). Chân PWM của module vào D16, quạt lấy 5 V adapter qua module. Tên chân vẽ ở đây theo module relay cũ, đối chiếu nhãn in trên module MOSFET khi đấu.'},
     ]
   }
 };
