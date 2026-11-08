@@ -71,6 +71,7 @@ Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqt
 | MQ-2 | `AnalogInput` (`read()` trả 0 đến 4095) | `GasSensorDevice` (làm nóng, trung bình 8 mẫu, báo động có trễ; luật trễ nằm ở `core/Gas.h`) | `Esp32AnalogIn` | `FakeAnalogInput` |
 
 - `Device` thêm hai hàm có giá trị mặc định cũ: `virtual bool retainState() const { return true; }` và `virtual bool publishOnConnect() const { return true; }`. Hub dùng chúng khi gửi state. Chỉ `CardReaderDevice` trả `false`.
+- **Quy tắc an toàn gas:** `GasSafety` (services) nối `GasSensorDevice` với hai `SwitchDevice` (còi, quạt hút) qua `onAlarmChange`. `SwitchDevice` có `setOn()` (bật tắt từ code trên board, báo `Hub` gửi state qua `tick`) và `lockOn()` (từ chối lệnh tắt). `Device` thêm `virtual bool runsOffline() const { return false; }`: `Hub::loop` vẫn tick các thiết bị này khi mất kết nối broker (không gửi state), nên quy tắc an toàn chạy được khi offline.
 - Mỗi port mới có contract test (luật 6) và bản giả; mỗi lớp dịch vụ có test chạy trên laptop với bản giả.
 - Thư viện bên thứ ba chỉ được include trong `adapters_esp32`. Thư viện nào chỉ board `comfort` hoặc `guard` cần thì khai báo `lib_deps` riêng cho env đó, và env còn lại loại file adapter tương ứng khỏi `build_src_filter` (giống `Dht22Sensor` cho `guard`).
 

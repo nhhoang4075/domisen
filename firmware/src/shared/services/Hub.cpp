@@ -53,10 +53,13 @@ void Hub::loop() {
   // Phép trừ 32 bit vẫn đúng khi đồng hồ quay về 0, nên cộng dồn vào số 64 bit thì uptime không bị đặt lại.
   uptimeMs_ += now - lastTick_;
   lastTick_ = now;
-  if (!transport_.connected()) return;
+  const bool connected = transport_.connected();
   for (Device* device : devices_) {
-    if (device->tick(now)) publishState(*device);
+    // Mất kết nối thì chỉ thiết bị an toàn (runsOffline) được tick; state của chúng gửi lại khi nối lại (handleConnect).
+    if (!connected && !device->runsOffline()) continue;
+    if (device->tick(now) && connected) publishState(*device);
   }
+  if (!connected) return;
   if (now - lastBeat_ < heartbeatMs_) return;
   lastBeat_ = now;
   transport_.publish(protocol::nodeUptimeTopic(node_), std::to_string(uptimeMs_ / 1000), false);

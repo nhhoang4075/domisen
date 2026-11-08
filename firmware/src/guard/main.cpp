@@ -12,6 +12,7 @@
 #include <shared/protocol/Topics.h>
 #include <shared/services/CardReaderDevice.h>
 #include <shared/services/DisplayDevice.h>
+#include <shared/services/GasSafety.h>
 #include <shared/services/GasSensorDevice.h>
 #include <shared/services/Hub.h>
 #include <shared/services/PositionDevice.h>
@@ -77,6 +78,9 @@ static services::GasSensorDevice gas("kitchen/gas", gasInput, clock_,
                                       .publishMs = kGasPublishMs,
                                       .samples = kGasSamples});
 
+// Quy tắc an toàn: có gas thì còi và quạt hút bật ngay trên board (kể cả khi mất mạng), quạt hút bị khóa không tắt được bằng lệnh.
+static services::GasSafety gasSafety(gas, alarmDevice, exhaustFan);
+
 static adapters::esp32::Ssd1306Display oled(21, 22, 0x3C);  // I2C: SDA GPIO21, SCL GPIO22, địa chỉ 0x3C
 static services::DisplayDevice display("entrance/display", oled);
 
@@ -94,6 +98,7 @@ void setup() {
   hub.add(alarmDevice);
   hub.add(exhaustFan);
   hub.add(gas);
+  gasSafety.begin();
   oled.begin();
   hub.add(display);
   hub.begin();

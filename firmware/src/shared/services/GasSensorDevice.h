@@ -4,6 +4,7 @@
 #include <shared/core/Ports.h>
 #include <shared/services/Device.h>
 
+#include <functional>
 #include <optional>
 
 namespace domisen::services {
@@ -23,11 +24,14 @@ class GasSensorDevice : public Device {
 
   const std::string& id() const override { return id_; }
   void begin() override;
+  bool runsOffline() const override { return true; }  // an toàn: vẫn lấy mẫu khi mất kết nối broker
   bool tick(uint32_t nowMs) override;
   bool onCommand(const std::string& payload, std::string& error) override;
   std::string stateJson() const override;
 
   bool alarm() const { return alarm_; }
+  // Gọi ngay khi alarm đổi (cả lúc mất kết nối broker). Quy tắc an toàn đăng ký ở đây.
+  void onAlarmChange(std::function<void(bool alarm)> handler) { alarmChangeHandler_ = std::move(handler); }
 
  private:
   std::string id_;
@@ -39,6 +43,7 @@ class GasSensorDevice : public Device {
   uint32_t lastPublishMs_ = 0;
   std::optional<int> raw_;  // chưa có: đang làm nóng
   bool alarm_ = false;
+  std::function<void(bool)> alarmChangeHandler_;
 };
 
 }  // namespace domisen::services
