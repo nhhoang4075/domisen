@@ -491,6 +491,7 @@ mosquitto_pub -h localhost -u domisen -P 'MẬT_KHẨU' \
     <tr><th>Thiết bị</th><th>Port</th><th>Lớp dịch vụ</th><th>Điểm chính</th></tr>
     <tr><td>Quạt phòng khách (module MOSFET LR7843)</td><td><code>PwmOutput</code></td><td><code>SpeedFan</code></td><td>Duty tuyến tính từ duty tối thiểu, không bù gamma. Từ đứng yên lên duty thấp thì chạy hết ga một lúc (kick-start) cho quạt kịp quay</td></tr>
     <tr><td>PIR, cảm biến mưa, nút TTP223, công tắc từ MC-38</td><td><code>DigitalInput</code></td><td><code>BinarySensorDevice</code></td><td>Chống nhiễu 50 ms (cảm biến mưa 1 giây), chỉ đọc. MC-38 dùng điện trở kéo lên nội (<code>INPUT_PULLUP</code>), HIGH là cửa sổ mở</td></tr>
+    <tr><td>Chạm nút TTP223 bật tắt đèn trần</td><td>(nối các thiết bị)</td><td><code>TouchToggle</code></td><td>Chạm thì đèn trần đổi bật tắt ngay trên board, chạy cả khi mất mạng. Chỉ phản ứng khi bắt đầu chạm (giữ tay không lặp, lần đọc đầu sau khi khởi động không tính). Bật dùng lại mức sáng đã nhớ</td></tr>
     <tr><td>Cảm biến gas MQ-2</td><td><code>AnalogInput</code></td><td><code>GasSensorDevice</code></td><td>Làm nóng 60 giây, trung bình 8 mẫu, báo động có trễ (bật từ 1200, tắt dưới 1000). <code>ppm_raw</code> là giá trị ADC thô, không phải ppm thật</td></tr>
     <tr><td>Quy tắc an toàn gas</td><td>(nối các thiết bị)</td><td><code>GasSafety</code></td><td>Có gas thì còi và quạt hút bật ngay trên board, quạt hút bị khóa không tắt được bằng lệnh. Chạy cả khi mất kết nối broker</td></tr>
     <tr><td>Cảm biến ánh sáng (module quang trở LM393)</td><td><code>AnalogInput</code></td><td><code>LightSensorDevice</code></td><td><code>light_raw</code> chuẩn hóa để lớn hơn là sáng hơn, <code>dark</code> có trễ (bật dưới 800, tắt từ 1200). Hàm trễ dùng chung với gas ở <code>core/Hysteresis.h</code></td></tr>
@@ -758,7 +759,7 @@ tools/check-purity.sh     # lõi có dính phần cứng không</code></pre>
     <li><b>MQTT không mã hóa:</b> kết nối TCP thường, mật khẩu đi dạng rõ trong mạng. Đủ cho đồ án ở WiFi tin cậy, chưa đủ để đưa ra internet.</li>
     <li><b>Chỉ QoS 0:</b> PubSubClient chỉ gửi mức "tối đa một lần", tin có thể mất nếu mạng chập chờn. Trạng thái được gửi lại mỗi lần nối nên về lâu dài vẫn đúng.</li>
     <li><b>Bộ đệm 512 byte:</b> tin dài hơn bị bỏ. Lệnh và trạng thái hiện tại chỉ vài chục byte nên chưa vướng.</li>
-    <li><b>Mất broker có thể làm board chậm:</b> khi WiFi còn mà broker tắt, <code>MqttTransport::loop</code> có thể bị chặn vài giây mỗi lần thử nối lại. Trong lúc bị chặn, mọi thiết bị (kể cả quy tắc an toàn gas) chưa được tick, nên phản ứng chậm tương ứng. Đã ghi ở PR #18, chưa sửa.</li>
+    <li><b>Mất broker làm board chậm tối đa vài giây:</b> khi WiFi còn mà broker không trả lời, mỗi lần thử nối lại chặn vòng <code>loop()</code> khoảng 1 giây (không ai trả lời) hoặc 3 giây (TCP nối được nhưng broker im lặng); trong lúc chặn, mọi thiết bị kể cả quy tắc an toàn gas chưa được tick. Đây là số suy ra từ hằng số trong <code>MqttTransport.cpp</code> (issue #26), <b>chưa đo trên board</b>. Nếu đo vẫn chưa đạt thì cân nhắc chạy MQTT ở task riêng (issue #28).</li>
     <li><b>Địa chỉ broker ghi cứng trong config:</b> đổi WiFi thì IP laptop đổi, phải sửa <code>MQTT_HOST</code> và nạp lại.</li>
   </ul>
 </section>
