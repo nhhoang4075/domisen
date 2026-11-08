@@ -68,7 +68,8 @@ Nội dung chi tiết (topic, trường, chân, thư viện) nằm ở `docs/mqt
 | Đèn WS2812 | `PixelStrip` (`setColor(r, g, b)` cho cả thanh) | `ColorLight` (luật bật tắt, màu, độ sáng nằm ở `core`) | `Ws2812Strip` (Adafruit NeoPixel) | `FakePixelStrip` |
 | OLED | `TextDisplay` (`show(các dòng)`) | `DisplayDevice` (kiểm tra ký tự được nhận, số dòng, độ dài) | `Ssd1306Display` | `FakeTextDisplay` |
 | RC522 | `CardReader` (`poll()` trả UID hoặc rỗng) | `CardReaderDevice` (chống lặp 2 giây) | `Rc522Reader` | `FakeCardReader` |
-| MQ-2 | `AnalogInput` (`read()` trả 0 đến 4095) | `GasSensorDevice` (làm nóng, trung bình 8 mẫu, báo động có trễ; luật trễ nằm ở `core/Gas.h`) | `Esp32AnalogIn` | `FakeAnalogInput` |
+| Quang trở (module LM393) | `AnalogInput` (dùng lại) | `LightSensorDevice` (trung bình 8 mẫu, chuẩn hóa chiều AO, `dark` có trễ; luật ở `core/LightSensor.h`) | `Esp32AnalogIn` (dùng lại) | `FakeAnalogInput` (dùng lại) |
+| MQ-2 | `AnalogInput` (`read()` trả 0 đến 4095) | `GasSensorDevice` (làm nóng, trung bình 8 mẫu, báo động có trễ; luật trễ nằm ở `core/Gas.h`, hàm trễ chung ở `core/Hysteresis.h`) | `Esp32AnalogIn` | `FakeAnalogInput` |
 
 - `Device` thêm hai hàm có giá trị mặc định cũ: `virtual bool retainState() const { return true; }` và `virtual bool publishOnConnect() const { return true; }`. Hub dùng chúng khi gửi state. Chỉ `CardReaderDevice` trả `false`.
 - **Quy tắc an toàn gas:** `GasSafety` (services) nối `GasSensorDevice` với hai `SwitchDevice` (còi, quạt hút) qua `onAlarmChange`. `SwitchDevice` có `setOn()` (bật tắt từ code trên board, báo `Hub` gửi state qua `tick`) và `lockOn()` (từ chối lệnh tắt). `Device` thêm `virtual bool runsOffline() const { return false; }`: `Hub::loop` vẫn tick các thiết bị này khi mất kết nối broker (không gửi state), nên quy tắc an toàn chạy được khi offline.

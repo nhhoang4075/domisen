@@ -134,6 +134,22 @@ Ví dụ `{"ppm_raw":1830,"alarm":true}`.
 - **Phần cứng:** port `AnalogInput` (`read()` trả 0 đến 4095), adapter `Esp32AnalogIn` dùng `analogRead` với độ suy hao 11 dB. Port này dùng lại được cho quang trở (số 5).
 - Việc tự bật còi và quạt hút khi `alarm` bật là Phần 2 của #16, mô tả trong mục "Còi và quạt hút".
 
+## Cảm biến ánh sáng (chưa làm: #19)
+
+Id `living/light-sensor`, board comfort, chân AO vào GPIO34. Topic `domisen/living/light-sensor/state` (retain). Không có lệnh: gửi vào `.../cmd` nhận lỗi "cảm biến chỉ đọc, không nhận lệnh". Duyệt thiết kế: chủ dự án, 08/11/2026.
+
+| Trường | Ý nghĩa |
+|---|---|
+| `light_raw` | Giá trị ADC 0 đến 4095, trung bình `samples` = 8 mẫu đọc liên tiếp, đã **chuẩn hóa để lớn hơn là sáng hơn**. Nếu AO của module giảm khi sáng (`kLightAoFallsWhenBright` = `true`) thì `light_raw` = 4095 trừ giá trị đọc thô. Không phải lux |
+| `dark` | `true` khi trời tối, tính theo ngưỡng có trễ bên dưới |
+
+Ví dụ `{"light_raw":2310,"dark":false}`.
+- **Lấy mẫu** mỗi 1000 ms. Không cần làm nóng.
+- **Ngưỡng có trễ:** `dark` đổi false sang true khi `light_raw < kLightDarkBelowRaw`, đổi true sang false khi `light_raw >= kLightBrightAtOrAboveRaw`, ở giữa thì giữ nguyên. Nếu cấu hình `kLightBrightAtOrAboveRaw` nhỏ hơn `kLightDarkBelowRaw` thì firmware nâng nó lên bằng `kLightDarkBelowRaw` (không kẹt). Ba hằng số nằm trong `comfort/main.cpp`; giá trị hiện tại (800, 1200, `true`) là **tạm**, chủ dự án đo trên module thật (sáng, tối, nhá nhem, và chiều của AO) rồi chọn.
+- **Gửi state:** ngay khi `dark` đổi, mỗi 10000 ms, và mỗi lần nối lại broker. Lần đọc đầu tiên được nhận ngay và gửi đi. Trước lần đọc đầu tiên, state là `{"light_raw":null,"dark":false}`.
+- **Điện và đấu dây:** module quang trở có chip LM393 (4 chân: AO, DO, GND, VCC). Cấp **3,3 V**, chung GND với ESP32; AO nối thẳng GPIO34, không cần cầu phân áp vì AO không vượt điện áp cấp. Chân DO (so sánh bằng núm trên module) **không dùng**. GPIO34 thuộc ADC1 nên đọc được khi WiFi bật; chỉ đọc, không có điện trở kéo nội. Trước khi nối, đo AO bằng đồng hồ để chắc nó không vượt 3,3 V.
+- **Phần cứng:** dùng lại port `AnalogInput` và adapter `Esp32AnalogIn` của MQ-2. Luật trễ dùng chung `core/Hysteresis.h` với báo động gas.
+
 ## Còi và quạt hút (chưa làm: #10 còi, #9 quạt hút bếp)
 
 Dùng lại thiết bị bật tắt của quạt phòng khách: lệnh `{"on":true}` hoặc `{"on":false}`, state `{"on":true}` (retain), khởi động ở trạng thái tắt.

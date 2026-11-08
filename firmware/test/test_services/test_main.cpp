@@ -14,6 +14,7 @@
 #include <shared/services/ClimateDevice.h>
 #include <shared/services/GasSafety.h>
 #include <shared/services/GasSensorDevice.h>
+#include <shared/services/LightSensorDevice.h>
 #include <shared/services/ColorLight.h>
 #include <shared/services/DimmableLight.h>
 #include <shared/services/DisplayDevice.h>
@@ -39,6 +40,7 @@ using services::CardReaderDevice;
 using services::ClimateDevice;
 using services::GasSafety;
 using services::GasSensorDevice;
+using services::LightSensorDevice;
 using services::ColorLight;
 using services::DimmableLight;
 using services::DisplayDevice;
@@ -820,6 +822,163 @@ void test_gas_an_toan_chi_thiet_bi_an_toan_chay_khi_mat_ket_noi() {
   TEST_ASSERT_EQUAL(8, r.input.reads);
 }
 
+// ---- cảm biến ánh sáng (docs/mqtt-topics.md, mục "Cảm biến ánh sáng") ----
+static const char* LIGHT_SENSOR_CMD = "domisen/living/light-sensor/cmd";
+static const char* LIGHT_SENSOR_STATE = "domisen/living/light-sensor/state";
+
+struct LightSensorRig {
+  FakeTransport transport;
+  FakeClock clock;
+  FakeAnalogInput input;
+  LightSensorDevice sensor;
+  Hub hub{"comfort", transport, clock, 5000};
+
+  // dark bật khi dưới 800, tắt khi đạt 1200; lấy mẫu 1 s, gửi 10 s, 8 mẫu (mặc định của Config).
+  explicit LightSensorRig(bool aoFallsWhenBright = false, int brightAtOrAbove = 1200)
+      : sensor("living/light-sensor", input,
+               {.darkBelowRaw = 800, .brightAtOrAboveRaw = brightAtOrAbove, .aoFallsWhenBright = aoFallsWhenBright}) {
+    hub.add(sensor);
+    hub.begin();
+  }
+  void connectAndRead(uint16_t value) {
+    input.value = value;
+    transport.simulateConnect();
+    hub.loop();
+  }
+  void step(uint16_t value, uint32_t ms = 1000) {
+    input.value = value;
+    clock.advance(ms);
+    hub.loop();
+  }
+};
+
+void test_anh_sang_chua_doc_state_null() {
+  LightSensorRig r;
+  r.transport.simulateConnect();  // chưa tick nên chưa đọc lần nào
+  const auto* state = r.transport.last(LIGHT_SENSOR_STATE);
+  TEST_ASSERT_NOT_NULL(state);
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":null,\"dark\":false}", state->payload.c_str());
+  TEST_ASSERT_TRUE(state->retain);
+}
+
+void test_anh_sang_doc_ngay_khi_noi_8_mau_va_gui_state() {
+  LightSensorRig r;
+  r.connectAndRead(2310);
+  TEST_ASSERT_EQUAL(8, r.input.reads);
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":2310,\"dark\":false}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+}
+
+void test_anh_sang_light_raw_la_trung_binh_8_mau() {
+  FakeTransport transport;
+  FakeClock clock;
+  SequenceAnalogInput input;
+  input.values = {0, 100, 200, 300, 400, 500, 600, 700};  // trung bình 350
+  LightSensorDevice sensor("living/light-sensor", input, {.darkBelowRaw = 100, .brightAtOrAboveRaw = 200});
+  Hub hub{"comfort", transport, clock, 5000};
+  hub.add(sensor);
+  hub.begin();
+  transport.simulateConnect();
+  hub.loop();
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":350,\"dark\":false}", transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+}
+
+void test_anh_sang_chuan_hoa_chieu_khi_ao_giam_luc_sang() {
+  LightSensorRig r(true);  // AO giảm khi sáng: đọc thô 1000 là khá sáng, light_raw = 4095 - 1000
+  r.connectAndRead(1000);
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":3095,\"dark\":false}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+  r.step(4000);  // đọc thô 4000 là rất tối: light_raw = 95, dưới ngưỡng 800
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":95,\"dark\":true}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+}
+
+void test_anh_sang_dark_bat_dung_nguong_va_gui_ngay() {
+  LightSensorRig r;
+  r.connectAndRead(2000);
+  const int before = r.transport.count(LIGHT_SENSOR_STATE);
+  r.step(800);  // đúng ngưỡng 800: chưa tối, chưa tới chu kỳ gửi 10 s
+  TEST_ASSERT_EQUAL(before, r.transport.count(LIGHT_SENSOR_STATE));
+  r.step(799);
+  TEST_ASSERT_EQUAL(before + 1, r.transport.count(LIGHT_SENSOR_STATE));  // dark đổi thì gửi ngay
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":799,\"dark\":true}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+}
+
+void test_anh_sang_dark_co_tre_khong_nhap_nhay_quanh_nguong() {
+  LightSensorRig r;
+  r.connectAndRead(500);  // tối ngay từ lần đọc đầu
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":500,\"dark\":true}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+  const int before = r.transport.count(LIGHT_SENSOR_STATE);
+  r.step(1100);  // giữa hai ngưỡng: vẫn tối, dark không đổi nên chưa gửi
+  TEST_ASSERT_EQUAL(before, r.transport.count(LIGHT_SENSOR_STATE));
+  r.step(1199);
+  TEST_ASSERT_EQUAL(before, r.transport.count(LIGHT_SENSOR_STATE));
+  r.step(1200);  // đạt ngưỡng sáng thì mới hết tối
+  TEST_ASSERT_EQUAL(before + 1, r.transport.count(LIGHT_SENSOR_STATE));
+}
+
+void test_anh_sang_dark_tat_khi_dat_nguong_sang_roi_khong_tu_bat_o_giua() {
+  LightSensorRig r;
+  r.connectAndRead(500);
+  const int before = r.transport.count(LIGHT_SENSOR_STATE);
+  r.step(1200);  // đạt ngưỡng sáng: hết tối
+  TEST_ASSERT_EQUAL(before + 1, r.transport.count(LIGHT_SENSOR_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":1200,\"dark\":false}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+  r.step(1000);  // lại giữa hai ngưỡng: chưa tự tối lại
+  TEST_ASSERT_EQUAL(before + 1, r.transport.count(LIGHT_SENSOR_STATE));
+}
+
+void test_anh_sang_lay_mau_moi_giay_va_gui_moi_10_giay_khi_dark_khong_doi() {
+  LightSensorRig r;
+  r.connectAndRead(2000);
+  const int reads = r.input.reads;
+  const int sent = r.transport.count(LIGHT_SENSOR_STATE);
+  r.step(2000, 500);
+  TEST_ASSERT_EQUAL(reads, r.input.reads);  // chưa đủ 1 giây
+  r.step(2000, 500);
+  TEST_ASSERT_EQUAL(reads + 8, r.input.reads);
+  for (int i = 0; i < 8; ++i) r.step(2000);  // tới giây thứ 9 sau lần gửi đầu
+  TEST_ASSERT_EQUAL(sent, r.transport.count(LIGHT_SENSOR_STATE));
+  r.step(2050);  // đúng 10 giây
+  TEST_ASSERT_EQUAL(sent + 1, r.transport.count(LIGHT_SENSOR_STATE));
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":2050,\"dark\":false}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+}
+
+void test_anh_sang_chi_doc_khong_nhan_lenh() {
+  LightSensorRig r;
+  r.connectAndRead(2000);
+  const int stateCount = r.transport.count(LIGHT_SENSOR_STATE);
+  r.transport.simulateMessage(LIGHT_SENSOR_CMD, "{\"on\":true}");
+  const auto* error = r.transport.last("domisen/living/light-sensor/error");
+  TEST_ASSERT_NOT_NULL(error);
+  TEST_ASSERT_EQUAL_STRING("{\"error\":\"cảm biến chỉ đọc, không nhận lệnh\"}", error->payload.c_str());
+  TEST_ASSERT_EQUAL(stateCount, r.transport.count(LIGHT_SENSOR_STATE));
+}
+
+void test_anh_sang_noi_lai_gui_lai_state_hien_tai() {
+  LightSensorRig r;
+  r.connectAndRead(500);
+  r.transport.simulateDisconnect();
+  r.transport.simulateConnect();
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":500,\"dark\":true}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+  TEST_ASSERT_TRUE(r.transport.last(LIGHT_SENSOR_STATE)->retain);
+}
+
+void test_anh_sang_mat_ket_noi_thi_khong_lay_mau() {
+  LightSensorRig r;
+  r.transport.simulateConnect();
+  r.transport.simulateDisconnect();
+  r.input.value = 2000;
+  r.clock.advance(30000);
+  r.hub.loop();
+  TEST_ASSERT_EQUAL(0, r.input.reads);
+}
+
+void test_anh_sang_nguong_sang_thap_hon_nguong_toi_bi_ep_bang_nguong_toi() {
+  LightSensorRig r(false, 500);  // sai cấu hình: ngưỡng sáng 500 thấp hơn ngưỡng tối 800
+  r.connectAndRead(700);
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":700,\"dark\":true}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+  r.step(800);  // tới 800 thì hết tối, không kẹt
+  TEST_ASSERT_EQUAL_STRING("{\"light_raw\":800,\"dark\":false}", r.transport.last(LIGHT_SENSOR_STATE)->payload.c_str());
+}
+
 // ---- cảm biến nhị phân ----
 static const char* MOTION_CMD = "domisen/living/motion/cmd";
 static const char* MOTION_STATE = "domisen/living/motion/state";
@@ -1506,6 +1665,18 @@ int main() {
   RUN_TEST(test_gas_an_toan_tat_tieng_coi_khong_tu_bat_lai_cho_toi_lan_bao_dong_sau);
   RUN_TEST(test_gas_an_toan_mat_ket_noi_van_bat_con_va_quat_hut_roi_gui_state_khi_noi_lai);
   RUN_TEST(test_gas_an_toan_chi_thiet_bi_an_toan_chay_khi_mat_ket_noi);
+  RUN_TEST(test_anh_sang_chua_doc_state_null);
+  RUN_TEST(test_anh_sang_doc_ngay_khi_noi_8_mau_va_gui_state);
+  RUN_TEST(test_anh_sang_light_raw_la_trung_binh_8_mau);
+  RUN_TEST(test_anh_sang_chuan_hoa_chieu_khi_ao_giam_luc_sang);
+  RUN_TEST(test_anh_sang_dark_bat_dung_nguong_va_gui_ngay);
+  RUN_TEST(test_anh_sang_dark_co_tre_khong_nhap_nhay_quanh_nguong);
+  RUN_TEST(test_anh_sang_dark_tat_khi_dat_nguong_sang_roi_khong_tu_bat_o_giua);
+  RUN_TEST(test_anh_sang_lay_mau_moi_giay_va_gui_moi_10_giay_khi_dark_khong_doi);
+  RUN_TEST(test_anh_sang_chi_doc_khong_nhan_lenh);
+  RUN_TEST(test_anh_sang_noi_lai_gui_lai_state_hien_tai);
+  RUN_TEST(test_anh_sang_mat_ket_noi_thi_khong_lay_mau);
+  RUN_TEST(test_anh_sang_nguong_sang_thap_hon_nguong_toi_bi_ep_bang_nguong_toi);
   RUN_TEST(test_khi_hau_do_ngay_khi_noi_va_gui_state_retain);
   RUN_TEST(test_khi_hau_do_moi_10_giay);
   RUN_TEST(test_khi_hau_doc_loi_gui_null);
